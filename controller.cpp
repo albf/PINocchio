@@ -41,7 +41,7 @@ void controller_init() {
 }
 
 void send_request(MSG msg) {
-    cerr << "[tid:" << msg.tid << "] sent request: " << msg.msg_type << std::endl;
+    //cerr << "[tid:" << msg.tid << "] sent request: " << msg.msg_type << std::endl;
 
     // First, lock msg_mutex, will only unlock after controller.
     PIN_MutexLock(&msg_mutex);
@@ -68,14 +68,14 @@ static int get_lower_state() {
 }
 
 static void flush() {
-    cerr << "[Controller] Flushing" << std::endl;
+    //cerr << "[Controller] Flushing" << std::endl;
     for(int i = 0; i < thread_holder.max_tid; i++) {
         thread_holder.states[i] = 0;
     }
 }
 
 void controller_main(void * arg) {
-    cerr << "Controller starting" << std::endl;
+    //cerr << "Controller starting" << std::endl;
 
     while(1) {
         // Wait for a request to come
@@ -92,7 +92,7 @@ void controller_main(void * arg) {
         }
         else if (msg_buffer.msg_type == MSG_DONE) {
             // Thread has finish, give more work!
-            cerr << "[Controller] Received done from: " << msg_buffer.tid << std::endl;
+            //cerr << "[Controller] Received done from: " << msg_buffer.tid << std::endl;
 
             // If state 0: business as usual
             if(thread_holder.states[msg_buffer.tid] == 0) {
@@ -111,7 +111,7 @@ void controller_main(void * arg) {
             }
             // If work is done and can't flush, delay
             else {
-                cerr << "[Controller] Delaying tid: " << msg_buffer.tid << std::endl;
+                //cerr << "[Controller] Delaying tid: " << msg_buffer.tid << std::endl;
                 all_threads[msg_buffer.tid].ins_max = INSTRUCTIONS_ON_DELAY;
             }
         }

@@ -4,6 +4,7 @@
 // Pin related
 #include <unistd.h>
 #include <iostream>
+#include <pthread.h>
 #include "pin.H"
 
 std::ostream * out = &cerr;
@@ -17,6 +18,65 @@ INT32 Usage() {
     return -1;
 }
 
+VOID before_mutex_lock(pthread_mutex_t *mutex, THREADID tid) {
+    *out << "MUTEX on " << tid << std::endl;
+    *out << "before_mutex_lock: " << mutex << std::endl;
+}
+
+
+VOID before_mutex_trylock(pthread_mutex_t *mutex, THREADID tid) {
+    *out << "MUTEX on " << tid << std::endl;
+    *out << "before_try_lock: " << mutex << std::endl;
+}
+
+VOID before_mutex_unlock(pthread_mutex_t *mutex, THREADID tid) {
+    *out << "MUTEX on " << tid << std::endl;
+    *out << "before_unlock: " << mutex << std::endl;
+}
+
+VOID module_load_handler (IMG img, void * v) {
+    *out << "module_load_handler" << std::endl;
+    if (img == IMG_Invalid()) {
+        *out << "ModuleLoadallback received invalid IMG" << std::endl;
+        return;
+    }
+
+    RTN rtn;
+
+    // Look for pthread_mutex_lock
+    rtn = RTN_FindByName(img, "pthread_mutex_lock");
+    if (RTN_Valid(rtn)) {
+        *out << "Found pthread_mutex_lock on image" << std::endl;
+        RTN_Open(rtn);
+        RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)before_mutex_lock,
+        IARG_FUNCARG_ENTRYPOINT_VALUE, 0, IARG_THREAD_ID, IARG_END);
+        RTN_Close(rtn);
+        *out << "pthread_mutex_lock registered" << std::endl;
+    }
+
+    // Look for pthread_mutex_trylock
+    rtn = RTN_FindByName(img, "pthread_mutex_trylock");
+    if (RTN_Valid(rtn)) {
+        *out << "Found pthread_mutex_trylock on image" << std::endl;
+        RTN_Open(rtn);
+        RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)before_mutex_trylock,
+        IARG_FUNCARG_ENTRYPOINT_VALUE, 0, IARG_THREAD_ID, IARG_END);
+        RTN_Close(rtn);
+        *out << "pthread_mutex_trylock registered" << std::endl;
+    }
+
+    // Look for pthread_mutex_unlock
+    rtn = RTN_FindByName(img, "pthread_mutex_unlock");
+    if (RTN_Valid(rtn)) {
+        *out << "Found pthread_mutex_unlock on image" << std::endl;
+        RTN_Open(rtn);
+        RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)before_mutex_unlock,
+        IARG_FUNCARG_ENTRYPOINT_VALUE, 0, IARG_THREAD_ID, IARG_END);
+        RTN_Close(rtn);
+        *out << "pthread_mutex_unlock registered" << std::endl;
+    }
+}
+
 // Run at thread start
 VOID thread_start(THREADID thread_id, CONTEXT *ctxt, INT32 flags, VOID *v) {
     *out << "[PINocchio] Thread Initialized: " << thread_id << std::endl;
@@ -24,7 +84,7 @@ VOID thread_start(THREADID thread_id, CONTEXT *ctxt, INT32 flags, VOID *v) {
     // Check if thread id is under limit
     if(thread_id >= MAX_THREADS) {
         *out << "[PINocchio] Internal error: thread_id not allowed: " << thread_id << std::endl;
-         return fail();
+         fail();
     }
 
     // Send register to controller
@@ -88,6 +148,10 @@ int main(int argc, char *argv[]) {
 
     // Handler for thread creation
     PIN_AddThreadStartFunction(thread_start, 0);
+
+    // Handler for mutex functions
+    PIN_InitSymbols();
+    IMG_AddInstrumentFunction(module_load_handler, NULL);
 
     // Handler for exit
     PIN_AddFiniFunction(Fini, 0);

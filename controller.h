@@ -5,9 +5,9 @@
 
 // Major settings regarding sync and round size
 #define MAX_THREADS 1024             // Max number of spawned threads by application
-#define INSTRUCTIONS_ON_ROUND 100000 // Number of instructions to be executed per round
+#define INSTRUCTIONS_ON_ROUND 1      // Number of instructions to be executed per round
 #define INSTRUCTIONS_ON_DELAY 0      // Instructions to be executed on a delay (to be revisited)
-#define MAX_DELAYS 500               // Max number of delays on a given thread
+#define MAX_DELAYS 1000              // Max number of delays on a given thread
 
 // Holds information of all thread
 typedef struct _THREAD_INFO THREAD_INFO;
@@ -25,19 +25,24 @@ extern THREAD_INFO * all_threads;
 extern PIN_MUTEX msg_mutex;
 extern PIN_MUTEX controller_mutex;
 
+// MSG types
+typedef enum {
+               MSG_REGISTER,
+               MSG_DONE,
+               MSG_LOCK,
+               MSG_TRY_LOCK,
+               MSG_UNLOCK
+             } MSG_TYPE;
+
 // MSG struct
 typedef struct _MSG MSG;
 struct _MSG {
     INT64 tid;
-    INT64 msg_type;
+    MSG_TYPE msg_type;
 };
 
 // MSG buffer
 extern MSG msg_buffer;
-
-// MSG types
-#define MSG_REGISTER 0
-#define MSG_DONE 1
 
 // Temporary structure to force sync
 typedef struct _HOLDER HOLDER;

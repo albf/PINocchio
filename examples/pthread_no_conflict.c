@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define COUNT_MAX 10000000
+#define COUNT_MAX 10
 
 /* Dummy thread function */
 void *inc_x(void *x_void_ptr) {
