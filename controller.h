@@ -9,6 +9,14 @@
 #define INSTRUCTIONS_ON_DELAY 0      // Instructions to be executed on a delay (to be revisited)
 #define MAX_DELAYS 1000              // Max number of delays on a given thread
 
+// --- Thread info ---
+
+// Indicate current thread status regarding lock
+typedef enum {
+    LOCKED = 0,    // Waiting within a lock
+    UNLOCKED = 1,  // Running other stuff free
+}   THREAD_STATUS;
+
 // Holds information of all thread
 typedef struct _THREAD_INFO THREAD_INFO;
 struct _THREAD_INFO {
@@ -16,10 +24,21 @@ struct _THREAD_INFO {
     INT64 ins_max;
     // Number of instructions executed on current
     INT64 ins_count;
-    // LCM created struct
+    // Mutex used to wait controller answer
     PIN_MUTEX wait_controller;
+
+    // Current Status
+    THREAD_STATUS status;
+
+    // Linked list, used if on a waiting queue
+    _THREAD_INFO * next;
 };
+
+// THREAD_INFO declared on controller.h should be visible
+// to all files, including log and mutex hash.
 extern THREAD_INFO * all_threads;
+
+// --- Communication related ---
 
 // Used to lock controller and msg
 extern PIN_MUTEX msg_mutex;
@@ -43,6 +62,8 @@ struct _MSG {
 
 // MSG buffer
 extern MSG msg_buffer;
+
+// --- HOLDER --- TODO: Remove holder use
 
 // Temporary structure to force sync
 typedef struct _HOLDER HOLDER;
