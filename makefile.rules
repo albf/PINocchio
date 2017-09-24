@@ -70,6 +70,9 @@ SANITY_SUBSET := $(TEST_TOOL_ROOTS) $(TEST_ROOTS)
 ##############################################################
 
 # Build the intermediate object file.
+$(OBJDIR)lockhash$(OBJ_SUFFIX): lockhash.cpp controller.h uthash.h
+	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
+
 $(OBJDIR)controller$(OBJ_SUFFIX): controller.cpp controller.h
 	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
 
@@ -77,7 +80,7 @@ $(OBJDIR)PINocchio$(OBJ_SUFFIX): PINocchio.cpp controller.h
 	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
 
 # Build the tool as a dll (shared object).
-$(OBJDIR)PINocchio$(PINTOOL_SUFFIX): $(OBJDIR)controller$(OBJ_SUFFIX) $(OBJDIR)PINocchio$(OBJ_SUFFIX)
+$(OBJDIR)PINocchio$(PINTOOL_SUFFIX): $(OBJDIR)controller$(OBJ_SUFFIX) $(OBJDIR)lockhash$(OBJ_SUFFIX) $(OBJDIR)PINocchio$(OBJ_SUFFIX)
 	$(LINKER) $(TOOL_LDFLAGS_NOOPT) -llcm $(LINK_EXE)$@ $(^:%.h=) $(TOOL_LPATHS) $(TOOL_LIBS)
 
 # This section contains the build rules for all binaries that have special build rules.
