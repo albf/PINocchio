@@ -19,19 +19,39 @@ INT32 Usage() {
 }
 
 VOID before_mutex_lock(pthread_mutex_t *mutex, THREADID tid) {
+    all_threads[tid].holder = mutex;
     *out << "MUTEX on " << tid << std::endl;
     *out << "before_mutex_lock: " << mutex << std::endl;
 }
 
+VOID after_mutex_lock(pthread_mutex_t *mutex, THREADID tid) {
+    mutex = all_threads[tid].holder;
+    *out << "MUTEX on " << tid << std::endl;
+    *out << "after_mutex_lock: " << mutex << std::endl;
+}
 
 VOID before_mutex_trylock(pthread_mutex_t *mutex, THREADID tid) {
+    all_threads[tid].holder = mutex;
     *out << "MUTEX on " << tid << std::endl;
     *out << "before_try_lock: " << mutex << std::endl;
 }
 
+VOID after_mutex_trylock(pthread_mutex_t *mutex, THREADID tid) {
+    mutex = all_threads[tid].holder;
+    *out << "MUTEX on " << tid << std::endl;
+    *out << "after_try_lock: " << mutex << std::endl;
+}
+
 VOID before_mutex_unlock(pthread_mutex_t *mutex, THREADID tid) {
+    all_threads[tid].holder = mutex;
     *out << "MUTEX on " << tid << std::endl;
     *out << "before_unlock: " << mutex << std::endl;
+}
+
+VOID after_mutex_unlock(pthread_mutex_t *mutex, THREADID tid) {
+    mutex = all_threads[tid].holder;
+    *out << "MUTEX on " << tid << std::endl;
+    *out << "after_unlock: " << mutex << std::endl;
 }
 
 VOID module_load_handler (IMG img, void * v) {
@@ -49,7 +69,11 @@ VOID module_load_handler (IMG img, void * v) {
         *out << "Found pthread_mutex_lock on image" << std::endl;
         RTN_Open(rtn);
         RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)before_mutex_lock,
-        IARG_FUNCARG_ENTRYPOINT_VALUE, 0, IARG_THREAD_ID, IARG_END);
+                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                       IARG_THREAD_ID, IARG_END);
+        RTN_InsertCall(rtn, IPOINT_AFTER, (AFUNPTR)after_mutex_lock,
+                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                       IARG_THREAD_ID, IARG_END);
         RTN_Close(rtn);
         *out << "pthread_mutex_lock registered" << std::endl;
     }
@@ -60,7 +84,11 @@ VOID module_load_handler (IMG img, void * v) {
         *out << "Found pthread_mutex_trylock on image" << std::endl;
         RTN_Open(rtn);
         RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)before_mutex_trylock,
-        IARG_FUNCARG_ENTRYPOINT_VALUE, 0, IARG_THREAD_ID, IARG_END);
+                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                       IARG_THREAD_ID, IARG_END);
+        RTN_InsertCall(rtn, IPOINT_AFTER, (AFUNPTR)after_mutex_trylock,
+                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                       IARG_THREAD_ID, IARG_END);
         RTN_Close(rtn);
         *out << "pthread_mutex_trylock registered" << std::endl;
     }
@@ -71,7 +99,11 @@ VOID module_load_handler (IMG img, void * v) {
         *out << "Found pthread_mutex_unlock on image" << std::endl;
         RTN_Open(rtn);
         RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)before_mutex_unlock,
-        IARG_FUNCARG_ENTRYPOINT_VALUE, 0, IARG_THREAD_ID, IARG_END);
+                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                       IARG_THREAD_ID, IARG_END);
+        RTN_InsertCall(rtn, IPOINT_AFTER, (AFUNPTR)after_mutex_unlock,
+                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                       IARG_THREAD_ID, IARG_END);
         RTN_Close(rtn);
         *out << "pthread_mutex_unlock registered" << std::endl;
     }

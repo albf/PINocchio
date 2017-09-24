@@ -1,6 +1,7 @@
 #ifndef CONTROLLER_H_
 #define CONTROLLER_H_
 
+#include <pthread.h>
 #include "pin.H"
 
 // Major settings regarding sync and round size
@@ -24,6 +25,8 @@ struct _THREAD_INFO {
     INT64 ins_max;
     // Number of instructions executed on current
     INT64 ins_count;
+    // Saves mutexes from being dirty between before_mutex* and after_mutex* calls
+    pthread_mutex_t* holder;
     // Mutex used to wait controller answer
     PIN_MUTEX wait_controller;
 
