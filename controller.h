@@ -49,12 +49,15 @@ extern PIN_MUTEX controller_mutex;
 
 // MSG types
 typedef enum {
-               MSG_REGISTER,
-               MSG_DONE,
-               MSG_LOCK,
-               MSG_TRY_LOCK,
-               MSG_UNLOCK
-             } MSG_TYPE;
+    MSG_DONE,
+    MSG_REGISTER,
+    MSG_BEFORE_LOCK,
+    MSG_BEFORE_TRY_LOCK,
+    MSG_BEFORE_UNLOCK,
+    MSG_AFTER_LOCK,
+    MSG_AFTER_TRY_LOCK,
+    MSG_AFTER_UNLOCK
+} MSG_TYPE;
 
 // MSG struct
 typedef struct _MSG MSG;

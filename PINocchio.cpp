@@ -20,36 +20,66 @@ INT32 Usage() {
 
 VOID before_mutex_lock(pthread_mutex_t *mutex, THREADID tid) {
     all_threads[tid].holder = mutex;
+    MSG msg = {
+        .tid = tid,
+        .msg_type = MSG_BEFORE_LOCK,
+    };
+    send_request(msg);
     *out << "MUTEX on " << tid << std::endl;
     *out << "before_mutex_lock: " << mutex << std::endl;
 }
 
 VOID after_mutex_lock(pthread_mutex_t *mutex, THREADID tid) {
     mutex = all_threads[tid].holder;
+    MSG msg = {
+        .tid = tid,
+        .msg_type = MSG_AFTER_LOCK,
+    };
+    send_request(msg);
     *out << "MUTEX on " << tid << std::endl;
     *out << "after_mutex_lock: " << mutex << std::endl;
 }
 
 VOID before_mutex_trylock(pthread_mutex_t *mutex, THREADID tid) {
     all_threads[tid].holder = mutex;
+    MSG msg = {
+        .tid = tid,
+        .msg_type = MSG_BEFORE_TRY_LOCK,
+    };
+    send_request(msg);
     *out << "MUTEX on " << tid << std::endl;
     *out << "before_try_lock: " << mutex << std::endl;
 }
 
 VOID after_mutex_trylock(pthread_mutex_t *mutex, THREADID tid) {
     mutex = all_threads[tid].holder;
+    MSG msg = {
+        .tid = tid,
+        .msg_type = MSG_AFTER_TRY_LOCK,
+    };
+    send_request(msg);
     *out << "MUTEX on " << tid << std::endl;
     *out << "after_try_lock: " << mutex << std::endl;
 }
 
 VOID before_mutex_unlock(pthread_mutex_t *mutex, THREADID tid) {
     all_threads[tid].holder = mutex;
+    MSG msg = {
+        .tid = tid,
+        .msg_type = MSG_BEFORE_UNLOCK,
+    };
+    send_request(msg);
     *out << "MUTEX on " << tid << std::endl;
     *out << "before_unlock: " << mutex << std::endl;
 }
 
 VOID after_mutex_unlock(pthread_mutex_t *mutex, THREADID tid) {
     mutex = all_threads[tid].holder;
+    MSG msg = {
+        .tid = tid,
+        .msg_type = MSG_AFTER_UNLOCK,
+    };
+    send_request(msg);
     *out << "MUTEX on " << tid << std::endl;
     *out << "after_unlock: " << mutex << std::endl;
 }
@@ -116,7 +146,7 @@ VOID thread_start(THREADID thread_id, CONTEXT *ctxt, INT32 flags, VOID *v) {
     // Check if thread id is under limit
     if(thread_id >= MAX_THREADS) {
         *out << "[PINocchio] Internal error: thread_id not allowed: " << thread_id << std::endl;
-         fail();
+        fail();
     }
 
     // Send register to controller
@@ -176,7 +206,7 @@ int main(int argc, char *argv[]) {
     PIN_SpawnInternalThread(controller_main, 0, 0, &controller_tid);
 
     // Hadler for instructions
-    INS_AddInstrumentFunction(instruction, 0); 
+    INS_AddInstrumentFunction(instruction, 0);
 
     // Handler for thread creation
     PIN_AddThreadStartFunction(thread_start, 0);
@@ -187,7 +217,7 @@ int main(int argc, char *argv[]) {
 
     // Handler for exit
     PIN_AddFiniFunction(Fini, 0);
- 
+
     // PIN_StartProgram() is not expected to return
     PIN_StartProgram();
     return 0;
