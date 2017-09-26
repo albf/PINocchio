@@ -5,6 +5,7 @@
 
 // Global variables used to receive requests
 THREAD_INFO * all_threads;
+int max_tid;
 
 PIN_MUTEX msg_mutex;
 PIN_MUTEX controller_mutex;
@@ -20,6 +21,7 @@ void fail() {
 void controller_init() {
     // Initialize thread information
     all_threads = (THREAD_INFO *) malloc(MAX_THREADS*sizeof(THREAD_INFO));
+    max_tid = -1;
 
     // Initialize thread states information
     thread_holder.max_tid = -1;
@@ -86,8 +88,9 @@ void controller_main(void * arg) {
             cerr << "[Controller] Received register from: " << msg_buffer.tid << std::endl;
 
             // Update holder max_tid if a bigger arrived
-            if (thread_holder.max_tid > msg_buffer.tid) {
+            if (max_tid > msg_buffer.tid) {
                 thread_holder.max_tid = msg_buffer.tid;
+                max_tid = msg_buffer.tid;
             }
         }
         else if (msg_buffer.msg_type == MSG_DONE) {
