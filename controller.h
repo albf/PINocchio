@@ -7,16 +7,21 @@
 // Major settings regarding sync and round size
 #define MAX_THREADS 1024             // Max number of spawned threads by application
 #define INSTRUCTIONS_ON_ROUND 1      // Number of instructions to be executed per round
-#define INSTRUCTIONS_ON_DELAY 0      // Instructions to be executed on a delay (to be revisited)
-#define MAX_DELAYS 1000              // Max number of delays on a given thread
 
 // --- Thread info ---
 
 // Indicate current thread status regarding lock
 typedef enum {
-    LOCKED = 0,    // Waiting within a lock
-    UNLOCKED = 1,  // Running other stuff free
+    LOCKED = 0,       // Waiting within a lock
+    UNLOCKED = 1,     // Running other stuff free
+    UNREGISTERED = 2, // Not registered yet, must use message
 }   THREAD_STATUS;
+
+// Indicate current state within te step, executed it or not
+typedef enum {
+    STEP_MISS = 0,
+    STEP_DONE = 1,
+}   STEP_STATUS;
 
 // Holds information of all thread
 typedef struct _THREAD_INFO THREAD_INFO;
@@ -32,6 +37,7 @@ struct _THREAD_INFO {
 
     // Current Status
     THREAD_STATUS status;
+    STEP_STATUS step_status;
 
     // Linked list, used if on a waiting queue
     _THREAD_INFO * next;
@@ -70,19 +76,6 @@ struct _MSG {
 
 // MSG buffer
 extern MSG msg_buffer;
-
-// --- HOLDER --- TODO: Remove holder use
-
-// Temporary structure to force sync
-typedef struct _HOLDER HOLDER;
-struct _HOLDER {
-    int * states;
-
-    // flushes counter
-    int sync_flushes;
-    int delayed_flushes;
-};
-extern HOLDER thread_holder;
 
 // Function used to when instrumentation should stop
 void fail();

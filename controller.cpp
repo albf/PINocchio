@@ -13,8 +13,6 @@ PIN_MUTEX controller_mutex;
 
 MSG msg_buffer;
 
-HOLDER thread_holder;
-
 void fail() {
     PIN_Detach();
 }
@@ -26,12 +24,12 @@ void controller_init() {
 
     // Initialize thread states information
     max_tid = -1;
-    thread_holder.states = (int *) malloc(MAX_THREADS*sizeof(int));
-    thread_holder.sync_flushes = 0;
-    thread_holder.delayed_flushes = 0;
 
     // Initialize thread, msg and read mutex
     for(int i=0; i < MAX_THREADS; i++) {
+        all_threads[i].step_status = STEP_MISS;
+        all_threads[i].status = UNREGISTERED;
+
         PIN_MutexInit(&all_threads[i].wait_controller);
         // wait_controllers start locked
         PIN_MutexLock(&all_threads[i].wait_controller);
@@ -60,21 +58,28 @@ void send_request(MSG msg) {
     PIN_MutexUnlock(&msg_mutex);
 }
 
-static int get_lower_state() {
-    int l = MAX_DELAYS+1;
-    for(int i = 0; i < max_tid; i++) {
-        if(thread_holder.states[i] < l) {
-            l = thread_holder.states[i];
-        }
+// Returns 1 if can continue, 0 otherwise.
+static int can_continue() {
+    for(int i = 0; i <= max_tid; i++) {
+        if((all_threads[msg_buffer.tid].step_status != STEP_DONE)
+         &&(all_threads[msg_buffer.tid].status == UNLOCKED)) {
+            return 0;
+        } 
     }
-    return l;
+    return 1;
 }
 
-static void flush() {
-    //cerr << "[Controller] Flushing" << std::endl;
-    for(int i = 0; i < max_tid; i++) {
-        thread_holder.states[i] = 0;
-    }
+// Release a locked thread waiting for permission
+static void release_thread(int tid) {
+    // Reset ins_count and update current state
+    all_threads[tid].ins_max = INSTRUCTIONS_ON_ROUND;
+    all_threads[tid].ins_count = 0;
+
+    // Release thread lock
+    PIN_MutexUnlock(&all_threads[msg_buffer.tid].wait_controller);
+
+    // Mark step status as missing answer
+    all_threads[tid].step_status = STEP_MISS;
 }
 
 void controller_main(void * arg) {
@@ -90,46 +95,19 @@ void controller_main(void * arg) {
                 cerr << "[Controller] Received register from: " << msg_buffer.tid << std::endl;
 
                 // Update holder max_tid if a bigger arrived
-                if (max_tid > msg_buffer.tid) {
-                    max_tid = msg_buffer.tid;
+                if (max_tid < msg_buffer.tid) {
                     max_tid = msg_buffer.tid;
                 }
 
-                // Release thread lock
+                // Mark as unlocked
+                all_threads[msg_buffer.tid].status = UNLOCKED;
+
+                // End request
                 PIN_MutexUnlock(&all_threads[msg_buffer.tid].wait_controller);
                 break;
             case MSG_DONE:
-                // Thread has finish, give more work!
-                //cerr << "[Controller] Received done from: " << msg_buffer.tid << std::endl;
-
-                // If state 0: business as usual
-                if(thread_holder.states[msg_buffer.tid] == 0) {
-                    all_threads[msg_buffer.tid].ins_max = INSTRUCTIONS_ON_ROUND;
-                }
-                // If state >= MAX_DELAYS or lower state > 0 -> flush
-                else if (thread_holder.states[msg_buffer.tid] >= MAX_DELAYS) {
-                    thread_holder.delayed_flushes++;
-                    flush();
-                    all_threads[msg_buffer.tid].ins_max = INSTRUCTIONS_ON_ROUND;
-                }
-                else if (get_lower_state() > 0) {
-                    thread_holder.sync_flushes++;
-                    flush();
-                    all_threads[msg_buffer.tid].ins_max = INSTRUCTIONS_ON_ROUND;
-                }
-                // If work is done and can't flush, delay
-                else {
-                    //cerr << "[Controller] Delaying tid: " << msg_buffer.tid << std::endl;
-                    all_threads[msg_buffer.tid].ins_max = INSTRUCTIONS_ON_DELAY;
-                }
-
-                // Reset ins_count and update current state
-                all_threads[msg_buffer.tid].ins_count = 0;
-                thread_holder.states[msg_buffer.tid]++;
-
-                // Release thread lock
-                PIN_MutexUnlock(&all_threads[msg_buffer.tid].wait_controller);
-
+                // Thread has finish, mark as step_done! 
+                all_threads[msg_buffer.tid].step_status = STEP_DONE;
                 break;
             // Mutex events should be treated by lockhash.
             case MSG_BEFORE_LOCK:
@@ -156,6 +134,15 @@ void controller_main(void * arg) {
                 handle_after_unlock(msg_buffer.arg, msg_buffer.tid);
                 break;
 
+        }
+
+        // Check if everyone finished, if yes, release them to run a new step.
+        if(can_continue() > 0) {
+            for(int i = 0; i <= max_tid; i++) {
+                if(all_threads[msg_buffer.tid].status == UNLOCKED) {
+                    release_thread(msg_buffer.tid);
+                }
+            }
         }
     }
 }

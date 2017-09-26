@@ -171,8 +171,6 @@ VOID thread_start(THREADID thread_id, CONTEXT *ctxt, INT32 flags, VOID *v) {
 VOID Fini(INT32 code, VOID *v) {
     *out << "===============================================" << std::endl;
     *out << " PINocchio exiting " << std::endl;
-    *out << " -- Sync Flushes    : " << thread_holder.sync_flushes << std::endl;
-    *out << " -- Delayed Flushes : " << thread_holder.delayed_flushes << std::endl;
     *out << "===============================================" << std::endl;
 }
 
