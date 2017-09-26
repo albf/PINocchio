@@ -2,6 +2,7 @@
 #include <iostream>
 #include "pin.H"
 #include "controller.h"
+#include "lockhash.h"
 
 // Global variables used to receive requests
 THREAD_INFO * all_threads;
@@ -83,47 +84,78 @@ void controller_main(void * arg) {
         // Wait for a request to come
         PIN_MutexLock(&controller_mutex);
 
-        if (msg_buffer.msg_type == MSG_REGISTER) {
-            // Register arrived with id
-            cerr << "[Controller] Received register from: " << msg_buffer.tid << std::endl;
+        switch(msg_buffer.msg_type) {
+            case MSG_REGISTER:
+                // Register arrived with id
+                cerr << "[Controller] Received register from: " << msg_buffer.tid << std::endl;
 
-            // Update holder max_tid if a bigger arrived
-            if (max_tid > msg_buffer.tid) {
-                thread_holder.max_tid = msg_buffer.tid;
-                max_tid = msg_buffer.tid;
-            }
+                // Update holder max_tid if a bigger arrived
+                if (max_tid > msg_buffer.tid) {
+                    thread_holder.max_tid = msg_buffer.tid;
+                    max_tid = msg_buffer.tid;
+                }
+
+                // Release thread lock
+                PIN_MutexUnlock(&all_threads[msg_buffer.tid].wait_controller);
+                break;
+            case MSG_DONE:
+                // Thread has finish, give more work!
+                //cerr << "[Controller] Received done from: " << msg_buffer.tid << std::endl;
+
+                // If state 0: business as usual
+                if(thread_holder.states[msg_buffer.tid] == 0) {
+                    all_threads[msg_buffer.tid].ins_max = INSTRUCTIONS_ON_ROUND;
+                }
+                // If state >= MAX_DELAYS or lower state > 0 -> flush
+                else if (thread_holder.states[msg_buffer.tid] >= MAX_DELAYS) {
+                    thread_holder.delayed_flushes++;
+                    flush();
+                    all_threads[msg_buffer.tid].ins_max = INSTRUCTIONS_ON_ROUND;
+                }
+                else if (get_lower_state() > 0) {
+                    thread_holder.sync_flushes++;
+                    flush();
+                    all_threads[msg_buffer.tid].ins_max = INSTRUCTIONS_ON_ROUND;
+                }
+                // If work is done and can't flush, delay
+                else {
+                    //cerr << "[Controller] Delaying tid: " << msg_buffer.tid << std::endl;
+                    all_threads[msg_buffer.tid].ins_max = INSTRUCTIONS_ON_DELAY;
+                }
+
+                // Reset ins_count and update current state
+                all_threads[msg_buffer.tid].ins_count = 0;
+                thread_holder.states[msg_buffer.tid]++;
+
+                // Release thread lock
+                PIN_MutexUnlock(&all_threads[msg_buffer.tid].wait_controller);
+
+                break;
+            // Mutex events should be treated by lockhash.
+            case MSG_BEFORE_LOCK:
+                handle_before_lock(msg_buffer.arg, msg_buffer.tid);
+                break;
+
+            case MSG_BEFORE_TRY_LOCK:
+                handle_before_try(msg_buffer.arg, msg_buffer.tid);
+                break;
+
+            case MSG_BEFORE_UNLOCK:
+                handle_before_unlock(msg_buffer.arg, msg_buffer.tid);
+                break;
+
+            case MSG_AFTER_LOCK:
+                handle_after_lock(msg_buffer.arg, msg_buffer.tid);
+                break;
+
+            case MSG_AFTER_TRY_LOCK:
+                handle_after_try(msg_buffer.arg, msg_buffer.tid);
+                break;
+
+            case MSG_AFTER_UNLOCK:
+                handle_after_unlock(msg_buffer.arg, msg_buffer.tid);
+                break;
+
         }
-        else if (msg_buffer.msg_type == MSG_DONE) {
-            // Thread has finish, give more work!
-            //cerr << "[Controller] Received done from: " << msg_buffer.tid << std::endl;
-
-            // If state 0: business as usual
-            if(thread_holder.states[msg_buffer.tid] == 0) {
-                all_threads[msg_buffer.tid].ins_max = INSTRUCTIONS_ON_ROUND;
-            }
-            // If state >= MAX_DELAYS or lower state > 0 -> flush
-            else if (thread_holder.states[msg_buffer.tid] >= MAX_DELAYS) {
-                thread_holder.delayed_flushes++;
-                flush();
-                all_threads[msg_buffer.tid].ins_max = INSTRUCTIONS_ON_ROUND;
-            }
-            else if (get_lower_state() > 0) {
-                thread_holder.sync_flushes++;
-                flush();
-                all_threads[msg_buffer.tid].ins_max = INSTRUCTIONS_ON_ROUND;
-            }
-            // If work is done and can't flush, delay
-            else {
-                //cerr << "[Controller] Delaying tid: " << msg_buffer.tid << std::endl;
-                all_threads[msg_buffer.tid].ins_max = INSTRUCTIONS_ON_DELAY;
-            }
-        }
-
-        // Reset ins_count and update current state
-        all_threads[msg_buffer.tid].ins_count = 0;
-        thread_holder.states[msg_buffer.tid]++;
-
-        // Release thread lock
-        PIN_MutexUnlock(&all_threads[msg_buffer.tid].wait_controller);
     }
 }
