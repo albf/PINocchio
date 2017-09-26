@@ -25,7 +25,7 @@ void controller_init() {
     max_tid = -1;
 
     // Initialize thread states information
-    thread_holder.max_tid = -1;
+    max_tid = -1;
     thread_holder.states = (int *) malloc(MAX_THREADS*sizeof(int));
     thread_holder.sync_flushes = 0;
     thread_holder.delayed_flushes = 0;
@@ -62,7 +62,7 @@ void send_request(MSG msg) {
 
 static int get_lower_state() {
     int l = MAX_DELAYS+1;
-    for(int i = 0; i < thread_holder.max_tid; i++) {
+    for(int i = 0; i < max_tid; i++) {
         if(thread_holder.states[i] < l) {
             l = thread_holder.states[i];
         }
@@ -72,7 +72,7 @@ static int get_lower_state() {
 
 static void flush() {
     //cerr << "[Controller] Flushing" << std::endl;
-    for(int i = 0; i < thread_holder.max_tid; i++) {
+    for(int i = 0; i < max_tid; i++) {
         thread_holder.states[i] = 0;
     }
 }
@@ -91,7 +91,7 @@ void controller_main(void * arg) {
 
                 // Update holder max_tid if a bigger arrived
                 if (max_tid > msg_buffer.tid) {
-                    thread_holder.max_tid = msg_buffer.tid;
+                    max_tid = msg_buffer.tid;
                     max_tid = msg_buffer.tid;
                 }
 

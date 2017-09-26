@@ -76,7 +76,6 @@ extern MSG msg_buffer;
 // Temporary structure to force sync
 typedef struct _HOLDER HOLDER;
 struct _HOLDER {
-    int max_tid;
     int * states;
 
     // flushes counter
