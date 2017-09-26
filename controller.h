@@ -65,6 +65,7 @@ typedef struct _MSG MSG;
 struct _MSG {
     INT64 tid;
     MSG_TYPE msg_type;
+    void * arg;
 };
 
 // MSG buffer

@@ -23,6 +23,7 @@ VOID before_mutex_lock(pthread_mutex_t *mutex, THREADID tid) {
     MSG msg = {
         .tid = tid,
         .msg_type = MSG_BEFORE_LOCK,
+        .arg = (void *) mutex,
     };
     send_request(msg);
     *out << "MUTEX on " << tid << std::endl;
@@ -34,6 +35,7 @@ VOID after_mutex_lock(pthread_mutex_t *mutex, THREADID tid) {
     MSG msg = {
         .tid = tid,
         .msg_type = MSG_AFTER_LOCK,
+        .arg = (void *) mutex,
     };
     send_request(msg);
     *out << "MUTEX on " << tid << std::endl;
@@ -45,6 +47,7 @@ VOID before_mutex_trylock(pthread_mutex_t *mutex, THREADID tid) {
     MSG msg = {
         .tid = tid,
         .msg_type = MSG_BEFORE_TRY_LOCK,
+        .arg = (void *) mutex,
     };
     send_request(msg);
     *out << "MUTEX on " << tid << std::endl;
@@ -56,6 +59,7 @@ VOID after_mutex_trylock(pthread_mutex_t *mutex, THREADID tid) {
     MSG msg = {
         .tid = tid,
         .msg_type = MSG_AFTER_TRY_LOCK,
+        .arg = (void *) mutex,
     };
     send_request(msg);
     *out << "MUTEX on " << tid << std::endl;
@@ -67,6 +71,7 @@ VOID before_mutex_unlock(pthread_mutex_t *mutex, THREADID tid) {
     MSG msg = {
         .tid = tid,
         .msg_type = MSG_BEFORE_UNLOCK,
+        .arg = (void *) mutex,
     };
     send_request(msg);
     *out << "MUTEX on " << tid << std::endl;
@@ -78,6 +83,7 @@ VOID after_mutex_unlock(pthread_mutex_t *mutex, THREADID tid) {
     MSG msg = {
         .tid = tid,
         .msg_type = MSG_AFTER_UNLOCK,
+        .arg = (void *) mutex,
     };
     send_request(msg);
     *out << "MUTEX on " << tid << std::endl;
@@ -153,6 +159,7 @@ VOID thread_start(THREADID thread_id, CONTEXT *ctxt, INT32 flags, VOID *v) {
     MSG my_msg = {
         .tid = thread_id,
         .msg_type = MSG_REGISTER,
+        .arg = NULL,
     };
     send_request(my_msg);
 
