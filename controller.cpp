@@ -61,8 +61,8 @@ void send_request(MSG msg) {
 // Returns 1 if can continue, 0 otherwise.
 static int can_continue() {
     for(int i = 0; i <= max_tid; i++) {
-        if((all_threads[msg_buffer.tid].step_status != STEP_DONE)
-         &&(all_threads[msg_buffer.tid].status == UNLOCKED)) {
+        if((all_threads[i].step_status != STEP_DONE)
+         &&(all_threads[i].status == UNLOCKED)) {
             return 0;
         } 
     }
