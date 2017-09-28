@@ -76,7 +76,7 @@ static void release_thread(int tid) {
     all_threads[tid].ins_count = 0;
 
     // Release thread lock
-    PIN_MutexUnlock(&all_threads[msg_buffer.tid].wait_controller);
+    PIN_MutexUnlock(&all_threads[tid].wait_controller);
 
     // Mark step status as missing answer
     all_threads[tid].step_status = STEP_MISS;
@@ -139,8 +139,8 @@ void controller_main(void * arg) {
         // Check if everyone finished, if yes, release them to run a new step.
         if(can_continue() > 0) {
             for(int i = 0; i <= max_tid; i++) {
-                if(all_threads[msg_buffer.tid].status == UNLOCKED) {
-                    release_thread(msg_buffer.tid);
+                if(all_threads[i].status == UNLOCKED) {
+                    release_thread(i);
                 }
             }
         }
