@@ -59,7 +59,7 @@ void send_request(MSG msg) {
 }
 
 // Returns 1 if can continue, 0 otherwise.
-static int can_continue() {
+static int is_syncronized() {
     for(int i = 0; i <= max_tid; i++) {
         if((all_threads[i].step_status != STEP_DONE)
          &&(all_threads[i].status == UNLOCKED)) {
@@ -69,10 +69,21 @@ static int can_continue() {
     return 1;
 }
 
+// Returns 1 if all threads have finished, 0 otherwise.
+static int is_finished() {
+    for(int i=0; i<= max_tid; i++){
+        if(all_threads[i].status != FINISHED){
+            return 0;
+        }
+    }
+    return 1;
+}
+
+
 // Release a locked thread waiting for permission
-static void release_thread(int tid) {
+static void release_thread(int tid, INT64 instructions) {
     // Reset ins_count and update current state
-    all_threads[tid].ins_max = INSTRUCTIONS_ON_ROUND;
+    all_threads[tid].ins_max = instructions;
     all_threads[tid].ins_count = 0;
 
     // Release thread lock
@@ -87,8 +98,8 @@ void controller_main(void * arg) {
 
     while(1) {
         // Wait for a request to come
-        PIN_MutexLock(&controller_mutex);
-
+       	PIN_MutexLock(&controller_mutex);
+	
         switch(msg_buffer.msg_type) {
             case MSG_REGISTER:
                 // Register arrived with id
@@ -105,8 +116,25 @@ void controller_main(void * arg) {
                 // End request
                 PIN_MutexUnlock(&all_threads[msg_buffer.tid].wait_controller);
                 break;
+
+            case MSG_FINI:
+                // Anounces a thread completion
+                cerr << "[Controller] Received fini from: " << msg_buffer.tid << std::endl;
+
+                // Mark as finished
+                all_threads[msg_buffer.tid].status = FINISHED;
+                release_thread(msg_buffer.tid, INSTRUCTIONS_ON_EXIT);
+
+                // Check if all threads have finished
+                if( is_finished() == 1){
+                    cerr << "[Controller] Program finished." << std::endl;
+                    return; 
+                 }
+
+                break;
+
             case MSG_DONE:
-                // Thread has finish, mark as step_done! 
+                // Thread has finished one step, mark as done
                 all_threads[msg_buffer.tid].step_status = STEP_DONE;
                 break;
             // Mutex events should be treated by lockhash.
@@ -137,10 +165,10 @@ void controller_main(void * arg) {
         }
 
         // Check if everyone finished, if yes, release them to run a new step.
-        if(can_continue() > 0) {
+        if(is_syncronized() > 0) {
             for(int i = 0; i <= max_tid; i++) {
                 if(all_threads[i].status == UNLOCKED) {
-                    release_thread(i);
+                    release_thread(i, INSTRUCTIONS_ON_ROUND);
                 }
             }
         }

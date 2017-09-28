@@ -5,8 +5,10 @@
 #include "pin.H"
 
 // Major settings regarding sync and round size
-#define MAX_THREADS 1024             // Max number of spawned threads by application
-#define INSTRUCTIONS_ON_ROUND 1      // Number of instructions to be executed per round
+#define MAX_THREADS 128             // Max number of spawned threads by application
+#define INSTRUCTIONS_ON_ROUND 1     // Number of instructions to be executed per round
+#define INSTRUCTIONS_ON_EXIT  10000 // On exit it might get stuck, just give a lot of
+                                    // instructions to let it finish. 
 
 // --- Thread info ---
 
@@ -15,6 +17,7 @@ typedef enum {
     LOCKED = 0,       // Waiting within a lock
     UNLOCKED = 1,     // Running other stuff free
     UNREGISTERED = 2, // Not registered yet, must use message
+    FINISHED = 3,     // Already finished its job	
 }   THREAD_STATUS;
 
 // Indicate current state within te step, executed it or not
@@ -58,6 +61,7 @@ extern PIN_MUTEX controller_mutex;
 typedef enum {
     MSG_DONE,
     MSG_REGISTER,
+    MSG_FINI,
     MSG_BEFORE_LOCK,
     MSG_BEFORE_TRY_LOCK,
     MSG_BEFORE_UNLOCK,

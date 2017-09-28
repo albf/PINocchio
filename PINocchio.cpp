@@ -168,6 +168,17 @@ VOID thread_start(THREADID thread_id, CONTEXT *ctxt, INT32 flags, VOID *v) {
     send_request(my_msg);
 }
 
+VOID thread_fini(THREADID thread_id, CONTEXT const *ctxt, INT32 flags, VOID *v){
+    *out << "[PINocchio] Thread Finished: " << thread_id << std::endl;
+
+    MSG my_msg = {
+        .tid = thread_id,
+        .msg_type = MSG_FINI,
+        .arg = NULL,
+    };
+    send_request(my_msg);
+}
+
 VOID Fini(INT32 code, VOID *v) {
     *out << "===============================================" << std::endl;
     *out << " PINocchio exiting " << std::endl;
@@ -187,7 +198,7 @@ VOID ins_handler() {
         };
         send_request(my_msg);
     }
-    my_thread_info->ins_count++; 
+    my_thread_info->ins_count++;
 }
 
 VOID instruction(INS ins, VOID *v) {
@@ -215,6 +226,9 @@ int main(int argc, char *argv[]) {
 
     // Handler for thread creation
     PIN_AddThreadStartFunction(thread_start, 0);
+
+    // Handler for thread Fini
+    PIN_AddThreadFiniFunction(thread_fini, 0);
 
     // Handler for mutex functions
     PIN_InitSymbols();
