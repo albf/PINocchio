@@ -93,4 +93,7 @@ void send_request(MSG msg);
 // Controller main function, pintool should spawn a thread using it
 void controller_main(void * arg);
 
+// Debug funtion, print thread table on stderr
+void print_threads();
+
 #endif // CONTROLLER_H_

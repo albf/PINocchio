@@ -179,3 +179,14 @@ void controller_main(void * arg) {
         }
     }
 }
+
+void print_threads(){
+   const char *status[] = {"LOCKED", "UNLOCKED", "UNREGISTERED", "FINISHED"};
+   const char *step_status[] = {"STEP_MISS", "STEP_DONE"};
+   cerr << "--------- thread status ---------" << std::endl;
+   for(int i=0; i<=max_tid; i++){
+       cerr << "Thread id: "<< i << " - status: " << status[all_threads[i].status];
+       cerr << " - step status: " << step_status[all_threads[i].step_status] << std::endl;
+   }
+   cerr << "------------------------ " << std::endl;
+}

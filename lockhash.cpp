@@ -1,3 +1,4 @@
+#include <iostream>
 #include "lockhash.h"
 #include "pin.H"
 
@@ -223,4 +224,16 @@ void handle_after_unlock(void * key, INT64 tid) {
         // already enter.
         s->status = M_UNLOCKED;
     }
+}
+
+// Used to debug lock hash states
+void print_hash() {
+    MUTEX_ENTRY * s;
+    const char *status[] = {"M_LOCKED", "M_UNLOCKING", "M_UNLOCKED", "M_UNLOCKING", "M_WAITING"};
+
+    cerr << "--------- mutex table ---------" << std::endl;
+    for (s = mutex_hash; s != NULL; s = (MUTEX_ENTRY *) s->hh.next) {
+        cerr << "Key: " << s->key << " - status: " << status[s->status] << std::endl;
+    }
+    cerr << "--------- ----------- ---------" << std::endl;
 }

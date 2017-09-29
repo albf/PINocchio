@@ -10,12 +10,12 @@ keeping a global value seems cheaper.
 
 // Current lock status
 typedef enum {
-    M_LOCKED,     // Currently locked: accepts try to pass, hold locks attempts.
-    M_LOCKING,    // Someone (only one) is locking either by lock or try_lock
-    M_UNLOCKED,   // Nothing happening, could be locked by a lucky thread.
-    M_UNLOCKING,  // Someone is currently unlocking, but haven't finished yet.  
-    M_WAITING     // Someone is trying to unlock, but there are thread(s) on try_lock.
-                  // Should wait for them to finish, but deny new lock/try call.
+    M_LOCKED = 0,     // Currently locked: accepts try to pass, hold locks attempts.
+    M_LOCKING = 1,    // Someone (only one) is locking either by lock or try_lock
+    M_UNLOCKED = 2,   // Nothing happening, could be locked by a lucky thread.
+    M_UNLOCKING = 3,  // Someone is currently unlocking, but haven't finished yet.
+    M_WAITING = 4,    // Someone is trying to unlock, but there are thread(s) on try_lock.
+                      // Should wait for them to finish, but deny new lock/try call.
 }   LOCK_STATUS;
 
 // Lock hash
@@ -42,3 +42,6 @@ void handle_after_try(void * key, INT64 tid);
 
 void handle_before_unlock(void * key, INT64 tid);
 void handle_after_unlock(void * key, INT64 tid);
+
+// Debug function, print lock hash on stderr
+void print_hash();
