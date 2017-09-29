@@ -72,13 +72,13 @@ static int is_syncronized() {
 // Returns 1 if all threads have finished, 0 otherwise.
 static int is_finished() {
     for(int i=0; i<= max_tid; i++){
-        if(all_threads[i].status != FINISHED){
+        if(all_threads[i].status != FINISHED &&
+           all_threads[i].status != UNREGISTERED){
             return 0;
         }
     }
     return 1;
 }
-
 
 // Release a locked thread waiting for permission
 static void release_thread(int tid, INT64 instructions) {
