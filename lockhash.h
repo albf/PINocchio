@@ -1,3 +1,6 @@
+#ifndef LOCKHASH_H_
+#define LOCKHASH_H_
+
 /*
 lockhash implement a simple hash for mutex pointers, using uthash
 and pintool types. It meant to be used only by controller, since hash
@@ -45,3 +48,5 @@ void handle_after_unlock(void * key, THREADID tid);
 
 // Debug function, print lock hash on stderr
 void print_hash();
+
+#endif
