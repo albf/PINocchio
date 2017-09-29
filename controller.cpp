@@ -115,7 +115,7 @@ void controller_main(void * arg) {
 
                 // End request
                 PIN_MutexUnlock(&all_threads[msg_buffer.tid].wait_controller);
-                break;
+                continue;
 
             case MSG_FINI:
                 // Anounces a thread completion
@@ -129,48 +129,53 @@ void controller_main(void * arg) {
                 if( is_finished() == 1){
                     cerr << "[Controller] Program finished." << std::endl;
                     return; 
-                 }
-
-                break;
+                }
+                continue;
 
             case MSG_DONE:
                 // Thread has finished one step, mark as done
                 all_threads[msg_buffer.tid].step_status = STEP_DONE;
-                break;
-            // Mutex events should be treated by lockhash.
+                // Check if everyone finished, if yes, release them to run a new step.
+                if(is_syncronized() > 0) {
+                    for(int i = 0; i <= max_tid; i++) {
+                        if(all_threads[i].status == UNLOCKED) {
+                            release_thread(i, INSTRUCTIONS_ON_ROUND);
+                        }
+                    }
+                }
+                continue;
+
+            // Mutex events should be treated by lockhash, unlock thread once done.
             case MSG_BEFORE_LOCK:
                 handle_before_lock(msg_buffer.arg, msg_buffer.tid);
-                break;
+                PIN_MutexUnlock(&all_threads[msg_buffer.tid].wait_controller);
+                continue;
 
             case MSG_BEFORE_TRY_LOCK:
                 handle_before_try(msg_buffer.arg, msg_buffer.tid);
-                break;
+                PIN_MutexUnlock(&all_threads[msg_buffer.tid].wait_controller);
+                continue;
 
             case MSG_BEFORE_UNLOCK:
                 handle_before_unlock(msg_buffer.arg, msg_buffer.tid);
-                break;
+                PIN_MutexUnlock(&all_threads[msg_buffer.tid].wait_controller);
+                continue;
 
             case MSG_AFTER_LOCK:
                 handle_after_lock(msg_buffer.arg, msg_buffer.tid);
-                break;
+                PIN_MutexUnlock(&all_threads[msg_buffer.tid].wait_controller);
+                continue;
 
             case MSG_AFTER_TRY_LOCK:
                 handle_after_try(msg_buffer.arg, msg_buffer.tid);
-                break;
+                PIN_MutexUnlock(&all_threads[msg_buffer.tid].wait_controller);
+                continue;
 
             case MSG_AFTER_UNLOCK:
                 handle_after_unlock(msg_buffer.arg, msg_buffer.tid);
-                break;
+                PIN_MutexUnlock(&all_threads[msg_buffer.tid].wait_controller);
+                continue;
 
-        }
-
-        // Check if everyone finished, if yes, release them to run a new step.
-        if(is_syncronized() > 0) {
-            for(int i = 0; i <= max_tid; i++) {
-                if(all_threads[i].status == UNLOCKED) {
-                    release_thread(i, INSTRUCTIONS_ON_ROUND);
-                }
-            }
         }
     }
 }
