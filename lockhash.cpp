@@ -55,7 +55,7 @@ void insert_about_unlock(MUTEX_ENTRY * mutex, THREAD_INFO * entry) {
     mutex->about_unlock = insert(mutex->about_unlock, entry);
 }
 
-void handle_before_lock(void * key, INT64 tid) {
+void handle_before_lock(void * key, THREADID tid) {
     MUTEX_ENTRY * s = get_entry(key);
     THREAD_INFO * t; 
 
@@ -76,7 +76,7 @@ void handle_before_lock(void * key, INT64 tid) {
     }
 }
 
-void handle_after_lock(void * key, INT64 tid) {
+void handle_after_lock(void * key, THREADID tid) {
     MUTEX_ENTRY * s = get_entry(key);
 
     // Should always be on status locking when handle_lock_end is called.
@@ -100,7 +100,7 @@ void handle_after_lock(void * key, INT64 tid) {
     }
 }
 
-void handle_before_try(void * key, INT64 tid) {
+void handle_before_try(void * key, THREADID tid) {
     MUTEX_ENTRY * s = get_entry(key);
     THREAD_INFO * t = &all_threads[tid];
 
@@ -133,7 +133,7 @@ void handle_before_try(void * key, INT64 tid) {
     }
 }
 
-void handle_after_try(void * key, INT64 tid) {
+void handle_after_try(void * key, THREADID tid) {
     MUTEX_ENTRY * s = get_entry(key);
 
     switch (s->status) {
@@ -170,7 +170,7 @@ void handle_after_try(void * key, INT64 tid) {
 }
 
 
-void handle_before_unlock(void * key, INT64 tid) {
+void handle_before_unlock(void * key, THREADID tid) {
     MUTEX_ENTRY * s = get_entry(key);
     THREAD_INFO * t = &all_threads[tid];
 
@@ -205,7 +205,7 @@ void handle_before_unlock(void * key, INT64 tid) {
     }
 }
 
-void handle_after_unlock(void * key, INT64 tid) {
+void handle_after_unlock(void * key, THREADID tid) {
     MUTEX_ENTRY * s = get_entry(key);
 
     // Unlock should always end on the UNLOCKING state.

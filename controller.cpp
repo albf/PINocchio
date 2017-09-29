@@ -1,12 +1,11 @@
 #include <stdio.h>
 #include <iostream>
-#include "pin.H"
 #include "controller.h"
 #include "lockhash.h"
 
 // Global variables used to receive requests
 THREAD_INFO * all_threads;
-int max_tid;
+THREADID max_tid;
 
 PIN_MUTEX msg_mutex;
 PIN_MUTEX controller_mutex;
@@ -20,10 +19,7 @@ void fail() {
 void controller_init() {
     // Initialize thread information
     all_threads = (THREAD_INFO *) malloc(MAX_THREADS*sizeof(THREAD_INFO));
-    max_tid = -1;
-
-    // Initialize thread states information
-    max_tid = -1;
+    max_tid = 0;
 
     // Initialize thread, msg and read mutex
     for(int i=0; i < MAX_THREADS; i++) {
@@ -60,7 +56,7 @@ void send_request(MSG msg) {
 
 // Returns 1 if can continue, 0 otherwise.
 static int is_syncronized() {
-    for(int i = 0; i <= max_tid; i++) {
+    for(UINT32 i = 0; i <= max_tid; i++) {
         if((all_threads[i].step_status != STEP_DONE)
          &&(all_threads[i].status == UNLOCKED)) {
             return 0;
@@ -71,7 +67,7 @@ static int is_syncronized() {
 
 // Returns 1 if all threads have finished, 0 otherwise.
 static int is_finished() {
-    for(int i=0; i<= max_tid; i++){
+    for(UINT32 i=0; i<= max_tid; i++){
         if(all_threads[i].status != FINISHED &&
            all_threads[i].status != UNREGISTERED){
             return 0;
@@ -81,7 +77,7 @@ static int is_finished() {
 }
 
 // Release a locked thread waiting for permission
-static void release_thread(int tid, INT64 instructions) {
+static void release_thread(THREADID tid, INT64 instructions) {
     // Reset ins_count and update current state
     all_threads[tid].ins_max = instructions;
     all_threads[tid].ins_count = 0;
@@ -137,7 +133,7 @@ void controller_main(void * arg) {
                 all_threads[msg_buffer.tid].step_status = STEP_DONE;
                 // Check if everyone finished, if yes, release them to run a new step.
                 if(is_syncronized() > 0) {
-                    for(int i = 0; i <= max_tid; i++) {
+                    for(UINT32 i = 0; i <= max_tid; i++) {
                         if(all_threads[i].status == UNLOCKED) {
                             release_thread(i, INSTRUCTIONS_ON_ROUND);
                         }
@@ -184,7 +180,7 @@ void print_threads(){
    const char *status[] = {"LOCKED", "UNLOCKED", "UNREGISTERED", "FINISHED"};
    const char *step_status[] = {"STEP_MISS", "STEP_DONE"};
    cerr << "--------- thread status ---------" << std::endl;
-   for(int i=0; i<=max_tid; i++){
+   for(UINT32 i=0; i<=max_tid; i++){
        cerr << "Thread id: "<< i << " - status: " << status[all_threads[i].status];
        cerr << " - step status: " << step_status[all_threads[i].step_status] << std::endl;
    }

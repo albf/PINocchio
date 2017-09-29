@@ -34,14 +34,14 @@ struct _MUTEX_ENTRY{
 
 // Handle functions to deal with each mutex function, during before and after.
 // It will automatically update allThreads variable from controller.h.
-void handle_before_lock(void * key, INT64 tid);
-void handle_after_lock(void * key, INT64 tid);
+void handle_before_lock(void * key, THREADID tid);
+void handle_after_lock(void * key, THREADID tid);
 
-void handle_before_try(void * key, INT64 tid);
-void handle_after_try(void * key, INT64 tid);
+void handle_before_try(void * key, THREADID tid);
+void handle_after_try(void * key, THREADID tid);
 
-void handle_before_unlock(void * key, INT64 tid);
-void handle_after_unlock(void * key, INT64 tid);
+void handle_before_unlock(void * key, THREADID tid);
+void handle_after_unlock(void * key, THREADID tid);
 
 // Debug function, print lock hash on stderr
 void print_hash();

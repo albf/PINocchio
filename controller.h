@@ -49,7 +49,7 @@ struct _THREAD_INFO {
 // THREAD_INFO declared on controller.h should be visible
 // to all files, including log and mutex hash.
 extern THREAD_INFO * all_threads;
-extern int max_tid;
+extern THREADID max_tid;
 
 // --- Communication related ---
 
@@ -73,7 +73,7 @@ typedef enum {
 // MSG struct
 typedef struct _MSG MSG;
 struct _MSG {
-    INT64 tid;
+    THREADID tid;
     MSG_TYPE msg_type;
     void * arg;
 };

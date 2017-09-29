@@ -187,7 +187,7 @@ VOID Fini(INT32 code, VOID *v) {
 
 // Run at instruction start
 VOID ins_handler() {
-    UINT32 thread_id = PIN_ThreadId();
+    THREADID thread_id = PIN_ThreadId();
     THREAD_INFO * my_thread_info = &all_threads[(int)thread_id];
     // Check if finish executing a batch
     if(my_thread_info->ins_count >= my_thread_info->ins_max ) {
