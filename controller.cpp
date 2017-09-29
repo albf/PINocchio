@@ -77,7 +77,7 @@ static int is_finished() {
 }
 
 // Release a locked thread waiting for permission
-static void release_thread(THREADID tid, INT64 instructions) {
+void release_thread(THREADID tid, INT64 instructions) {
     // Reset ins_count and update current state
     all_threads[tid].ins_max = instructions;
     all_threads[tid].ins_count = 0;
@@ -87,6 +87,17 @@ static void release_thread(THREADID tid, INT64 instructions) {
 
     // Mark step status as missing answer
     all_threads[tid].step_status = STEP_MISS;
+}
+
+// If syncronized, release all unlocked.
+void try_release_all() {
+    if(is_syncronized() > 0) {
+        for(UINT32 i = 0; i <= max_tid; i++) {
+            if(all_threads[i].status == UNLOCKED) {
+                release_thread(i, INSTRUCTIONS_ON_ROUND);
+            }
+        }
+    }
 }
 
 void controller_main(void * arg) {
@@ -129,16 +140,9 @@ void controller_main(void * arg) {
                 continue;
 
             case MSG_DONE:
-                // Thread has finished one step, mark as done
+                // Thread has finished one step, mark as done and try to release all
                 all_threads[msg_buffer.tid].step_status = STEP_DONE;
-                // Check if everyone finished, if yes, release them to run a new step.
-                if(is_syncronized() > 0) {
-                    for(UINT32 i = 0; i <= max_tid; i++) {
-                        if(all_threads[i].status == UNLOCKED) {
-                            release_thread(i, INSTRUCTIONS_ON_ROUND);
-                        }
-                    }
-                }
+                try_release_all();
                 continue;
 
             // Mutex events should be treated by lockhash, unlock thread once done.

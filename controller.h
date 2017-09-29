@@ -93,6 +93,12 @@ void send_request(MSG msg);
 // Controller main function, pintool should spawn a thread using it
 void controller_main(void * arg);
 
+// Allow a thread to run another step
+void release_thread(THREADID tid, INT64 instructions);
+
+// If syncronized, release all unlocked threads for another step
+void try_release_all();
+
 // Debug funtion, print thread table on stderr
 void print_threads();
 
