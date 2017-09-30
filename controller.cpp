@@ -52,9 +52,6 @@ void send_request(MSG msg) {
 
     // Wait answer from controller
     PIN_MutexLock(&all_threads[msg.tid].wait_controller);
-
-    // Lastly, unlock msg_mutex allowing other threads to send.
-    PIN_MutexUnlock(&msg_mutex);
 }
 
 // Returns 1 if can continue, 0 otherwise.
@@ -125,7 +122,7 @@ void controller_main(void * arg) {
 
                 // End request
                 PIN_MutexUnlock(&all_threads[msg_buffer.tid].wait_controller);
-                continue;
+                break;
 
             case MSG_FINI:
                 // Anounces a thread completion
@@ -140,46 +137,47 @@ void controller_main(void * arg) {
                     cerr << "[Controller] Program finished." << std::endl;
                     return; 
                 }
-                continue;
+                break;
 
             case MSG_DONE:
                 // Thread has finished one step, mark as done and try to release all
                 all_threads[msg_buffer.tid].step_status = STEP_DONE;
                 try_release_all();
-                continue;
+                break;
 
             // Mutex events should be treated by lockhash, unlock thread once done.
             case MSG_BEFORE_LOCK:
                 handle_before_lock(msg_buffer.arg, msg_buffer.tid);
                 PIN_MutexUnlock(&all_threads[msg_buffer.tid].wait_controller);
-                continue;
+                break;
 
             case MSG_BEFORE_TRY_LOCK:
                 handle_before_try(msg_buffer.arg, msg_buffer.tid);
                 PIN_MutexUnlock(&all_threads[msg_buffer.tid].wait_controller);
-                continue;
+                break;
 
             case MSG_BEFORE_UNLOCK:
                 handle_before_unlock(msg_buffer.arg, msg_buffer.tid);
                 PIN_MutexUnlock(&all_threads[msg_buffer.tid].wait_controller);
-                continue;
+                break;
 
             case MSG_AFTER_LOCK:
                 handle_after_lock(msg_buffer.arg, msg_buffer.tid);
                 PIN_MutexUnlock(&all_threads[msg_buffer.tid].wait_controller);
-                continue;
+                break;
 
             case MSG_AFTER_TRY_LOCK:
                 handle_after_try(msg_buffer.arg, msg_buffer.tid);
                 PIN_MutexUnlock(&all_threads[msg_buffer.tid].wait_controller);
-                continue;
+                break;
 
             case MSG_AFTER_UNLOCK:
                 handle_after_unlock(msg_buffer.arg, msg_buffer.tid);
                 PIN_MutexUnlock(&all_threads[msg_buffer.tid].wait_controller);
-                continue;
-
+                break;;
         }
+        // Lastly, unlock msg_mutex allowing other threads to send.
+        PIN_MutexUnlock(&msg_mutex);
     }
 }
 
