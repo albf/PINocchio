@@ -67,6 +67,7 @@ void handle_before_lock(void * key, THREADID tid) {
         case M_WAITING:
             t = &all_threads[tid];
             t->status = LOCKED;
+            try_release_all();
             insert_locked(s, t);
             break;
         // If unlocked, first to come, just start locking.
@@ -86,6 +87,7 @@ void handle_after_lock(void * key, THREADID tid) {
     if (s->about_unlock != NULL) {
         s->status = M_UNLOCKING;
         s->about_unlock->status = UNLOCKED;
+        release_thread(s->about_unlock, INSTRUCTIONS_ON_ROUND);
         s->about_unlock = s->about_unlock->next;
     } else {
         s->status = M_LOCKED;
@@ -94,6 +96,7 @@ void handle_after_lock(void * key, THREADID tid) {
             for (t = s->about_try; t != NULL; t = t->next) {
                 s->threads_trying++;
                 t->status = UNLOCKED;
+                release_thread(t, INSTRUCTIONS_ON_ROUND);
             }
             s->about_try = NULL;
         }
@@ -116,6 +119,7 @@ void handle_before_try(void * key, THREADID tid) {
         case M_UNLOCKING:
         case M_WAITING:
             t->status = LOCKED;
+            try_release_all();
             if (s->locked == NULL) {
                 insert_locked(s, t); 
             } else {
@@ -124,9 +128,10 @@ void handle_before_try(void * key, THREADID tid) {
         // If locking, must wait for it to finish, add to list.
         case M_LOCKING:
             t->status = LOCKED;
+            try_release_all();
             insert_about_try(s, t);
             break;
-        // If free, check for trying count, lock if zero.
+        // If unlocked, just lock, no one is trying.
         case M_UNLOCKED:
             s->status = M_LOCKING;
             break;
@@ -145,9 +150,10 @@ void handle_after_try(void * key, THREADID tid) {
         // thread blocked on unlock.
         case M_WAITING:
             s->threads_trying--;
-            if (s->threads_trying > 0) {
+            if (s->threads_trying == 0) {
                 s->status = M_UNLOCKING;
                 s->about_unlock->status = UNLOCKED;
+                release_thread(s->about_unlock, INSTRUCTIONS_ON_ROUND);
                 s->about_unlock = s->about_unlock->next;
             }
             break;;
@@ -156,6 +162,7 @@ void handle_after_try(void * key, THREADID tid) {
             if (s->about_unlock != NULL) {
                 s->status = M_UNLOCKING;
                 s->about_unlock->status = UNLOCKED;
+                release_thread(s->about_unlock, INSTRUCTIONS_ON_ROUND);
                 s->about_unlock = s->about_unlock->next;
             } else {
                 s->status = M_LOCKED;
@@ -183,6 +190,7 @@ void handle_before_unlock(void * key, THREADID tid) {
             if (s->threads_trying > 0) {
                 s->status = M_WAITING;
                 t->status = LOCKED;
+                try_release_all();
                 insert_about_unlock(s, t);
             } else { 
                 s->status = M_UNLOCKING;
@@ -213,10 +221,12 @@ void handle_after_unlock(void * key, THREADID tid) {
     // If not, just mark as free.
     if (s->about_unlock != NULL) {
         s->about_unlock->status = UNLOCKED;
+        release_thread(s->about_unlock, INSTRUCTIONS_ON_ROUND);
         s->about_unlock = s->about_unlock->next; 
     } else if (s->locked != NULL) {
         s->status = M_LOCKING;
         s->locked->status = UNLOCKED;
+        release_thread(s->locked, INSTRUCTIONS_ON_ROUND);
         s->locked = s->locked->next;
     } else {
         // Don't have to check for try_lock, if a first try lock arrived,

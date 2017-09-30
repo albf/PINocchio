@@ -94,7 +94,7 @@ void send_request(MSG msg);
 void controller_main(void * arg);
 
 // Allow a thread to run another step
-void release_thread(THREADID tid, INT64 instructions);
+void release_thread(THREAD_INFO * ti, INT64 instructions);
 
 // If syncronized, release all unlocked threads for another step
 void try_release_all();

@@ -23,6 +23,9 @@ void controller_init() {
 
     // Initialize thread, msg and read mutex
     for(int i=0; i < MAX_THREADS; i++) {
+        all_threads[i].ins_max = 0;
+        all_threads[i].ins_count = 0;
+
         all_threads[i].step_status = STEP_MISS;
         all_threads[i].status = UNREGISTERED;
 
@@ -77,16 +80,16 @@ static int is_finished() {
 }
 
 // Release a locked thread waiting for permission
-void release_thread(THREADID tid, INT64 instructions) {
+void release_thread(THREAD_INFO * ti, INT64 instructions) {
     // Reset ins_count and update current state
-    all_threads[tid].ins_max = instructions;
-    all_threads[tid].ins_count = 0;
+    ti->ins_max = instructions;
+    ti->ins_count = 0;
 
     // Release thread lock
-    PIN_MutexUnlock(&all_threads[tid].wait_controller);
+    PIN_MutexUnlock(&ti->wait_controller);
 
     // Mark step status as missing answer
-    all_threads[tid].step_status = STEP_MISS;
+    ti->step_status = STEP_MISS;
 }
 
 // If syncronized, release all unlocked.
@@ -94,7 +97,7 @@ void try_release_all() {
     if(is_syncronized() > 0) {
         for(UINT32 i = 0; i <= max_tid; i++) {
             if(all_threads[i].status == UNLOCKED) {
-                release_thread(i, INSTRUCTIONS_ON_ROUND);
+                release_thread(&all_threads[i], INSTRUCTIONS_ON_ROUND);
             }
         }
     }
@@ -130,7 +133,7 @@ void controller_main(void * arg) {
 
                 // Mark as finished
                 all_threads[msg_buffer.tid].status = FINISHED;
-                release_thread(msg_buffer.tid, INSTRUCTIONS_ON_EXIT);
+                release_thread(&all_threads[msg_buffer.tid], INSTRUCTIONS_ON_EXIT);
 
                 // Check if all threads have finished
                 if( is_finished() == 1){
