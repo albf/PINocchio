@@ -18,6 +18,7 @@ typedef enum {
     UNLOCKED = 1,     // Running other stuff free
     UNREGISTERED = 2, // Not registered yet, must use message
     FINISHED = 3,     // Already finished its job	
+    CREATING = 4,     // Using pthread_create
 }   THREAD_STATUS;
 
 // Indicate current state within te step, executed it or not
@@ -65,9 +66,11 @@ typedef enum {
     MSG_BEFORE_LOCK,
     MSG_BEFORE_TRY_LOCK,
     MSG_BEFORE_UNLOCK,
+    MSG_BEFORE_CREATE,
     MSG_AFTER_LOCK,
     MSG_AFTER_TRY_LOCK,
-    MSG_AFTER_UNLOCK
+    MSG_AFTER_UNLOCK,
+    MSG_AFTER_CREATE,
 } MSG_TYPE;
 
 // MSG struct

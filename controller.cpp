@@ -41,6 +41,7 @@ void controller_init() {
 }
 
 void send_request(MSG msg) {
+
     //cerr << "[tid:" << msg.tid << "] sent request: " << msg.msg_type << std::endl;
 
     // First, lock msg_mutex, will only unlock after controller.
@@ -93,7 +94,8 @@ void release_thread(THREAD_INFO * ti, INT64 instructions) {
 void try_release_all() {
     if(is_syncronized() > 0) {
         for(UINT32 i = 0; i <= max_tid; i++) {
-            if(all_threads[i].status == UNLOCKED) {
+            if((all_threads[i].step_status == STEP_DONE)
+             && ((all_threads[i].status == UNLOCKED)||(all_threads[i].status == CREATING))) {
                 release_thread(&all_threads[i], INSTRUCTIONS_ON_ROUND);
             }
         }
@@ -175,7 +177,16 @@ void controller_main(void * arg) {
                 handle_after_unlock(msg_buffer.arg, msg_buffer.tid);
                 PIN_MutexUnlock(&all_threads[msg_buffer.tid].wait_controller);
                 break;;
+            case MSG_BEFORE_CREATE:
+                all_threads[msg_buffer.tid].status = CREATING;
+                PIN_MutexUnlock(&all_threads[msg_buffer.tid].wait_controller);
+                break;
+            case MSG_AFTER_CREATE:
+                all_threads[msg_buffer.tid].status = UNLOCKED;
+                PIN_MutexUnlock(&all_threads[msg_buffer.tid].wait_controller);
+                break;
         }
+
         // Lastly, unlock msg_mutex allowing other threads to send.
         PIN_MutexUnlock(&msg_mutex);
     }
@@ -186,7 +197,7 @@ void print_threads(){
    const char *step_status[] = {"STEP_MISS", "STEP_DONE"};
    cerr << "--------- thread status ---------" << std::endl;
    for(UINT32 i=0; i<=max_tid; i++){
-       cerr << "Thread id: "<< i << " - status: " << status[all_threads[i].status];
+       cerr << "Thread id: " << i << " - status: " << status[all_threads[i].status];
        cerr << " - step status: " << step_status[all_threads[i].step_status] << std::endl;
    }
    cerr << "------------------------ " << std::endl;

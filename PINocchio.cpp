@@ -81,8 +81,25 @@ VOID after_mutex_unlock(THREADID tid) {
         .arg = (void *) mutex,
     };
     send_request(msg);
-    print_threads();
     *out << "after_unlock: " << mutex << std::endl;
+}
+
+VOID before_create(THREADID tid) {
+    MSG msg = {
+        .tid = tid,
+        .msg_type = MSG_BEFORE_CREATE,
+    };
+    send_request(msg);
+    *out << "before_create" << std::endl;
+}
+
+VOID after_create(THREADID tid) {
+    MSG msg = {
+        .tid = tid,
+        .msg_type = MSG_AFTER_CREATE,
+    };
+    send_request(msg);
+    *out << "after_create" << std::endl;
 }
 
 VOID module_load_handler (IMG img, void * v) {
@@ -131,10 +148,22 @@ VOID module_load_handler (IMG img, void * v) {
                        IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
                        IARG_THREAD_ID, IARG_END);
         RTN_InsertCall(rtn, IPOINT_AFTER, (AFUNPTR)after_mutex_unlock,
-                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
                        IARG_THREAD_ID, IARG_END);
         RTN_Close(rtn);
         *out << "pthread_mutex_unlock registered" << std::endl;
+    }
+
+    // Look for pthread_mutex_unlock
+    rtn = RTN_FindByName(img, "pthread_create");
+    if (RTN_Valid(rtn)) {
+        *out << "Found pthread_create on image" << std::endl;
+        RTN_Open(rtn);
+        RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)before_create,
+                       IARG_THREAD_ID, IARG_END);
+        RTN_InsertCall(rtn, IPOINT_AFTER, (AFUNPTR)after_create,
+                       IARG_THREAD_ID, IARG_END);
+        RTN_Close(rtn);
+        *out << "pthread_create registered" << std::endl;
     }
 }
 
@@ -191,6 +220,7 @@ VOID ins_handler() {
         };
         send_request(my_msg);
     }
+
     my_thread_info->ins_count++;
 }
 
