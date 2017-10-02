@@ -33,8 +33,8 @@ struct _THREAD_INFO {
     INT64 ins_max;
     // Number of instructions executed on current
     INT64 ins_count;
-    // Saves mutexes from being dirty between before_mutex* and after_mutex* calls
-    pthread_mutex_t* holder;
+    // Saves parameters from being dirty between before_* and after_* calls
+    void * holder;
     // Mutex used to wait controller answer
     PIN_MUTEX wait_controller;
 

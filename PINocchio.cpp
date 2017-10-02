@@ -19,74 +19,69 @@ INT32 Usage() {
 }
 
 VOID before_mutex_lock(pthread_mutex_t *mutex, THREADID tid) {
-    all_threads[tid].holder = mutex;
+    all_threads[tid].holder = (void *) mutex;
     MSG msg = {
         .tid = tid,
         .msg_type = MSG_BEFORE_LOCK,
         .arg = (void *) mutex,
     };
     send_request(msg);
-    *out << "MUTEX on " << tid << std::endl;
     *out << "before_mutex_lock: " << mutex << std::endl;
 }
 
-VOID after_mutex_lock(pthread_mutex_t *mutex, THREADID tid) {
-    mutex = all_threads[tid].holder;
+VOID after_mutex_lock(THREADID tid) {
+    pthread_mutex_t *mutex = (pthread_mutex_t *) all_threads[tid].holder;
     MSG msg = {
         .tid = tid,
         .msg_type = MSG_AFTER_LOCK,
         .arg = (void *) mutex,
     };
     send_request(msg);
-    *out << "MUTEX on " << tid << std::endl;
     *out << "after_mutex_lock: " << mutex << std::endl;
 }
 
 VOID before_mutex_trylock(pthread_mutex_t *mutex, THREADID tid) {
-    all_threads[tid].holder = mutex;
+    all_threads[tid].holder = (void *) mutex;
     MSG msg = {
         .tid = tid,
         .msg_type = MSG_BEFORE_TRY_LOCK,
         .arg = (void *) mutex,
     };
     send_request(msg);
-    *out << "MUTEX on " << tid << std::endl;
     *out << "before_try_lock: " << mutex << std::endl;
 }
 
-VOID after_mutex_trylock(pthread_mutex_t *mutex, THREADID tid) {
-    mutex = all_threads[tid].holder;
+VOID after_mutex_trylock(THREADID tid) {
+    pthread_mutex_t *mutex = (pthread_mutex_t *) all_threads[tid].holder;
     MSG msg = {
         .tid = tid,
         .msg_type = MSG_AFTER_TRY_LOCK,
         .arg = (void *) mutex,
     };
     send_request(msg);
-    *out << "MUTEX on " << tid << std::endl;
     *out << "after_try_lock: " << mutex << std::endl;
 }
 
 VOID before_mutex_unlock(pthread_mutex_t *mutex, THREADID tid) {
-    all_threads[tid].holder = mutex;
+    all_threads[tid].holder = (void *) mutex;
     MSG msg = {
         .tid = tid,
         .msg_type = MSG_BEFORE_UNLOCK,
         .arg = (void *) mutex,
     };
     send_request(msg);
-    *out << "MUTEX on " << tid << std::endl;
     *out << "before_unlock: " << mutex << std::endl;
 }
 
-VOID after_mutex_unlock(pthread_mutex_t *mutex, THREADID tid) {
-    mutex = all_threads[tid].holder;
+VOID after_mutex_unlock(THREADID tid) {
+    pthread_mutex_t *mutex = (pthread_mutex_t *) all_threads[tid].holder;
     MSG msg = {
         .tid = tid,
         .msg_type = MSG_AFTER_UNLOCK,
         .arg = (void *) mutex,
     };
     send_request(msg);
-    *out << "MUTEX on " << tid << std::endl;
+    print_threads();
     *out << "after_unlock: " << mutex << std::endl;
 }
 
@@ -108,7 +103,6 @@ VOID module_load_handler (IMG img, void * v) {
                        IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
                        IARG_THREAD_ID, IARG_END);
         RTN_InsertCall(rtn, IPOINT_AFTER, (AFUNPTR)after_mutex_lock,
-                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
                        IARG_THREAD_ID, IARG_END);
         RTN_Close(rtn);
         *out << "pthread_mutex_lock registered" << std::endl;
@@ -123,7 +117,6 @@ VOID module_load_handler (IMG img, void * v) {
                        IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
                        IARG_THREAD_ID, IARG_END);
         RTN_InsertCall(rtn, IPOINT_AFTER, (AFUNPTR)after_mutex_trylock,
-                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
                        IARG_THREAD_ID, IARG_END);
         RTN_Close(rtn);
         *out << "pthread_mutex_trylock registered" << std::endl;
