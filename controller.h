@@ -38,6 +38,8 @@ struct _THREAD_INFO {
     void * holder;
     // Mutex used to wait controller answer
     PIN_MUTEX wait_controller;
+    // Thread variable returned by create, used for join control
+    pthread_t create_value;
 
     // Current Status
     THREAD_STATUS status;
@@ -60,17 +62,18 @@ extern PIN_MUTEX controller_mutex;
 
 // MSG types
 typedef enum {
-    MSG_DONE,
-    MSG_REGISTER,
-    MSG_FINI,
-    MSG_BEFORE_LOCK,
-    MSG_BEFORE_TRY_LOCK,
-    MSG_BEFORE_UNLOCK,
-    MSG_BEFORE_CREATE,
-    MSG_AFTER_LOCK,
-    MSG_AFTER_TRY_LOCK,
-    MSG_AFTER_UNLOCK,
-    MSG_AFTER_CREATE,
+    MSG_DONE = 0,
+    MSG_REGISTER= 1,
+    MSG_FINI = 2,
+    MSG_BEFORE_LOCK = 3,
+    MSG_BEFORE_TRY_LOCK = 4,
+    MSG_BEFORE_UNLOCK = 5,
+    MSG_BEFORE_CREATE = 6,
+    MSG_BEFORE_JOIN = 7,
+    MSG_AFTER_LOCK = 8,
+    MSG_AFTER_TRY_LOCK = 9,
+    MSG_AFTER_UNLOCK = 10,
+    MSG_AFTER_CREATE = 11,
 } MSG_TYPE;
 
 // MSG struct

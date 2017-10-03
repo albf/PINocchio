@@ -79,12 +79,13 @@ VOID after_mutex_unlock(THREADID tid) {
         .tid = tid,
         .msg_type = MSG_AFTER_UNLOCK,
         .arg = (void *) mutex,
-    };
+    }; 
     send_request(msg);
     *out << "after_unlock: " << mutex << std::endl;
 }
 
-VOID before_create(THREADID tid) {
+VOID before_create(pthread_t *thread, THREADID tid) {
+    all_threads[tid].holder = (void *) thread;
     MSG msg = {
         .tid = tid,
         .msg_type = MSG_BEFORE_CREATE,
@@ -94,12 +95,25 @@ VOID before_create(THREADID tid) {
 }
 
 VOID after_create(THREADID tid) {
+    pthread_t *thread = (pthread_t *) all_threads[tid].holder;
     MSG msg = {
         .tid = tid,
         .msg_type = MSG_AFTER_CREATE,
+        // Save pthread_t parameter as usual, but it's value, not the pointer
+        .arg = (void *) (*thread),
     };
     send_request(msg);
     *out << "after_create" << std::endl;
+}
+
+VOID before_join(pthread_t thread, THREADID tid) {
+    MSG msg = {
+        .tid = tid,
+        .msg_type = MSG_BEFORE_JOIN,
+        .arg = (void *) thread,
+    };
+    send_request(msg);
+    *out << "before_join" << std::endl;
 }
 
 VOID module_load_handler (IMG img, void * v) {
@@ -159,11 +173,24 @@ VOID module_load_handler (IMG img, void * v) {
         *out << "Found pthread_create on image" << std::endl;
         RTN_Open(rtn);
         RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)before_create,
+                       IARG_FUNCARG_CALLSITE_VALUE, 0,
                        IARG_THREAD_ID, IARG_END);
         RTN_InsertCall(rtn, IPOINT_AFTER, (AFUNPTR)after_create,
                        IARG_THREAD_ID, IARG_END);
         RTN_Close(rtn);
         *out << "pthread_create registered" << std::endl;
+    }
+
+    // Look for pthread_join
+    rtn = RTN_FindByName(img, "pthread_join");
+    if (RTN_Valid(rtn)) {
+        *out << "Found pthread_join on image" << std::endl;
+        RTN_Open(rtn);
+        RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)before_join,
+                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                       IARG_THREAD_ID, IARG_END);
+        RTN_Close(rtn);
+        *out << "pthread_join registered" << std::endl;
     }
 }
 

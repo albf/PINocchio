@@ -28,6 +28,7 @@ void controller_init() {
 
         all_threads[i].step_status = STEP_MISS;
         all_threads[i].status = UNREGISTERED;
+        all_threads[i].create_value = 0;
 
         PIN_MutexInit(&all_threads[i].wait_controller);
         // wait_controllers start locked
@@ -124,6 +125,7 @@ void controller_main(void * arg) {
 
                 // End request
                 PIN_MutexUnlock(&all_threads[msg_buffer.tid].wait_controller);
+                print_threads();
                 break;
 
             case MSG_FINI:
@@ -133,6 +135,13 @@ void controller_main(void * arg) {
                 // Mark as finished
                 all_threads[msg_buffer.tid].status = FINISHED;
                 release_thread(&all_threads[msg_buffer.tid], INSTRUCTIONS_ON_EXIT);
+
+                // Free any join locked thread, thread 0 shouldn't be joined
+                if (msg_buffer.tid > 0) {
+                    handle_thread_exit(all_threads[msg_buffer.tid].create_value);
+                }
+
+                try_release_all();
 
                 // Check if all threads have finished
                 if( is_finished() == 1){
@@ -183,7 +192,11 @@ void controller_main(void * arg) {
                 break;
             case MSG_AFTER_CREATE:
                 all_threads[msg_buffer.tid].status = UNLOCKED;
+                all_threads[max_tid].create_value = ((pthread_t)msg_buffer.arg);
                 PIN_MutexUnlock(&all_threads[msg_buffer.tid].wait_controller);
+                break;
+            case MSG_BEFORE_JOIN:
+                handle_before_join((pthread_t)msg_buffer.arg, msg_buffer.tid);
                 break;
         }
 
@@ -193,12 +206,13 @@ void controller_main(void * arg) {
 }
 
 void print_threads(){
-   const char *status[] = {"LOCKED", "UNLOCKED", "UNREGISTERED", "FINISHED"};
+   const char *status[] = {"LOCKED", "UNLOCKED", "UNREGISTERED", "FINISHED", "CREATING"};
    const char *step_status[] = {"STEP_MISS", "STEP_DONE"};
    cerr << "--------- thread status ---------" << std::endl;
    for(UINT32 i=0; i<=max_tid; i++){
        cerr << "Thread id: " << i << " - status: " << status[all_threads[i].status];
-       cerr << " - step status: " << step_status[all_threads[i].step_status] << std::endl;
+       cerr << " - step status: " << step_status[all_threads[i].step_status]; 
+       cerr << " - create value: " << all_threads[i].create_value << std::endl;
    }
    cerr << "------------------------ " << std::endl;
 }

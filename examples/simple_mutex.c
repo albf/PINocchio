@@ -10,7 +10,6 @@ int y;
 /* Dummy thread function */
 void *inc_x(void *x_void_ptr) {
     int *x_pt = (int *)x_void_ptr;
-    printf("Thread #%d: Created\n", *x_pt);
 
     /* increment y to COUNT_MAX */
     while(y < COUNT_MAX) {
@@ -19,7 +18,6 @@ void *inc_x(void *x_void_ptr) {
         pthread_mutex_unlock(&mutex);
     }
 
-    printf("Thread #%d: y increment finished\n", *x_pt);
     return NULL;
 }
 
@@ -28,7 +26,7 @@ int main(int argc , char **argv) {
     int conv = 2;
 
     if(pthread_mutex_init(&mutex, NULL)) {
-        fprintf(stderr, "error initializing mutex");
+        printf("error initializing mutex");
         return 3;
     }
     y = 0;
@@ -47,14 +45,14 @@ int main(int argc , char **argv) {
 
     for(i = 0; i < conv; i++) {
         if(pthread_create(&inc_x_thread[i], NULL, inc_x, &x[i])) {
-            fprintf(stderr, "Error creating thread\n");
+            printf("Error creating thread\n");
             return 1;
         }
     }
 
     for(i = 0; i < conv; i++) {
         if(pthread_join(inc_x_thread[i], NULL)) {
-            fprintf(stderr, "Error joining thread\n");
+            printf("Error joining thread\n");
             return 2;
         }
     }

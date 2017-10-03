@@ -10,6 +10,7 @@ keeping a global value seems cheaper.
 
 #include "controller.h"
 #include "uthash.h"
+#include <pthread.h>
 
 // Current lock status
 typedef enum {
@@ -35,6 +36,17 @@ struct _MUTEX_ENTRY{
     THREAD_INFO * about_unlock;     // About unlock, waiting try_locks
 };
 
+// Join Hash 
+typedef struct _JOIN_ENTRY JOIN_ENTRY;
+struct _JOIN_ENTRY{
+    pthread_t key;
+
+    UT_hash_handle hh;
+    
+    int allow;                      // Allow continue if thread exited already
+    THREAD_INFO * locked;           // Waiting for given tread
+};
+
 // Handle functions to deal with each mutex function, during before and after.
 // It will automatically update allThreads variable from controller.h.
 void handle_before_lock(void * key, THREADID tid);
@@ -45,6 +57,10 @@ void handle_after_try(void * key, THREADID tid);
 
 void handle_before_unlock(void * key, THREADID tid);
 void handle_after_unlock(void * key, THREADID tid);
+
+// Used for join management
+void handle_thread_exit(pthread_t key);
+void handle_before_join(pthread_t key, THREADID tid);
 
 // Debug function, print lock hash on stderr
 void print_hash();

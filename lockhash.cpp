@@ -247,3 +247,56 @@ void print_hash() {
     }
     cerr << "--------- ----------- ---------" << std::endl;
 }
+
+JOIN_ENTRY * join_hash = NULL;
+
+// get_entry will find a given entry or, if doesn't exist, create one.
+JOIN_ENTRY * get_join_entry(pthread_t key) {
+    JOIN_ENTRY * s;
+
+    HASH_FIND(hh, join_hash, &key, sizeof(pthread_t), s);
+    if (s) {
+        return s;
+    }
+
+    // Not found, add new and return it.
+    s = (JOIN_ENTRY *) malloc(sizeof(JOIN_ENTRY));
+    s->key = key;
+    s->allow = 0;
+    s->locked = NULL;
+
+    HASH_ADD(hh, join_hash, key, sizeof(pthread_t), s);
+    return s;
+}
+
+// Handle a thread exit request in terms of join.
+// Mark allow as 1, not stopping any other join.
+// Also check for locked on join threads, release
+// if any.
+void handle_thread_exit(pthread_t key) {
+    JOIN_ENTRY * s = get_join_entry(key);
+    s->allow = 1;
+
+    THREAD_INFO * t;
+    for (t = s->locked; t != NULL; t = t->next) {
+        t->status = UNLOCKED;
+        release_thread(t, INSTRUCTIONS_ON_ROUND);
+    }
+}
+
+// handle_before_join deals with join request. If
+// allow, just release thread as usual. If not,
+// lock on thread exitence and check if others
+// running threads could continue.
+void handle_before_join(pthread_t key, THREADID tid) {
+    JOIN_ENTRY * s = get_join_entry(key);
+    THREAD_INFO * t = &all_threads[tid];
+
+    if (s->allow == 0) {
+        t->status = LOCKED;
+        s->locked = insert(s->locked, t);
+        try_release_all();
+    } else {
+        release_thread(t, INSTRUCTIONS_ON_ROUND);
+    }
+}
