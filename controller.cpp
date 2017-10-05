@@ -2,6 +2,7 @@
 #include <iostream>
 #include "controller.h"
 #include "lockhash.h"
+#include "log.h"
 
 // Global variables used to receive requests
 THREAD_INFO * all_threads;
@@ -39,6 +40,9 @@ void controller_init() {
 
     // comm_mutex starts locked
     PIN_MutexLock(&controller_mutex);
+
+    // Init log 
+    log_init();
 }
 
 void send_request(MSG msg) {
@@ -62,7 +66,7 @@ static int is_syncronized() {
         if((all_threads[i].step_status != STEP_DONE)
          &&(all_threads[i].status == UNLOCKED)) {
             return 0;
-        } 
+        }
     }
     return 1;
 }
@@ -94,6 +98,7 @@ void release_thread(THREAD_INFO * ti, INT64 instructions) {
 // If syncronized, release all unlocked.
 void try_release_all() {
     if(is_syncronized() > 0) {
+        log_add();
         for(UINT32 i = 0; i <= max_tid; i++) {
             if((all_threads[i].step_status == STEP_DONE)
              && (all_threads[i].status == UNLOCKED)) {
@@ -210,7 +215,9 @@ void controller_main(void * arg) {
                 // Check if all threads have finished
                 if( is_finished() == 1){
                     cerr << "[Controller] Program finished." << std::endl;
-                    return; 
+                    log_dump();
+                    log_free();
+                    return;
                 }
                 break;
 

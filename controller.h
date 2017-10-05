@@ -5,7 +5,7 @@
 #include "pin.H"
 
 // Major settings regarding sync and round size
-#define MAX_THREADS 128             // Max number of spawned threads by application
+#define MAX_THREADS 64             // Max number of spawned threads by application
 #define INSTRUCTIONS_ON_ROUND 1     // Number of instructions to be executed per round
 #define INSTRUCTIONS_ON_EXIT  10000 // On exit it might get stuck, just give a lot of
                                     // instructions to let it finish. 
