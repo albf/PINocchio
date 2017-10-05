@@ -211,10 +211,6 @@ VOID thread_start(THREADID thread_id, CONTEXT *ctxt, INT32 flags, VOID *v) {
         .arg = NULL,
     };
     send_request(my_msg);
-
-    // Send done to controller to get more work
-    my_msg.msg_type = MSG_DONE;
-    send_request(my_msg);
 }
 
 VOID thread_fini(THREADID thread_id, CONTEXT const *ctxt, INT32 flags, VOID *v){

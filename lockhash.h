@@ -62,6 +62,16 @@ void handle_after_unlock(void * key, THREADID tid);
 void handle_thread_exit(pthread_t key);
 void handle_before_join(pthread_t key, THREADID tid);
 
+// Used for locking reentrant lock.
+typedef struct _REENTRANT_LOCK REENTRANT_LOCK;
+struct _REENTRANT_LOCK {
+    int busy;
+    THREAD_INFO * locked;           // Threads locked
+};
+
+void handle_reentrant_start (REENTRANT_LOCK * rl, THREADID tid);
+void handle_reentrant_exit (REENTRANT_LOCK * rl);
+
 // Debug function, print lock hash on stderr
 void print_hash();
 

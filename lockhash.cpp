@@ -300,3 +300,30 @@ void handle_before_join(pthread_t key, THREADID tid) {
         release_thread(t, INSTRUCTIONS_ON_ROUND);
     }
 }
+
+// handle_reentrant_start will deal with the case
+// of a starting reentrat function that the tool
+// wants to lock.
+void handle_reentrant_start(REENTRANT_LOCK *rl, THREADID tid) {
+    THREAD_INFO * t = &all_threads[tid];
+
+    if (rl->busy > 0) {
+        t->status = LOCKED;
+        rl->locked = insert(rl->locked, t);
+        try_release_all();
+    } else {
+        rl->busy= 1;
+    }
+}
+
+// handle_reentrant_exit will let other thread 
+// access the reentrant function.
+void handle_reentrant_exit(REENTRANT_LOCK *rl) {
+    if (rl->locked == NULL) {
+        rl->busy = 0;
+    } else {
+        rl->locked->status = UNLOCKED;
+        release_thread(rl->locked, INSTRUCTIONS_ON_ROUND);
+        rl->locked = rl->locked->next;
+    }
+}

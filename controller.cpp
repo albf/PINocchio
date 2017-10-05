@@ -23,7 +23,7 @@ void controller_init() {
 
     // Initialize thread, msg and read mutex
     for(int i=0; i < MAX_THREADS; i++) {
-        all_threads[i].ins_max = 0;
+        all_threads[i].ins_max = INSTRUCTIONS_ON_ROUND;
         all_threads[i].ins_count = 0;
 
         all_threads[i].step_status = STEP_MISS;
@@ -96,7 +96,7 @@ void try_release_all() {
     if(is_syncronized() > 0) {
         for(UINT32 i = 0; i <= max_tid; i++) {
             if((all_threads[i].step_status == STEP_DONE)
-             && ((all_threads[i].status == UNLOCKED)||(all_threads[i].status == CREATING))) {
+             && (all_threads[i].status == UNLOCKED)) {
                 release_thread(&all_threads[i], INSTRUCTIONS_ON_ROUND);
             }
         }
@@ -104,13 +104,34 @@ void try_release_all() {
 }
 
 void controller_main(void * arg) {
+    REENTRANT_LOCK create_lock = {
+        .busy = 0,
+        .locked = NULL,
+    };
+    pthread_t pthread_tid = 0;
+    THREADID pin_tid = 0;
+    int create_done = 0;
+    
     //cerr << "Controller starting" << std::endl;
 
     while(1) {
         // Wait for a request to come
        	PIN_MutexLock(&controller_mutex);
-	
+
         switch(msg_buffer.msg_type) {
+            case MSG_DONE:
+                // Thread has finished one step, mark as done and try to release all
+                all_threads[msg_buffer.tid].step_status = STEP_DONE;
+                try_release_all();
+                break;
+
+            // Thread creation works with the following rules:
+            // - One thread creating at a time
+            // - Create end should wait for starting thread to
+            // actually start (pin_create -> MSG_REGISTER)
+            // - thread_t should come from create_end, as value
+            // could change on function. But pointer should be
+            // found on start, as it also might be changed.
             case MSG_REGISTER:
                 // Register arrived with id
                 cerr << "[Controller] Received register from: " << msg_buffer.tid << std::endl;
@@ -120,12 +141,55 @@ void controller_main(void * arg) {
                     max_tid = msg_buffer.tid;
                 }
 
-                // Mark as unlocked
-                all_threads[msg_buffer.tid].status = UNLOCKED;
+                if (msg_buffer.tid == 0) {
+                    all_threads[msg_buffer.tid].status = UNLOCKED;
+                    PIN_MutexUnlock(&all_threads[msg_buffer.tid].wait_controller);
+                    break;
+                }
+
+                // If done > 0, MSG_AFTER_CREATE already done, must release it,
+                // update my own create_value and go on. If not, save pin_tid
+                // for later use and mark myself as locked.
+                if (create_done > 0) {
+                    all_threads[msg_buffer.tid].status = UNLOCKED;
+                    all_threads[msg_buffer.tid].create_value = pthread_tid;
+                    create_done = 0;
+                    handle_reentrant_exit(&create_lock);
+                    all_threads[pin_tid].status = UNLOCKED;
+                    if (all_threads[pin_tid].step_status == STEP_DONE) {
+                        release_thread(&all_threads[pin_tid], INSTRUCTIONS_ON_ROUND);
+                    }
+                } else {
+                    create_done++;
+                    all_threads[msg_buffer.tid].status = UNLOCKED;
+                    pin_tid = msg_buffer.tid;
+                }
 
                 // End request
                 PIN_MutexUnlock(&all_threads[msg_buffer.tid].wait_controller);
-                print_threads();
+                break;
+
+            case MSG_BEFORE_CREATE:
+                handle_reentrant_start(&create_lock, msg_buffer.tid);
+                PIN_MutexUnlock(&all_threads[msg_buffer.tid].wait_controller);
+                break;
+
+            case MSG_AFTER_CREATE:
+                // Save pthread tid and check if MSG_REGISTER already arrived,
+                // if yes, mark pthread_tid and release create_lock
+                pthread_tid = ((pthread_t)msg_buffer.arg);
+
+                if (create_done > 0) {
+                    all_threads[pin_tid].create_value = pthread_tid;
+                    create_done = 0;
+                    handle_reentrant_exit(&create_lock);
+                } else {
+                    create_done++;
+                    all_threads[msg_buffer.tid].status = LOCKED;
+                    pin_tid = msg_buffer.tid;
+                }
+
+                PIN_MutexUnlock(&all_threads[msg_buffer.tid].wait_controller);
                 break;
 
             case MSG_FINI:
@@ -150,10 +214,8 @@ void controller_main(void * arg) {
                 }
                 break;
 
-            case MSG_DONE:
-                // Thread has finished one step, mark as done and try to release all
-                all_threads[msg_buffer.tid].step_status = STEP_DONE;
-                try_release_all();
+            case MSG_BEFORE_JOIN:
+                handle_before_join((pthread_t)msg_buffer.arg, msg_buffer.tid);
                 break;
 
             // Mutex events should be treated by lockhash, unlock thread once done.
@@ -186,18 +248,6 @@ void controller_main(void * arg) {
                 handle_after_unlock(msg_buffer.arg, msg_buffer.tid);
                 PIN_MutexUnlock(&all_threads[msg_buffer.tid].wait_controller);
                 break;;
-            case MSG_BEFORE_CREATE:
-                all_threads[msg_buffer.tid].status = CREATING;
-                PIN_MutexUnlock(&all_threads[msg_buffer.tid].wait_controller);
-                break;
-            case MSG_AFTER_CREATE:
-                all_threads[msg_buffer.tid].status = UNLOCKED;
-                all_threads[max_tid].create_value = ((pthread_t)msg_buffer.arg);
-                PIN_MutexUnlock(&all_threads[msg_buffer.tid].wait_controller);
-                break;
-            case MSG_BEFORE_JOIN:
-                handle_before_join((pthread_t)msg_buffer.arg, msg_buffer.tid);
-                break;
         }
 
         // Lastly, unlock msg_mutex allowing other threads to send.
@@ -206,7 +256,7 @@ void controller_main(void * arg) {
 }
 
 void print_threads(){
-   const char *status[] = {"LOCKED", "UNLOCKED", "UNREGISTERED", "FINISHED", "CREATING"};
+   const char *status[] = {"LOCKED", "UNLOCKED", "UNREGISTERED", "FINISHED"};
    const char *step_status[] = {"STEP_MISS", "STEP_DONE"};
    cerr << "--------- thread status ---------" << std::endl;
    for(UINT32 i=0; i<=max_tid; i++){
