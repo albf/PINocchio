@@ -10,7 +10,6 @@
 typedef struct {
     // Buffer related fields
     THREAD_STATUS buffer[MAXLOGSIZE][MAX_THREADS];
-    int buffer_start[MAX_THREADS];
     int buffer_next;
     int buffer_size;
 

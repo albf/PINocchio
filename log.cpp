@@ -31,7 +31,6 @@ void log_init(){
     tlog->buffer_size = 1;
 
     for(j=0; j<MAX_THREADS; j++ ) {
-        tlog->buffer_start[j] = -1;
         for(i=0; i<MAXLOGSIZE; i++) {
             tlog->buffer[i][j] = UNLOCKED;
         }
@@ -46,8 +45,8 @@ int log_on_buffer(){
     // Log all threads status
     for(i=0; i<=max_tid; i++){
         // If just start, mark its new position
-        if(tlog->buffer_start[i] < 0){
-            tlog->buffer_start[i] = tlog->buffer_next;
+        if(tlog->log_start[i] < 0 ){
+            tlog->log_start[i] = tlog->log_next; // TESTING
         }
 
         tlog->buffer[tlog->buffer_next][i] = all_threads[i].status;
@@ -69,11 +68,12 @@ void log_add(){
     if(tlog->buffer_size == 1){
         // First case, ignore buffer since it would be flushed anyway.
         for(i=0; i <= max_tid; i++){
-            if(tlog->log_start[i] < 0){
+            if(tlog->log_start[i] < 0 ){
                 tlog->log_start[i] = tlog->log_next;
             }
             tlog->log[tlog->log_next][i] = all_threads[i].status;
         }
+        tlog->buffer_next = 0;
     } else {
         // First insert on buffer, checking if full
         is_buffer_full = log_on_buffer();
@@ -82,13 +82,12 @@ void log_add(){
         }
 
         // If full, merge and continue updating log
-        log_merge(tlog->buffer, tlog->buffer_start, tlog->buffer_size, tlog->buffer_size);
+        log_merge(tlog->buffer, tlog->log_start,
+                  tlog->buffer_size, tlog->buffer_size);
         for(i=0; i <= max_tid; i++){
-            if(tlog->log_start[i] < 0){
-                tlog->log_start[i] = tlog->buffer_start[0];
-            }
             tlog->log[tlog->log_next][i] = tlog->buffer[0][i];
         }
+        tlog->buffer_next = 0;
     }
 
     // Check if should merge log too.
@@ -123,7 +122,7 @@ int log_merge(THREAD_STATUS v[MAXLOGSIZE][MAX_THREADS], int * next, int sizeofv,
         for(k=0; k<MAX_THREADS; k++){       // Iterate over each threadlog  (\/)
             int possible_states[2] = {0,0};
             for(j=i; j<(i+rs-1); j++){      // Iterate inside a shrinking block (->)
-                if( v[i][k] == UNLOCKED ) possible_states[0]++;
+                if( v[j][k] == UNLOCKED ) possible_states[0]++;
                 else possible_states[1]++;
             }
             // Use the most frequent state on block.
@@ -148,7 +147,7 @@ void log_dump() {
 
     cerr << "[LOG] Dumping report to trace.json" << std::endl;
 
-    f.open(OUTPUTFILE, ios::trunc | ios::out );
+    f.open(OUTPUTFILE);
     
     f <<"{\n\t\"END\":" << tlog->log_next <<
         ",\n\t\"MAIN\":{\n\t\t\"STP\":" << tlog->log_start[0] <<
@@ -159,7 +158,7 @@ void log_dump() {
         ",\n\t\t\"STR\":\"" << log_make_status_string(str, 1) <<
         "\"\n\t},\n";
 
-    f << "\t\"THREADS\": [\n";
+    f <<"\t\"THREADS\": [\n";
 
     int i;
     for(i=2; i<MAX_THREADS; i++){
@@ -169,8 +168,8 @@ void log_dump() {
             "\n";
     }
 
-    f <<"\t]\n}";
-
+    f << "\t]\n}" << std::endl;
+    //f.flush();
     f.close();
 }
 
