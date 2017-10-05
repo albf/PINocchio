@@ -1,7 +1,7 @@
 #ifndef __LOG_H__
 #define __LOG_H__
 
-#define MAXLOGSIZE 32768          // Must be power of REDUCTIONSTEP
+#define MAXLOGSIZE 2048          // Must be power of REDUCTIONSTEP
 #define REDUCTIONSTEP 8           // TODO Fix by adding remainings on new buffer
 #define OUTPUTFILE "trace.json"   // TODO: Change how name is defined
 
