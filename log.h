@@ -1,7 +1,7 @@
 #ifndef __LOG_H__
 #define __LOG_H__
 
-#define MAXLOGSIZE 2048          // Must be power of REDUCTIONSTEP
+#define MAXLOGSIZE 2048           // Must be power of REDUCTIONSTEP
 #define REDUCTIONSTEP 8           // TODO Fix by adding remainings on new buffer
 #define OUTPUTFILE "trace.json"   // TODO: Change how name is defined
 
@@ -19,7 +19,7 @@ typedef struct {
     int log_next;
 } T_log;
 
-extern T_log * tlog;
+extern T_log *tlog;
 
 // Init the log, allocating memory and initializing required fields.
 void log_init();

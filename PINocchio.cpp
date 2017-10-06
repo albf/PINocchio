@@ -7,18 +7,20 @@
 #include <pthread.h>
 #include "pin.H"
 
-std::ostream * out = &cerr;
+std::ostream *out = &cerr;
 
 // Might be used to wait for controller
 PIN_THREAD_UID controller_tid;
 
-INT32 Usage() {
+INT32 Usage()
+{
     cerr << "PINocchio helps (or not) to find if a multithread application scales" << std::endl;
     cerr << KNOB_BASE::StringKnobSummary() << std::endl;
     return -1;
 }
 
-VOID before_mutex_lock(pthread_mutex_t *mutex, THREADID tid) {
+VOID before_mutex_lock(pthread_mutex_t *mutex, THREADID tid)
+{
     all_threads[tid].holder = (void *) mutex;
     MSG msg = {
         .tid = tid,
@@ -29,7 +31,8 @@ VOID before_mutex_lock(pthread_mutex_t *mutex, THREADID tid) {
     *out << "before_mutex_lock: " << mutex << std::endl;
 }
 
-VOID after_mutex_lock(THREADID tid) {
+VOID after_mutex_lock(THREADID tid)
+{
     pthread_mutex_t *mutex = (pthread_mutex_t *) all_threads[tid].holder;
     MSG msg = {
         .tid = tid,
@@ -40,7 +43,8 @@ VOID after_mutex_lock(THREADID tid) {
     *out << "after_mutex_lock: " << mutex << std::endl;
 }
 
-VOID before_mutex_trylock(pthread_mutex_t *mutex, THREADID tid) {
+VOID before_mutex_trylock(pthread_mutex_t *mutex, THREADID tid)
+{
     all_threads[tid].holder = (void *) mutex;
     MSG msg = {
         .tid = tid,
@@ -51,7 +55,8 @@ VOID before_mutex_trylock(pthread_mutex_t *mutex, THREADID tid) {
     *out << "before_try_lock: " << mutex << std::endl;
 }
 
-VOID after_mutex_trylock(THREADID tid) {
+VOID after_mutex_trylock(THREADID tid)
+{
     pthread_mutex_t *mutex = (pthread_mutex_t *) all_threads[tid].holder;
     MSG msg = {
         .tid = tid,
@@ -62,7 +67,8 @@ VOID after_mutex_trylock(THREADID tid) {
     *out << "after_try_lock: " << mutex << std::endl;
 }
 
-VOID before_mutex_unlock(pthread_mutex_t *mutex, THREADID tid) {
+VOID before_mutex_unlock(pthread_mutex_t *mutex, THREADID tid)
+{
     all_threads[tid].holder = (void *) mutex;
     MSG msg = {
         .tid = tid,
@@ -73,18 +79,20 @@ VOID before_mutex_unlock(pthread_mutex_t *mutex, THREADID tid) {
     *out << "before_unlock: " << mutex << std::endl;
 }
 
-VOID after_mutex_unlock(THREADID tid) {
+VOID after_mutex_unlock(THREADID tid)
+{
     pthread_mutex_t *mutex = (pthread_mutex_t *) all_threads[tid].holder;
     MSG msg = {
         .tid = tid,
         .msg_type = MSG_AFTER_UNLOCK,
         .arg = (void *) mutex,
-    }; 
+    };
     send_request(msg);
     *out << "after_unlock: " << mutex << std::endl;
 }
 
-VOID before_create(pthread_t *thread, THREADID tid) {
+VOID before_create(pthread_t *thread, THREADID tid)
+{
     all_threads[tid].holder = (void *) thread;
     MSG msg = {
         .tid = tid,
@@ -94,19 +102,21 @@ VOID before_create(pthread_t *thread, THREADID tid) {
     *out << "before_create" << std::endl;
 }
 
-VOID after_create(THREADID tid) {
+VOID after_create(THREADID tid)
+{
     pthread_t *thread = (pthread_t *) all_threads[tid].holder;
     MSG msg = {
         .tid = tid,
         .msg_type = MSG_AFTER_CREATE,
         // Save pthread_t parameter as usual, but it's value, not the pointer
-        .arg = (void *) (*thread),
+        .arg = (void *)(*thread),
     };
     send_request(msg);
     *out << "after_create" << std::endl;
 }
 
-VOID before_join(pthread_t thread, THREADID tid) {
+VOID before_join(pthread_t thread, THREADID tid)
+{
     MSG msg = {
         .tid = tid,
         .msg_type = MSG_BEFORE_JOIN,
@@ -116,9 +126,10 @@ VOID before_join(pthread_t thread, THREADID tid) {
     *out << "before_join" << std::endl;
 }
 
-VOID module_load_handler (IMG img, void * v) {
+VOID module_load_handler(IMG img, void *v)
+{
     *out << "module_load_handler" << std::endl;
-    if (img == IMG_Invalid()) {
+    if(img == IMG_Invalid()) {
         *out << "ModuleLoadallback received invalid IMG" << std::endl;
         return;
     }
@@ -127,7 +138,7 @@ VOID module_load_handler (IMG img, void * v) {
 
     // Look for pthread_mutex_lock
     rtn = RTN_FindByName(img, "pthread_mutex_lock");
-    if (RTN_Valid(rtn)) {
+    if(RTN_Valid(rtn)) {
         *out << "Found pthread_mutex_lock on image" << std::endl;
         RTN_Open(rtn);
         RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)before_mutex_lock,
@@ -141,7 +152,7 @@ VOID module_load_handler (IMG img, void * v) {
 
     // Look for pthread_mutex_trylock
     rtn = RTN_FindByName(img, "pthread_mutex_trylock");
-    if (RTN_Valid(rtn)) {
+    if(RTN_Valid(rtn)) {
         *out << "Found pthread_mutex_trylock on image" << std::endl;
         RTN_Open(rtn);
         RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)before_mutex_trylock,
@@ -155,7 +166,7 @@ VOID module_load_handler (IMG img, void * v) {
 
     // Look for pthread_mutex_unlock
     rtn = RTN_FindByName(img, "pthread_mutex_unlock");
-    if (RTN_Valid(rtn)) {
+    if(RTN_Valid(rtn)) {
         *out << "Found pthread_mutex_unlock on image" << std::endl;
         RTN_Open(rtn);
         RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)before_mutex_unlock,
@@ -169,7 +180,7 @@ VOID module_load_handler (IMG img, void * v) {
 
     // Look for pthread_mutex_unlock
     rtn = RTN_FindByName(img, "pthread_create");
-    if (RTN_Valid(rtn)) {
+    if(RTN_Valid(rtn)) {
         *out << "Found pthread_create on image" << std::endl;
         RTN_Open(rtn);
         RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)before_create,
@@ -183,7 +194,7 @@ VOID module_load_handler (IMG img, void * v) {
 
     // Look for pthread_join
     rtn = RTN_FindByName(img, "pthread_join");
-    if (RTN_Valid(rtn)) {
+    if(RTN_Valid(rtn)) {
         *out << "Found pthread_join on image" << std::endl;
         RTN_Open(rtn);
         RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)before_join,
@@ -194,8 +205,8 @@ VOID module_load_handler (IMG img, void * v) {
     }
 }
 
-// Run at thread start
-VOID thread_start(THREADID thread_id, CONTEXT *ctxt, INT32 flags, VOID *v) {
+VOID thread_start(THREADID thread_id, CONTEXT *ctxt, INT32 flags, VOID *v)
+{
     *out << "[PINocchio] Thread Initialized: " << thread_id << std::endl;
 
     // Check if thread id is under limit
@@ -213,7 +224,8 @@ VOID thread_start(THREADID thread_id, CONTEXT *ctxt, INT32 flags, VOID *v) {
     send_request(my_msg);
 }
 
-VOID thread_fini(THREADID thread_id, CONTEXT const *ctxt, INT32 flags, VOID *v){
+VOID thread_fini(THREADID thread_id, CONTEXT const *ctxt, INT32 flags, VOID *v)
+{
     *out << "[PINocchio] Thread Finished: " << thread_id << std::endl;
 
     MSG my_msg = {
@@ -224,18 +236,19 @@ VOID thread_fini(THREADID thread_id, CONTEXT const *ctxt, INT32 flags, VOID *v){
     send_request(my_msg);
 }
 
-VOID Fini(INT32 code, VOID *v) {
+VOID Fini(INT32 code, VOID *v)
+{
     *out << "===============================================" << std::endl;
     *out << " PINocchio exiting " << std::endl;
     *out << "===============================================" << std::endl;
 }
 
-// Run at instruction start
-VOID ins_handler() {
+VOID ins_handler()
+{
     THREADID thread_id = PIN_ThreadId();
-    THREAD_INFO * my_thread_info = &all_threads[(int)thread_id];
+    THREAD_INFO *my_thread_info = &all_threads[(int)thread_id];
     // Check if finish executing a batch
-    if(my_thread_info->ins_count >= my_thread_info->ins_max ) {
+    if(my_thread_info->ins_count >= my_thread_info->ins_max) {
         // Send done do controller and wait for a "continue" message
         MSG my_msg = {
             .tid = thread_id,
@@ -247,17 +260,19 @@ VOID ins_handler() {
     my_thread_info->ins_count++;
 }
 
-VOID instruction(INS ins, VOID *v) {
+VOID instruction(INS ins, VOID *v)
+{
     INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)ins_handler, IARG_END);
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
     cerr <<  "===============================================" << std::endl;
     cerr <<  "Application instrumented by PINocchio" << std::endl;
     cerr <<  "===============================================" << std::endl;
 
     // Print usage if help was called.
-    if(PIN_Init(argc,argv)) {
+    if(PIN_Init(argc, argv)) {
         return Usage();
     }
 

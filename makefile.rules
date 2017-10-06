@@ -5,6 +5,8 @@
 #
 ##############################################################
 
+ident:
+	astyle --style=kr --indent=spaces --indent-col1-comments --align-pointer=name --unpad-paren --add-brackets --pad-oper -n *.cpp *.h examples/*.c
 
 ##############################################################
 #

@@ -14,7 +14,8 @@ struct _ti {
 int y;
 
 /* Dummy thread function */
-void *inc_x(void *x_void_ptr) {
+void *inc_x(void *x_void_ptr)
+{
     ti *x_pt = (ti *)x_void_ptr;
 
     /* increment y to COUNT_MAX */
@@ -28,9 +29,10 @@ void *inc_x(void *x_void_ptr) {
     return NULL;
 }
 
-int main(int argc , char **argv) {
+int main(int argc , char **argv)
+{
     int i, conv = 2;
-    ti * x;
+    ti *x;
 
     if(pthread_mutex_init(&mutex, NULL)) {
         printf("error initializing mutex");
@@ -42,15 +44,15 @@ int main(int argc , char **argv) {
         conv = atoi(argv[1]);
     }
 
-    x = (ti *) malloc(conv*sizeof(ti));
+    x = (ti *) malloc(conv * sizeof(ti));
     for(i = 0; i < conv; i++) {
-        x[i].i = i+1;
+        x[i].i = i + 1;
         pthread_mutex_init(&x[i].exit, NULL);
         pthread_mutex_lock(&x[i].exit);
     }
 
-    pthread_t * inc_x_thread;
-    inc_x_thread = (pthread_t *) malloc (conv*sizeof(pthread_t));
+    pthread_t *inc_x_thread;
+    inc_x_thread = (pthread_t *) malloc(conv * sizeof(pthread_t));
 
     printf("before creating \n");
     for(i = 0; i < conv; i++) {

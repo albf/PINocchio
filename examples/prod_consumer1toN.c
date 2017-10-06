@@ -12,7 +12,8 @@ typedef struct _ti ti;
 int y = 0;
 
 /* Dummy thread function */
-void *consumer(void *x_void_ptr) {
+void *consumer(void *x_void_ptr)
+{
     int c = 0;
     int v = 0;
     int i;
@@ -20,22 +21,22 @@ void *consumer(void *x_void_ptr) {
     /* increment y to COUNT_MAX */
     while(1) {
         pthread_mutex_lock(&mutex);
-        if(y==1){
+        if(y == 1) {
             y = 0;
             c++;
         }
 
-        for(i=0; i<RUN/4; i++){
+        for(i = 0; i < RUN / 4; i++) {
             v++;
         }
 
         pthread_mutex_unlock(&mutex);
 
-        for(i=0; i<RUN; i++){
+        for(i = 0; i < RUN; i++) {
             v++;
         }
 
-        if( c >= COUNT_C){
+        if(c >= COUNT_C) {
             break;
         }
     }
@@ -43,18 +44,19 @@ void *consumer(void *x_void_ptr) {
     return NULL;
 }
 
-void *producer(void *x_void_ptr) {
+void *producer(void *x_void_ptr)
+{
     int c = 0;
     ti *x_pt = (ti *)x_void_ptr;
 
     while(1) {
         pthread_mutex_lock(&mutex);
-        if(y==0){
+        if(y == 0) {
             y = 1;
             c++;
         }
         pthread_mutex_unlock(&mutex);
-        if( c >= COUNT_P){
+        if(c >= COUNT_P) {
             break;
         }
     }
@@ -62,7 +64,8 @@ void *producer(void *x_void_ptr) {
     return NULL;
 }
 
-int main(int argc , char **argv) {
+int main(int argc , char **argv)
+{
     int i, conv = 5;
 
     if(pthread_mutex_init(&mutex, NULL)) {
@@ -75,9 +78,9 @@ int main(int argc , char **argv) {
         conv = atoi(argv[1]);
     }
 
-    pthread_t * inc_x_thread;
+    pthread_t *inc_x_thread;
     pthread_t p;
-    inc_x_thread = (pthread_t *) malloc (conv*sizeof(pthread_t));
+    inc_x_thread = (pthread_t *) malloc(conv * sizeof(pthread_t));
 
     if(pthread_create(&p, NULL, producer, NULL)) {
         printf("Error creating thread\n");
@@ -87,17 +90,17 @@ int main(int argc , char **argv) {
     printf("before creating \n");
     for(i = 0; i < conv; i++) {
         if(pthread_create(&inc_x_thread[i], NULL, consumer, NULL)) {
-             printf("Error creating thread\n");
+            printf("Error creating thread\n");
             return 1;
         }
-         printf("Created thread %d\n", i);
+        printf("Created thread %d\n", i);
     }
 
     printf("Waiting...\n");
     // Custom-made join
     pthread_join(p, NULL);
-    for(i=0; i<conv; i++){
-        pthread_join(inc_x_thread[i],NULL);
+    for(i = 0; i < conv; i++) {
+        pthread_join(inc_x_thread[i], NULL);
     }
     printf("All threads exit\n");
 
