@@ -9,7 +9,7 @@ T_log *tlog;
 // Internal auxiliary functions
 int log_on_buffer();
 int log_merge(THREAD_STATUS v[MAXLOGSIZE][MAX_THREADS], int *next, int sizeofv, int rs);
-char *log_make_status_string(char *s, int index);
+int log_make_status_string(char *s, int index);
 
 void log_init()
 {
@@ -33,7 +33,8 @@ void log_init()
 
     for(j = 0; j < MAX_THREADS; j++) {
         for(i = 0; i < MAXLOGSIZE; i++) {
-            tlog->buffer[i][j] = UNLOCKED;
+            tlog->buffer[i][j] = UNREGISTERED;
+            tlog->log[i][j] = UNREGISTERED;
         }
     }
     cerr << "[LOG] Log Initiated" << std::endl;
@@ -48,7 +49,7 @@ int log_on_buffer()
     for(i = 0; i <= max_tid; i++) {
         // If just start, mark its new position
         if(tlog->log_start[i] < 0) {
-            tlog->log_start[i] = tlog->log_next; // TESTING
+            tlog->log_start[i] = tlog->log_next;
         }
 
         tlog->buffer[tlog->buffer_next][i] = all_threads[i].status;
@@ -110,7 +111,8 @@ void log_add()
 // Returns the new next position available.
 int log_merge(THREAD_STATUS v[MAXLOGSIZE][MAX_THREADS], int *next, int sizeofv, int rs)
 {
-    int i, j, k;
+    int i, j, max;
+    unsigned int k;
     // i=5 ; REDUCTIONSTEP = 5
 
     // next |... 5 6 7 8 9 ... SUM
@@ -123,23 +125,25 @@ int log_merge(THREAD_STATUS v[MAXLOGSIZE][MAX_THREADS], int *next, int sizeofv, 
         // Last vector @ each reduction block is taken as reference
         // (includes all threads)
 
-        for(k = 0; k < MAX_THREADS; k++) {  // Iterate over each threadlog  (\/)
-            int possible_states[2] = {0, 0};
-            for(j = i; j < (i + rs - 1); j++) { // Iterate inside a shrinking block (->)
-                if(v[j][k] == UNLOCKED) {
-                    possible_states[0]++;
-                } else {
-                    possible_states[1]++;
-                }
+        for(k = 0; k < max_tid ; k++) {  // Iterate over each threadlog  (\/)
+            int possible_states[4] = {0, 0, 0, 0};
+            for(j = i; j < (i + rs); j++) { // Iterate inside a shrinking block (->)
+                possible_states[(int)v[j][k]]++;
             }
             // Use the most frequent state on block.
-            if(possible_states[0] > possible_states[1]) {
-                v[i][k] = UNLOCKED;
-            } else {
-                v[i][k] = LOCKED;
+            max = 0;
+            //cerr << "Merging[" << k << "][" << j << "] = " << possible_states[0] << std::endl;
+            for(j = 1; j < POSSIBLE_STATES; j++) {
+                //cerr << "Merging[" << k << "][" << j << "] = " << possible_states[j] << std::endl;
+                if(possible_states[j] > possible_states[max]) {
+                    max = j;
+                }
             }
+            v[i][k] = (THREAD_STATUS) max;
+            //cerr << "Merged[" << k << "] into " << max << std::endl;
         }
     }
+
     return sizeofv / rs;
 }
 
@@ -158,43 +162,51 @@ void log_dump()
 
     f.open(OUTPUTFILE);
 
-    f << "{\n\t\"END\":" << tlog->log_next <<
-      ",\n\t\"MAIN\":{\n\t\t\"STP\":" << tlog->log_start[0] <<
-      ",\n\t\t\"STR\":\"" << log_make_status_string(str, 0) <<
-      "\"\n\t},\n";
+    f << "{\n" <<
+      "  \"end\":" << tlog->log_next << ",\n" <<
+      "  \"sample-size\":" << tlog->buffer_size << ",\n";
 
-    f << "\t\"CTRL\":{\n\t\t\"STP\":" << tlog->log_start[1] <<
-      ",\n\t\t\"STR\":\"" << log_make_status_string(str, 1) <<
-      "\"\n\t},\n";
+    f << "  \"threads\": [\n";
+    int first = 1;
+    for(int i = 0; i < MAX_THREADS; i++) {
+        int exist = log_make_status_string(str, i);
 
-    f << "\t\"THREADS\": [\n";
+        if(exist > 0) {
+            if(first > 0) {
+                first = 0;
+            } else {
+                f << ",\n";
+            }
 
-    int i;
-    for(i = 2; i < MAX_THREADS; i++) {
-        f << "\t\t{\n \t\t\t\"STP\":" << tlog->log_start[i] <<
-          ",\n\t\t\t\"STR\":\"" << log_make_status_string(str, i) <<
-          "\"\n\t\t}" << (i == (MAX_THREADS - 1) ? "" : ",") <<
-          "\n";
+            f << "    {\n" <<
+              "      \"pin-tid\":" << i << ",\n" <<
+              "      \"start\":" << tlog->log_start[i] << ",\n" <<
+              "      \"samples\":\"" << str << "\"\n" <<
+              "    }";
+        }
     }
 
-    f << "\t]\n}" << std::endl;
-    //f.flush();
+    f << "\n  ]\n}\n";
     f.close();
 }
 
-char *log_make_status_string(char *s, int index)
+// Returns 0 if stayed unregistered the whole time
+int log_make_status_string(char *s, int index)
 {
-    int i;
+    int any = 0;
     int start = tlog->log_start[index];
 
-    if(start == -1) {
-        s[0] = '\0';
-        return s;
+    if(start < 0) {
+        return 0;
     }
 
-    for(i = start; i < tlog->log_next; i++) {
-        s[i - start] = (char)(0x30 + tlog->log[i][index]); // Inefficient...
+    for(int i = start; i < tlog->log_next; i++) {
+        s[i - start] = (char)(0x30 + tlog->log[i][index]);
+        if(tlog->log[i][index] != UNREGISTERED) {
+            any = 1;
+        }
     }
+
     s[tlog->log_next - start] = '\0';
-    return s;
+    return any;
 }

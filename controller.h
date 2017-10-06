@@ -12,12 +12,13 @@
 // --- Thread info ---
 
 // Status structs Indicate current thread status regarding lock and step
+// Order will be considered preference on log merge
+#define POSSIBLE_STATES 4
 typedef enum {
-    LOCKED = 0,       // Waiting within a lock
-    UNLOCKED = 1,     // Running other stuff free
+    UNLOCKED = 0,     // Running other stuff free
+    LOCKED = 1,       // Waiting within a lock
     UNREGISTERED = 2, // Not registered yet, must use message
     FINISHED = 3,     // Already finished its job
-    CREATING = 4,     // Using pthread_create
 }   THREAD_STATUS;
 
 typedef enum {
