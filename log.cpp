@@ -8,6 +8,8 @@ T_log *tlog;
 
 // Internal auxiliary functions
 int log_on_buffer();
+void reset_buffer();
+void force_buffer_release();
 int log_merge(THREAD_STATUS v[MAXLOGSIZE][MAX_THREADS], int *next, int sizeofv, int rs);
 int log_make_status_string(char *s, int index);
 
@@ -21,55 +23,70 @@ void log_init()
         exit(-1);
     }
 
+    // Init buffer fields
+    tlog->buffer_capacity = 1;
+    reset_buffer();
+
+
     // Init log fields
     tlog->log_next = 0;
     for(i = 0; i < MAX_THREADS; i++) {
         tlog->log_start[i] = -1;
     }
 
-    // Init buffer fields
-    tlog->buffer_next = 0;
-    tlog->buffer_size = 1;
-
     for(j = 0; j < MAX_THREADS; j++) {
         for(i = 0; i < MAXLOGSIZE; i++) {
-            tlog->buffer[i][j] = UNREGISTERED;
             tlog->log[i][j] = UNREGISTERED;
         }
     }
+
     cerr << "[LOG] Log Initiated" << std::endl;
 }
 
 // log_on_buffer returns 1 if it became full, 0 otherwise.
 int log_on_buffer()
 {
-    unsigned int i;
-
     // Log all threads status
-    for(i = 0; i <= max_tid; i++) {
+    for(unsigned int i = 0; i <= max_tid; i++) {
         // If just start, mark its new position
         if(tlog->log_start[i] < 0) {
             tlog->log_start[i] = tlog->log_next;
         }
 
-        tlog->buffer[tlog->buffer_next][i] = all_threads[i].status;
+        tlog->buffer[(int)all_threads[i].status][i]++;
     }
 
-    tlog->buffer_next++;
-
-    if(tlog->buffer_next == tlog->buffer_size) {
+    tlog->buffer_size++;
+    if(tlog->buffer_size == tlog->buffer_capacity) {
         return 1;
     }
 
     return 0;
 }
 
+void reset_buffer()
+{
+    for(unsigned int i = 0; i < max_tid; i++) {
+        for(int j = 0; j < POSSIBLE_STATES; j++) {
+            tlog->buffer[j][i] = 0;
+        }
+    }
+    tlog->buffer_size = 0;
+}
+
+void force_buffer_release()
+{
+    for(int i = tlog->buffer_size; i < tlog->buffer_capacity; i++) {
+        log_on_buffer();
+    }
+}
+
 void log_add()
 {
     int is_buffer_full;
-    unsigned int i;
+    unsigned int i, j;
 
-    if(tlog->buffer_size == 1) {
+    if(tlog->buffer_capacity == 1) {
         // First case, ignore buffer since it would be flushed anyway.
         for(i = 0; i <= max_tid; i++) {
             if(tlog->log_start[i] < 0) {
@@ -77,7 +94,6 @@ void log_add()
             }
             tlog->log[tlog->log_next][i] = all_threads[i].status;
         }
-        tlog->buffer_next = 0;
     } else {
         // First insert on buffer, checking if full
         is_buffer_full = log_on_buffer();
@@ -85,13 +101,16 @@ void log_add()
             return;
         }
 
-        // If full, merge and continue updating log
-        log_merge(tlog->buffer, tlog->log_start,
-                  tlog->buffer_size, tlog->buffer_size);
         for(i = 0; i <= max_tid; i++) {
-            tlog->log[tlog->log_next][i] = tlog->buffer[0][i];
+            int max = 0;
+            for(j = 1; j < POSSIBLE_STATES; j++) {
+                if(tlog->buffer[j][i] > tlog->buffer[max][i]) {
+                    max = j;
+                }
+            }
+            tlog->log[tlog->log_next][i] = (THREAD_STATUS)max;
         }
-        tlog->buffer_next = 0;
+        reset_buffer();
     }
 
     // Check if should merge log too.
@@ -100,11 +119,7 @@ void log_add()
         tlog->log_next = log_merge(tlog->log, tlog->log_start, MAXLOGSIZE, REDUCTIONSTEP);
 
         // Update buffer size, since it was merged and should be increased.
-        tlog->buffer_size *= REDUCTIONSTEP;
-        if(tlog->buffer_size > MAXLOGSIZE) {
-            puts("Internal Error: Can't increase buffer size anymore.");
-            tlog->buffer_size = MAXLOGSIZE;
-        }
+        tlog->buffer_capacity *= REDUCTIONSTEP;
     }
 }
 
@@ -160,11 +175,12 @@ void log_dump()
 
     cerr << "[LOG] Dumping report to trace.json" << std::endl;
 
+    force_buffer_release();
     f.open(OUTPUTFILE);
 
     f << "{\n" <<
       "  \"end\":" << tlog->log_next << ",\n" <<
-      "  \"sample-size\":" << tlog->buffer_size << ",\n";
+      "  \"sample-size\":" << tlog->buffer_capacity << ",\n";
 
     f << "  \"threads\": [\n";
     int first = 1;

@@ -9,9 +9,9 @@
 
 typedef struct {
     // Buffer related fields
-    THREAD_STATUS buffer[MAXLOGSIZE][MAX_THREADS];
-    int buffer_next;
+    int buffer[POSSIBLE_STATES][MAX_THREADS];
     int buffer_size;
+    int buffer_capacity;
 
     // Log related fields
     THREAD_STATUS log[MAXLOGSIZE][MAX_THREADS];
