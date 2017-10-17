@@ -21,7 +21,9 @@ void *inc_x(void *x_void_ptr)
     /* increment y to COUNT_MAX */
     while(y < COUNT_MAX) {
         pthread_mutex_lock(&mutex);
-        y++;
+        if(y < COUNT_MAX) {
+            y++;
+        }
         pthread_mutex_unlock(&mutex);
     }
 
@@ -31,44 +33,44 @@ void *inc_x(void *x_void_ptr)
 
 int main(int argc , char **argv)
 {
-    int i, conv = 2;
+    int i, num_threads = 2;
     ti *x;
 
     if(pthread_mutex_init(&mutex, NULL)) {
-        printf("error initializing mutex");
+        fprintf(stderr, "error initializing mutex");
         return 3;
     }
     y = 0;
 
     if(argc > 1) {
-        conv = atoi(argv[1]);
+        num_threads = atoi(argv[1]);
     }
 
-    x = (ti *) malloc(conv * sizeof(ti));
-    for(i = 0; i < conv; i++) {
-        x[i].i = i + 1;
+    x = (ti *) malloc(num_threads * sizeof(ti));
+    for(i = 0; i < num_threads; i++) {
+        x[i].i = i;
         pthread_mutex_init(&x[i].exit, NULL);
+        // Custom made join initialize locked
         pthread_mutex_lock(&x[i].exit);
     }
 
     pthread_t *inc_x_thread;
-    inc_x_thread = (pthread_t *) malloc(conv * sizeof(pthread_t));
+    inc_x_thread = (pthread_t *) malloc(num_threads * sizeof(pthread_t));
 
-    printf("before creating \n");
-    for(i = 0; i < conv; i++) {
+    for(i = 0; i < num_threads; i++) {
         if(pthread_create(&inc_x_thread[i], NULL, inc_x, &x[i])) {
-            printf("Error creating thread\n");
+            fprintf(stderr, "Error creating thread\n");
             return 1;
         }
-        printf("Created thread %d\n", i);
     }
 
-    printf("Waiting...\n");
     // Custom-made join
-    for(i = 0; i < conv; i++) {
+    for(i = 0; i < num_threads; i++) {
         pthread_mutex_lock(&x[i].exit);
     }
-    printf("All threads exit\n");
 
+    pthread_mutex_destroy(&mutex);
+
+    printf("All threads exit\n");
     return 0;
 }
