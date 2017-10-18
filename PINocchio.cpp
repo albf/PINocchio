@@ -28,7 +28,8 @@ VOID before_mutex_lock(pthread_mutex_t *mutex, THREADID tid)
         .arg = (void *) mutex,
     };
     send_request(msg);
-    *out << "before_mutex_lock: " << mutex << std::endl;
+
+    DEBUG(*out << "before_mutex_lock: " << mutex << std::endl);
 }
 
 VOID after_mutex_lock(THREADID tid)
@@ -40,7 +41,8 @@ VOID after_mutex_lock(THREADID tid)
         .arg = (void *) mutex,
     };
     send_request(msg);
-    *out << "after_mutex_lock: " << mutex << std::endl;
+
+    DEBUG(*out << "after_mutex_lock: " << mutex << std::endl);
 }
 
 VOID before_mutex_trylock(pthread_mutex_t *mutex, THREADID tid)
@@ -52,7 +54,8 @@ VOID before_mutex_trylock(pthread_mutex_t *mutex, THREADID tid)
         .arg = (void *) mutex,
     };
     send_request(msg);
-    *out << "before_try_lock: " << mutex << std::endl;
+
+    DEBUG(*out << "before_try_lock: " << mutex << std::endl);
 }
 
 VOID after_mutex_trylock(THREADID tid)
@@ -64,7 +67,8 @@ VOID after_mutex_trylock(THREADID tid)
         .arg = (void *) mutex,
     };
     send_request(msg);
-    *out << "after_try_lock: " << mutex << std::endl;
+
+    DEBUG(*out << "after_try_lock: " << mutex << std::endl);
 }
 
 VOID before_mutex_unlock(pthread_mutex_t *mutex, THREADID tid)
@@ -76,7 +80,8 @@ VOID before_mutex_unlock(pthread_mutex_t *mutex, THREADID tid)
         .arg = (void *) mutex,
     };
     send_request(msg);
-    *out << "before_unlock: " << mutex << std::endl;
+
+    DEBUG(*out << "before_unlock: " << mutex << std::endl);
 }
 
 VOID after_mutex_unlock(THREADID tid)
@@ -88,7 +93,8 @@ VOID after_mutex_unlock(THREADID tid)
         .arg = (void *) mutex,
     };
     send_request(msg);
-    *out << "after_unlock: " << mutex << std::endl;
+
+    DEBUG(*out << "after_unlock: " << mutex << std::endl);
 }
 
 VOID before_create(pthread_t *thread, THREADID tid)
@@ -99,7 +105,8 @@ VOID before_create(pthread_t *thread, THREADID tid)
         .msg_type = MSG_BEFORE_CREATE,
     };
     send_request(msg);
-    *out << "before_create" << std::endl;
+
+    DEBUG(*out << "before_create" << std::endl);
 }
 
 VOID after_create(THREADID tid)
@@ -112,7 +119,8 @@ VOID after_create(THREADID tid)
         .arg = (void *)(*thread),
     };
     send_request(msg);
-    *out << "after_create" << std::endl;
+
+    DEBUG(*out << "after_create" << std::endl);
 }
 
 VOID before_join(pthread_t thread, THREADID tid)
@@ -123,12 +131,13 @@ VOID before_join(pthread_t thread, THREADID tid)
         .arg = (void *) thread,
     };
     send_request(msg);
-    *out << "before_join" << std::endl;
+
+    DEBUG(*out << "before_join" << std::endl);
 }
 
 VOID module_load_handler(IMG img, void *v)
 {
-    *out << "module_load_handler" << std::endl;
+    DEBUG(*out << "module_load_handler" << std::endl);
     if(img == IMG_Invalid()) {
         *out << "ModuleLoadallback received invalid IMG" << std::endl;
         return;
@@ -139,7 +148,7 @@ VOID module_load_handler(IMG img, void *v)
     // Look for pthread_mutex_lock
     rtn = RTN_FindByName(img, "pthread_mutex_lock");
     if(RTN_Valid(rtn)) {
-        *out << "Found pthread_mutex_lock on image" << std::endl;
+        DEBUG(*out << "Found pthread_mutex_lock on image" << std::endl);
         RTN_Open(rtn);
         RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)before_mutex_lock,
                        IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
@@ -147,13 +156,13 @@ VOID module_load_handler(IMG img, void *v)
         RTN_InsertCall(rtn, IPOINT_AFTER, (AFUNPTR)after_mutex_lock,
                        IARG_THREAD_ID, IARG_END);
         RTN_Close(rtn);
-        *out << "pthread_mutex_lock registered" << std::endl;
+        DEBUG(*out << "pthread_mutex_lock registered" << std::endl);
     }
 
     // Look for pthread_mutex_trylock
     rtn = RTN_FindByName(img, "pthread_mutex_trylock");
     if(RTN_Valid(rtn)) {
-        *out << "Found pthread_mutex_trylock on image" << std::endl;
+        DEBUG(*out << "Found pthread_mutex_trylock on image" << std::endl);
         RTN_Open(rtn);
         RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)before_mutex_trylock,
                        IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
@@ -161,13 +170,13 @@ VOID module_load_handler(IMG img, void *v)
         RTN_InsertCall(rtn, IPOINT_AFTER, (AFUNPTR)after_mutex_trylock,
                        IARG_THREAD_ID, IARG_END);
         RTN_Close(rtn);
-        *out << "pthread_mutex_trylock registered" << std::endl;
+        DEBUG(*out << "pthread_mutex_trylock registered" << std::endl);
     }
 
     // Look for pthread_mutex_unlock
     rtn = RTN_FindByName(img, "pthread_mutex_unlock");
     if(RTN_Valid(rtn)) {
-        *out << "Found pthread_mutex_unlock on image" << std::endl;
+        DEBUG(*out << "Found pthread_mutex_unlock on image" << std::endl);
         RTN_Open(rtn);
         RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)before_mutex_unlock,
                        IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
@@ -175,13 +184,13 @@ VOID module_load_handler(IMG img, void *v)
         RTN_InsertCall(rtn, IPOINT_AFTER, (AFUNPTR)after_mutex_unlock,
                        IARG_THREAD_ID, IARG_END);
         RTN_Close(rtn);
-        *out << "pthread_mutex_unlock registered" << std::endl;
+        DEBUG(*out << "pthread_mutex_unlock registered" << std::endl);
     }
 
     // Look for pthread_mutex_unlock
     rtn = RTN_FindByName(img, "pthread_create");
     if(RTN_Valid(rtn)) {
-        *out << "Found pthread_create on image" << std::endl;
+        DEBUG(*out << "Found pthread_create on image" << std::endl);
         RTN_Open(rtn);
         RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)before_create,
                        IARG_FUNCARG_CALLSITE_VALUE, 0,
@@ -189,19 +198,19 @@ VOID module_load_handler(IMG img, void *v)
         RTN_InsertCall(rtn, IPOINT_AFTER, (AFUNPTR)after_create,
                        IARG_THREAD_ID, IARG_END);
         RTN_Close(rtn);
-        *out << "pthread_create registered" << std::endl;
+        DEBUG(*out << "pthread_create registered" << std::endl);
     }
 
     // Look for pthread_join
     rtn = RTN_FindByName(img, "pthread_join");
     if(RTN_Valid(rtn)) {
-        *out << "Found pthread_join on image" << std::endl;
+        DEBUG(*out << "Found pthread_join on image" << std::endl);
         RTN_Open(rtn);
         RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)before_join,
                        IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
                        IARG_THREAD_ID, IARG_END);
         RTN_Close(rtn);
-        *out << "pthread_join registered" << std::endl;
+        DEBUG(*out << "pthread_join registered" << std::endl);
     }
 }
 
