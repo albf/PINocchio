@@ -2,7 +2,7 @@
 Will identify programs and tests, running all tests using different
 configurations, printing a result table in the end. '''
 
-from testenv import Example, Shell, PINOCCHIO_BINARY
+from shared.testenv import Example, Shell, PINOCCHIO_BINARY
 
 SEPARATOR = "--- --- --- --- ---"
 

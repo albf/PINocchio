@@ -8,8 +8,8 @@ import subprocess
 import sys
 import time
 
-TESTS_DIR = os.path.dirname(os.path.realpath(__file__))
-PINOCCHIO_DIR = os.path.dirname(TESTS_DIR)
+TOOLS_DIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+PINOCCHIO_DIR = os.path.dirname(TOOLS_DIR)
 PINOCCHIO_BINARY = os.path.join(PINOCCHIO_DIR, "obj-intel64", "PINocchio.so")
 
 class Shell(object):
