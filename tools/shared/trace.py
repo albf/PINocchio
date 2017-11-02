@@ -1,5 +1,7 @@
 ''' Auxiliary functions regarding trace processing '''
 
+import json
+
 def process_thread(thread):
     ''' Generate information regarding one thread: left postions,
     duration of each sample, it color and how many were added '''
@@ -62,6 +64,13 @@ def all_work(_threads, _sample_size):
         _, d, c, _ = process_thread(_t)
         _work += _sample_size*thread_work(d, c, "b")
     return _work
+
+def all_work_from_file(filename):
+    ''' All work but from a trace file '''
+    with open(filename) as data_file:
+        data = json.load(data_file)
+
+    return all_work(data["threads"], data["sample-size"])
 
 def duration(_threads, _sample_size):
     ''' Duration of computation, from the start of first thread and
