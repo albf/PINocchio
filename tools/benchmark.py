@@ -57,6 +57,28 @@ def print_result(_examples):
 
     Example.print_table(Example.create_table_names(), table, 3)
 
+def print_work_result(_examples):
+    ''' Print the work result table, using information from all threads '''
+
+    print header("Work Results")
+
+    table = []
+    for ex in _examples:
+        table.append(ex.work_result())
+
+    Example.print_table(Example.create_work_table_names(), table, 3)
+
+def print_overhead_result(_examples):
+    ''' Print the overhead result table, using information from all threads '''
+
+    print header("Overhead Results")
+
+    table = []
+    for ex in _examples:
+        table.append(ex.overhead_result())
+
+    Example.print_table(Example.create_overhead_table_names(), table, 3)
+
 if __name__ == "__main__":
     programs = Shell.search_programs()
     examples = Shell.create_examples()
@@ -85,4 +107,7 @@ if __name__ == "__main__":
     else:
         test_examples_perf_with_pin(examples)
 
+    # Print results collected
     print_result(examples)
+    print_work_result(examples)
+    print_overhead_result(examples)

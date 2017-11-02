@@ -13,6 +13,8 @@ TOOLS_DIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 PINOCCHIO_DIR = os.path.dirname(TOOLS_DIR)
 PINOCCHIO_BINARY = os.path.join(PINOCCHIO_DIR, "obj-intel64", "PINocchio.so")
 
+NUM_TESTS = 6
+
 class Shell(object):
     ''' Extra helpful layer for shell related functions '''
     @staticmethod
@@ -87,7 +89,7 @@ class Example(object):
     def __init__(self, name, path):
         self.name = name
         self.path = path
-        self.threads = [1, 2, 4, 8, 16, 32]
+        self.threads = Example.quadratic_range(NUM_TESTS)
 
         self.finishes = False
         self.finishes_with_pin = False
@@ -104,6 +106,36 @@ class Example(object):
     def result(self):
         ''' generate string used as result table entry '''
         return [self.name, self.finishes, self.finishes_with_pin, self.finishes_with_perf, self.finishes_with_pin_and_perf]
+
+    def work_result(self):
+        ''' generate string used as work result table entry '''
+        result = [self.name]
+        for i in range(NUM_TESTS):
+            if self.finishes_with_pin_and_perf:
+                result.append(self.perf_with_pin_stats[i][1]/float(self.work[i]))
+            else:
+                result.append(None)
+        for i in range(NUM_TESTS):
+            if self.finishes_with_pin_and_perf:
+                result.append(self.perf_with_pin_stats[i][0]/float(self.work[i]))
+            else:
+                result.append(None)
+        return result
+
+    def overhead_result(self):
+        ''' generate string used as overhead result table entry '''
+        result = [self.name]
+        for i in range(NUM_TESTS):
+            if self.finishes_with_pin_and_perf:
+                result.append(self.perf_with_pin_stats[i][1]/float(self.perf_stats[i][1]))
+            else:
+                result.append(None)
+        for i in range(NUM_TESTS):
+            if self.finishes_with_pin_and_perf:
+                result.append(self.perf_with_pin_stats[i][0]/float(self.perf_stats[i][0]))
+            else:
+                result.append(None)
+        return result
 
     def must_finish(self, timeout):
         ''' attempt to run the example using different thread numbers '''
@@ -152,7 +184,7 @@ class Example(object):
             if len(split) < 2:
                 continue
 
-            all.append(split[0].replace(",", "."))
+            all.append(float(split[0].replace(",", ".")))
 
         if not isPin:
             print "Perf output: " + str(all)
@@ -226,3 +258,32 @@ class Example(object):
     def create_table_names():
         ''' current result values, what values it generates '''
         return ["Name", "Finishes", "Finishes With Pin", "Finishes With Perf", "Finishes with Perf and Pin"]
+
+    @staticmethod
+    def quadratic_range(total):
+        ''' Generates a range that increases quadratically '''
+        entries = range(total)
+        quad = [2**x for x in entries]
+        return quad
+
+    @staticmethod
+    def create_work_table_names():
+        ''' current work values, what values it generates '''
+        insWork = []
+        cycWork = []
+        for i in Example.quadratic_range(NUM_TESTS):
+            insWork.append("Ins/Work (" + str(i) + ")")
+            cycWork.append("Cyc/Work (" + str(i) + ")")
+
+        return ["Name"] + insWork + cycWork
+
+    @staticmethod
+    def create_overhead_table_names():
+        ''' current overhead values, what values it generates '''
+        insWork = []
+        cycWork = []
+        for i in Example.quadratic_range(NUM_TESTS):
+            insWork.append("Ins (" + str(i) + ")")
+            cycWork.append("Cyc (" + str(i) + ")")
+
+        return ["Name"] + insWork + cycWork
