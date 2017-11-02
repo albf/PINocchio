@@ -215,8 +215,6 @@ void controller_main(void *arg)
             // Check if all threads have finished
             if(is_finished() == 1) {
                 cerr << "[Controller] Program finished." << std::endl;
-                log_dump();
-                log_free();
                 return;
             }
             break;

@@ -1,5 +1,6 @@
 // Controller related
 #include "controller.h"
+#include "log.h"
 
 // Pin related
 #include <unistd.h>
@@ -247,6 +248,8 @@ VOID thread_fini(THREADID thread_id, CONTEXT const *ctxt, INT32 flags, VOID *v)
 
 VOID Fini(INT32 code, VOID *v)
 {
+    log_dump();
+    log_free();
     *out << "===============================================" << std::endl;
     *out << " PINocchio exiting " << std::endl;
     *out << "===============================================" << std::endl;
