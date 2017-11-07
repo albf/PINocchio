@@ -17,11 +17,8 @@ MUTEX_ENTRY *get_entry(void *key)
     // Not found, add new and return it.
     s = (MUTEX_ENTRY *) malloc(sizeof(MUTEX_ENTRY));
     s->key = key;
-    s->threads_trying = 0;
     s->status = M_UNLOCKED;
-
     s->locked = NULL;
-    s->about_try = NULL;
 
     HASH_ADD_PTR(mutex_hash, key, s);
     return s;
@@ -50,22 +47,21 @@ void insert_locked(MUTEX_ENTRY *mutex, THREAD_INFO *entry)
     mutex->locked = insert(mutex->locked, entry);
 }
 
-void handle_lock(void *key, THREADID tid)
+int handle_lock(void *key, THREADID tid)
 {
     MUTEX_ENTRY *s = get_entry(key);
 
-    // If locked, just insert on list and mark as thread as locked.
-    if (s->status == M_LOCKED) {
-        THREAD_INFO *t = &all_threads[tid];
-        t->status = LOCKED;
-        try_release_all();
-        insert_locked(s, t);
-        return;
+    if (s->status == M_UNLOCKED) {
+        // If unlocked, first to come, just start locking.
+        s->status = M_LOCKED;
+        return 0;
     }
 
-    // If unlocked, first to come, just start locking.
-    s->status = M_LOCKED;
-    return;
+    // If locked, just insert on list and mark as thread as locked.
+    THREAD_INFO *t = &all_threads[tid];
+    t->status = LOCKED;
+    insert_locked(s, t);
+    return 1;
 }
 
 int handle_try_lock(void *key, THREADID tid)
@@ -79,18 +75,23 @@ int handle_try_lock(void *key, THREADID tid)
     return 1;
 }
 
-void handle_unlock(void *key, THREADID tid)
+// Handle_unlock returns the data from the awaked thread.
+// If none was awaked, just return NULL.
+THREAD_INFO * handle_unlock(void *key, THREADID tid)
 {
     MUTEX_ENTRY *s = get_entry(key);
-    THREAD_INFO *t = &all_threads[tid];
 
     if(s->locked != NULL) {
         s->status = M_LOCKED;
         s->locked->status = UNLOCKED;
-        release_thread(s->locked, INSTRUCTIONS_ON_ROUND);
+
+        THREAD_INFO * awaked = s->locked;
         s->locked = s->locked->next;
+        return awaked;
     } else {
+        // Odd case, won't change anything.
         s->status = M_UNLOCKED;
+        return NULL; 
     }
 }
 
@@ -131,25 +132,20 @@ JOIN_ENTRY *get_join_entry(pthread_t key)
 
 // Handle a thread exit request in terms of join.
 // Mark allow as 1, not stopping any other join.
-// Also check for locked on join threads, release
-// if any.
-void handle_thread_exit(pthread_t key)
+// Return the list of locked threads on join.
+THREAD_INFO * handle_thread_exit(pthread_t key)
 {
     JOIN_ENTRY *s = get_join_entry(key);
     s->allow = 1;
 
-    THREAD_INFO *t;
-    for(t = s->locked; t != NULL; t = t->next) {
-        t->status = UNLOCKED;
-        release_thread(t, INSTRUCTIONS_ON_ROUND);
-    }
+    return s->locked;
 }
 
 // handle_before_join deals with join request. If
-// allow, just release thread as usual. If not,
-// lock on thread exitence and check if others
+// allow, just release thread as usual - do nothing. 
+// If not, lock on thread exitence and check if others
 // running threads could continue.
-void handle_before_join(pthread_t key, THREADID tid)
+int handle_before_join(pthread_t key, THREADID tid)
 {
     JOIN_ENTRY *s = get_join_entry(key);
     THREAD_INFO *t = &all_threads[tid];
@@ -157,37 +153,41 @@ void handle_before_join(pthread_t key, THREADID tid)
     if(s->allow == 0) {
         t->status = LOCKED;
         s->locked = insert(s->locked, t);
-        try_release_all();
-    } else {
-        release_thread(t, INSTRUCTIONS_ON_ROUND);
+        return 0;
     }
+
+    return 1;
 }
 
 // handle_reentrant_start will deal with the case
 // of a starting reentrat function that the tool
 // wants to lock.
-void handle_reentrant_start(REENTRANT_LOCK *rl, THREADID tid)
+int handle_reentrant_start(REENTRANT_LOCK *rl, THREADID tid)
 {
     THREAD_INFO *t = &all_threads[tid];
 
     if(rl->busy > 0) {
         t->status = LOCKED;
         rl->locked = insert(rl->locked, t);
-        try_release_all();
-    } else {
-        rl->busy = 1;
+        return 0;
     }
+
+    rl->busy = 1;
+    return 1;
 }
 
-// handle_reentrant_exit will let other thread
-// access the reentrant function.
-void handle_reentrant_exit(REENTRANT_LOCK *rl)
+// handle_reentrant_exit will check if there is
+// any thread awaiting to get into the function and
+// return it, or null otherwise. 
+THREAD_INFO * handle_reentrant_exit(REENTRANT_LOCK *rl)
 {
     if(rl->locked == NULL) {
         rl->busy = 0;
-    } else {
-        rl->locked->status = UNLOCKED;
-        release_thread(rl->locked, INSTRUCTIONS_ON_ROUND);
-        rl->locked = rl->locked->next;
+        return NULL;
     }
+
+    rl->locked->status = UNLOCKED;
+    THREAD_INFO * awaked = rl->locked;
+    rl->locked = rl->locked->next;
+    return awaked;
 }

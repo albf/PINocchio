@@ -8,7 +8,7 @@ table is accessible only by its thread. Since there is only one hash,
 keeping a global value seems cheaper.
 */
 
-#include "controller.h"
+#include "sync.h"
 #include "uthash.h"
 #include <pthread.h>
 
@@ -42,13 +42,20 @@ struct _JOIN_ENTRY {
 
 // Handle functions to deal with each mutex function, during execution.
 // It will automatically update allThreads variable from controller.h.
-void handle_lock(void *key, THREADID tid);
+// Return values helps sync define when to check other threads status.
+int handle_lock(void *key, THREADID tid);
 int handle_try(void *key, THREADID tid);
-void handle_unlock(void *key, THREADID tid);
+
+// handle_Unlock returns the awake thread, if any.
+THREAD_INFO * handle_unlock(void *key, THREADID tid);
 
 // Used for join management
-void handle_thread_exit(pthread_t key);
-void handle_before_join(pthread_t key, THREADID tid);
+
+// handle_thread_exit returns a list with threads waiting to join.
+THREAD_INFO * handle_thread_exit(pthread_t key);
+
+// handle_before_join returns 1 if allowed, 0 if not allowed.
+int handle_before_join(pthread_t key, THREADID tid);
 
 // Used for locking reentrant lock.
 typedef struct _REENTRANT_LOCK REENTRANT_LOCK;
@@ -57,8 +64,11 @@ struct _REENTRANT_LOCK {
     THREAD_INFO *locked;            // Threads locked
 };
 
-void handle_reentrant_start(REENTRANT_LOCK *rl, THREADID tid);
-void handle_reentrant_exit(REENTRANT_LOCK *rl);
+// handle_reentrant_start returns 0 if it get locked, 1 otherwise.
+int handle_reentrant_start(REENTRANT_LOCK *rl, THREADID tid);
+
+// handle_reentrant_exit will return a thread to get into the reentrant function or null.
+THREAD_INFO * handle_reentrant_exit(REENTRANT_LOCK *rl);
 
 // Debug function, print lock hash on stderr
 void print_hash();

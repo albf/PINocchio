@@ -5,7 +5,7 @@
 #define REDUCTIONSTEP 8           // TODO Fix by adding remainings on new buffer
 #define OUTPUTFILE "trace.json"   // TODO: Change how name is defined
 
-#include "controller.h"
+#include "sync.h"
 
 typedef struct {
     // Buffer related fields

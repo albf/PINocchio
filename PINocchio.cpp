@@ -1,5 +1,5 @@
 // Controller related
-#include "controller.h"
+#include "sync.h"
 #include "log.h"
 
 // Pin related
@@ -30,13 +30,12 @@ int hj_pthread_mutex_lock(pthread_mutex_t *mutex, THREADID tid)
 {
     DEBUG(*out << "mutex_lock called: " << mutex << std::endl);
 
-    all_threads[tid].holder = (void *) mutex;
-    MSG msg = {
+    ACTION action = {
         .tid = tid,
-        .msg_type = MSG_BEFORE_LOCK,
+        .action = ACTION_LOCK,
         .arg = (void *) mutex,
     };
-    send_request(msg);
+    sync(action);
     return 0;
 }
 
@@ -44,65 +43,66 @@ int hj_pthread_mutex_trylock(pthread_mutex_t *mutex, THREADID tid)
 {
     DEBUG(*out << "mutex_try_lock called: " << mutex << std::endl);
 
-    all_threads[tid].holder = (void *) mutex;
-    MSG msg = {
+    ACTION action = {
         .tid = tid,
-        .msg_type = MSG_BEFORE_TRY_LOCK,
+        .action_type = MSG_BEFORE_TRY_LOCK,
         .arg = (void *) mutex,
     };
-    send_request(msg);
+    sync(action);
+
+    // Try lock result should come as the action arg.
+    return action.arg;
 }
 
 int pthread_mutex_unlock(pthread_mutex_t *mutex, THREADID tid)
 {
     DEBUG(*out << "after_unlock: " << mutex << std::endl);
 
-    pthread_mutex_t *mutex = (pthread_mutex_t *) all_threads[tid].holder;
-    MSG msg = {
+    ACTION action = {
         .tid = tid,
-        .msg_type = MSG_AFTER_UNLOCK,
+        .action_type = MSG_AFTER_UNLOCK,
         .arg = (void *) mutex,
     };
-    send_request(msg);
+    sync(action);
     return 0;
 }
 
 VOID before_create(pthread_t *thread, THREADID tid)
 {
-    all_threads[tid].holder = (void *) thread;
-    MSG msg = {
-        .tid = tid,
-        .msg_type = MSG_BEFORE_CREATE,
-    };
-    send_request(msg);
-
     DEBUG(*out << "before_create" << std::endl);
+
+    all_threads[tid].holder = (void *) thread;
+    ACTION action = {
+        .tid = tid,
+        .action_type = MSG_BEFORE_CREATE,
+    };
+    sync(action);
 }
 
 VOID after_create(THREADID tid)
 {
+    DEBUG(*out << "after_create" << std::endl);
+
     pthread_t *thread = (pthread_t *) all_threads[tid].holder;
-    MSG msg = {
+    ACTION action = {
         .tid = tid,
-        .msg_type = MSG_AFTER_CREATE,
+        .action_type = MSG_AFTER_CREATE,
         // Save pthread_t parameter as usual, but it's value, not the pointer
         .arg = (void *)(*thread),
     };
-    send_request(msg);
-
-    DEBUG(*out << "after_create" << std::endl);
+    sync(action);
 }
 
 VOID before_join(pthread_t thread, THREADID tid)
 {
-    MSG msg = {
+    DEBUG(*out << "before_join" << std::endl);
+
+    ACTION action = {
         .tid = tid,
-        .msg_type = MSG_BEFORE_JOIN,
+        .action_type = MSG_BEFORE_JOIN,
         .arg = (void *) thread,
     };
-    send_request(msg);
-
-    DEBUG(*out << "before_join" << std::endl);
+    sync(action);
 }
 
 VOID module_load_handler(IMG img, void *v)
@@ -120,11 +120,11 @@ VOID module_load_handler(IMG img, void *v)
     if(RTN_Valid(rtn)) {
         DEBUG(*out << "Found pthread_mutex_lock on image" << std::endl);
         RTN_Open(rtn);
-        RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)before_mutex_lock,
+/*        RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)before_mutex_lock,
                        IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
                        IARG_THREAD_ID, IARG_END);
         RTN_InsertCall(rtn, IPOINT_AFTER, (AFUNPTR)after_mutex_lock,
-                       IARG_THREAD_ID, IARG_END);
+                       IARG_THREAD_ID, IARG_END); */
         RTN_Close(rtn);
         DEBUG(*out << "pthread_mutex_lock registered" << std::endl);
     }
@@ -134,11 +134,11 @@ VOID module_load_handler(IMG img, void *v)
     if(RTN_Valid(rtn)) {
         DEBUG(*out << "Found pthread_mutex_trylock on image" << std::endl);
         RTN_Open(rtn);
-        RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)before_mutex_trylock,
+/*        RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)before_mutex_trylock,
                        IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
                        IARG_THREAD_ID, IARG_END);
         RTN_InsertCall(rtn, IPOINT_AFTER, (AFUNPTR)after_mutex_trylock,
-                       IARG_THREAD_ID, IARG_END);
+                       IARG_THREAD_ID, IARG_END); */
         RTN_Close(rtn);
         DEBUG(*out << "pthread_mutex_trylock registered" << std::endl);
     }
@@ -148,11 +148,11 @@ VOID module_load_handler(IMG img, void *v)
     if(RTN_Valid(rtn)) {
         DEBUG(*out << "Found pthread_mutex_unlock on image" << std::endl);
         RTN_Open(rtn);
-        RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)before_mutex_unlock,
+/*        RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)before_mutex_unlock,
                        IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
                        IARG_THREAD_ID, IARG_END);
         RTN_InsertCall(rtn, IPOINT_AFTER, (AFUNPTR)after_mutex_unlock,
-                       IARG_THREAD_ID, IARG_END);
+                       IARG_THREAD_ID, IARG_END); */
         RTN_Close(rtn);
         DEBUG(*out << "pthread_mutex_unlock registered" << std::endl);
     }
@@ -195,24 +195,24 @@ VOID thread_start(THREADID thread_id, CONTEXT *ctxt, INT32 flags, VOID *v)
     }
 
     // Send register to controller
-    MSG my_msg = {
+    ACTION action = {
         .tid = thread_id,
-        .msg_type = MSG_REGISTER,
+        .action_type = MSG_REGISTER,
         .arg = NULL,
     };
-    send_request(my_msg);
+    sync(action);
 }
 
 VOID thread_fini(THREADID thread_id, CONTEXT const *ctxt, INT32 flags, VOID *v)
 {
     *out << "[PINocchio] Thread Finished: " << thread_id << std::endl;
 
-    MSG my_msg = {
+    ACTION action = {
         .tid = thread_id,
-        .msg_type = MSG_FINI,
+        .action_type = MSG_FINI,
         .arg = NULL,
     };
-    send_request(my_msg);
+    sync(action);
 }
 
 VOID Fini(INT32 code, VOID *v)
@@ -231,11 +231,11 @@ VOID ins_handler()
     // Check if finish executing a batch
     if(my_thread_info->ins_count >= my_thread_info->ins_max) {
         // Send done do controller and wait for a "continue" message
-        MSG my_msg = {
+        ACTION action = {
             .tid = thread_id,
-            .msg_type = MSG_DONE,
+            .action_type = MSG_DONE,
         };
-        send_request(my_msg);
+        sync(action);
     }
 
     my_thread_info->ins_count++;
@@ -257,8 +257,8 @@ int main(int argc, char *argv[])
         return Usage();
     }
 
-    // Initialize controller
-    controller_init();
+    // Initialize sync structure 
+    sync_init();
 
     // Spawn controller
     PIN_SpawnInternalThread(controller_main, 0, 0, &controller_tid);
