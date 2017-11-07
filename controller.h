@@ -10,7 +10,7 @@
 #define INSTRUCTIONS_ON_EXIT  10000 // On exit, just give instructions to finish nicely
 
 // Turn on several logs outputs
-// #define DEBUG_MODE
+#define DEBUG_MODE
 
 #ifdef DEBUG_MODE
 #define DEBUG(WHAT) WHAT

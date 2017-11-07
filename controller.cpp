@@ -136,7 +136,7 @@ void controller_main(void *arg)
             // - One thread creating at a time
             // - Create end should wait for starting thread to
             // actually start (pin_create -> MSG_REGISTER)
-            // - thread_t should come from create_end, as value
+            // - thread_tid should come from create_end, as value
             // could change on function. But pointer should be
             // found on start, as it also might be changed.
         case MSG_REGISTER:

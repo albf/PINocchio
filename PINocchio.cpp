@@ -20,8 +20,16 @@ INT32 Usage()
     return -1;
 }
 
-VOID before_mutex_lock(pthread_mutex_t *mutex, THREADID tid)
+/*
+pthread_mutex_lock, pthread_mutex_trylock and pthread_mutex_unlock
+will replace the original calls. Create and join follow different
+rules and have before and after callbacks.
+*/
+
+int hj_pthread_mutex_lock(pthread_mutex_t *mutex, THREADID tid)
 {
+    DEBUG(*out << "mutex_lock called: " << mutex << std::endl);
+
     all_threads[tid].holder = (void *) mutex;
     MSG msg = {
         .tid = tid,
@@ -29,25 +37,13 @@ VOID before_mutex_lock(pthread_mutex_t *mutex, THREADID tid)
         .arg = (void *) mutex,
     };
     send_request(msg);
-
-    DEBUG(*out << "before_mutex_lock: " << mutex << std::endl);
+    return 0;
 }
 
-VOID after_mutex_lock(THREADID tid)
+int hj_pthread_mutex_trylock(pthread_mutex_t *mutex, THREADID tid)
 {
-    pthread_mutex_t *mutex = (pthread_mutex_t *) all_threads[tid].holder;
-    MSG msg = {
-        .tid = tid,
-        .msg_type = MSG_AFTER_LOCK,
-        .arg = (void *) mutex,
-    };
-    send_request(msg);
+    DEBUG(*out << "mutex_try_lock called: " << mutex << std::endl);
 
-    DEBUG(*out << "after_mutex_lock: " << mutex << std::endl);
-}
-
-VOID before_mutex_trylock(pthread_mutex_t *mutex, THREADID tid)
-{
     all_threads[tid].holder = (void *) mutex;
     MSG msg = {
         .tid = tid,
@@ -55,38 +51,12 @@ VOID before_mutex_trylock(pthread_mutex_t *mutex, THREADID tid)
         .arg = (void *) mutex,
     };
     send_request(msg);
-
-    DEBUG(*out << "before_try_lock: " << mutex << std::endl);
 }
 
-VOID after_mutex_trylock(THREADID tid)
+int pthread_mutex_unlock(pthread_mutex_t *mutex, THREADID tid)
 {
-    pthread_mutex_t *mutex = (pthread_mutex_t *) all_threads[tid].holder;
-    MSG msg = {
-        .tid = tid,
-        .msg_type = MSG_AFTER_TRY_LOCK,
-        .arg = (void *) mutex,
-    };
-    send_request(msg);
+    DEBUG(*out << "after_unlock: " << mutex << std::endl);
 
-    DEBUG(*out << "after_try_lock: " << mutex << std::endl);
-}
-
-VOID before_mutex_unlock(pthread_mutex_t *mutex, THREADID tid)
-{
-    all_threads[tid].holder = (void *) mutex;
-    MSG msg = {
-        .tid = tid,
-        .msg_type = MSG_BEFORE_UNLOCK,
-        .arg = (void *) mutex,
-    };
-    send_request(msg);
-
-    DEBUG(*out << "before_unlock: " << mutex << std::endl);
-}
-
-VOID after_mutex_unlock(THREADID tid)
-{
     pthread_mutex_t *mutex = (pthread_mutex_t *) all_threads[tid].holder;
     MSG msg = {
         .tid = tid,
@@ -94,8 +64,7 @@ VOID after_mutex_unlock(THREADID tid)
         .arg = (void *) mutex,
     };
     send_request(msg);
-
-    DEBUG(*out << "after_unlock: " << mutex << std::endl);
+    return 0;
 }
 
 VOID before_create(pthread_t *thread, THREADID tid)
