@@ -54,7 +54,7 @@ int hj_pthread_mutex_trylock(pthread_mutex_t *mutex, THREADID tid)
     return action.arg.i;
 }
 
-int pthread_mutex_unlock(pthread_mutex_t *mutex, THREADID tid)
+int hj_pthread_mutex_unlock(pthread_mutex_t *mutex, THREADID tid)
 {
     DEBUG(*out << "after_unlock: " << mutex << std::endl);
 
@@ -119,42 +119,30 @@ VOID module_load_handler(IMG img, void *v)
     rtn = RTN_FindByName(img, "pthread_mutex_lock");
     if(RTN_Valid(rtn)) {
         DEBUG(*out << "Found pthread_mutex_lock on image" << std::endl);
-        RTN_Open(rtn);
-/*        RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)before_mutex_lock,
+        RTN_ReplaceSignature(rtn, (AFUNPTR)hj_pthread_mutex_lock,
                        IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
                        IARG_THREAD_ID, IARG_END);
-        RTN_InsertCall(rtn, IPOINT_AFTER, (AFUNPTR)after_mutex_lock,
-                       IARG_THREAD_ID, IARG_END); */
-        RTN_Close(rtn);
-        DEBUG(*out << "pthread_mutex_lock registered" << std::endl);
+        DEBUG(*out << "pthread_mutex_lock hijacked" << std::endl);
     }
 
     // Look for pthread_mutex_trylock
     rtn = RTN_FindByName(img, "pthread_mutex_trylock");
     if(RTN_Valid(rtn)) {
         DEBUG(*out << "Found pthread_mutex_trylock on image" << std::endl);
-        RTN_Open(rtn);
-/*        RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)before_mutex_trylock,
+        RTN_ReplaceSignature(rtn, (AFUNPTR)hj_pthread_mutex_trylock,
                        IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
                        IARG_THREAD_ID, IARG_END);
-        RTN_InsertCall(rtn, IPOINT_AFTER, (AFUNPTR)after_mutex_trylock,
-                       IARG_THREAD_ID, IARG_END); */
-        RTN_Close(rtn);
-        DEBUG(*out << "pthread_mutex_trylock registered" << std::endl);
+        DEBUG(*out << "pthread_mutex_trylock hijacked" << std::endl);
     }
 
     // Look for pthread_mutex_unlock
     rtn = RTN_FindByName(img, "pthread_mutex_unlock");
     if(RTN_Valid(rtn)) {
         DEBUG(*out << "Found pthread_mutex_unlock on image" << std::endl);
-        RTN_Open(rtn);
-/*        RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)before_mutex_unlock,
+        RTN_ReplaceSignature(rtn, (AFUNPTR)hj_pthread_mutex_unlock,
                        IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
                        IARG_THREAD_ID, IARG_END);
-        RTN_InsertCall(rtn, IPOINT_AFTER, (AFUNPTR)after_mutex_unlock,
-                       IARG_THREAD_ID, IARG_END); */
-        RTN_Close(rtn);
-        DEBUG(*out << "pthread_mutex_unlock registered" << std::endl);
+        DEBUG(*out << "pthread_mutex_unlock hijacked" << std::endl);
     }
 
     // Look for pthread_mutex_unlock

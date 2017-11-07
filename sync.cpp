@@ -141,28 +141,29 @@ void sync(ACTION *action)
         // Thread starts unlocked
         all_threads[action->tid].status = UNLOCKED;
 
+        // Thread 0 ins't created by pthread_create, but always existed.
+        // Don't wait or do any black magic on that regard.
+        if (action->tid == 0) {
+            release_thread(&all_threads[action->tid], INSTRUCTIONS_ON_ROUND);
+            break;
+        }
+
+        pin_tid = action->tid;
+
         // If done > 0, ACTION_AFTER_CREATE already done, must release it,
         // update my own create_value and go on. If not, save pin_tid
         // for later use and mark myself as locked.
         if(create_done > 0) {
-            all_threads[action->tid].create_value = pthread_tid;
-
+            all_threads[pin_tid].create_value = pthread_tid;
             create_done = 0;
             THREAD_INFO * awaked = handle_reentrant_exit(&create_lock);
             if (awaked != NULL) {
                 release_thread(awaked, INSTRUCTIONS_ON_ROUND);
             }
-
-            all_threads[pin_tid].status = UNLOCKED;
-            if(all_threads[pin_tid].step_status == STEP_DONE) {
-                release_thread(&all_threads[pin_tid], INSTRUCTIONS_ON_ROUND);
-            }
         } else {
-            create_done++;
-            pin_tid = action->tid;
+            create_done = 1;
         }
 
-        // End request
         release_thread(&all_threads[action->tid], INSTRUCTIONS_ON_ROUND);
         break;
 
@@ -171,7 +172,6 @@ void sync(ACTION *action)
         if(handle_reentrant_start(&create_lock, action->tid) == 0) {
             try_release_all();
         }
-        release_thread(&all_threads[action->tid], INSTRUCTIONS_ON_ROUND);
         break;
 
     case ACTION_AFTER_CREATE:
@@ -187,9 +187,7 @@ void sync(ACTION *action)
                 release_thread(awaked, INSTRUCTIONS_ON_ROUND);
             }
         } else {
-            create_done++;
-            all_threads[action->tid].status = LOCKED;
-            pin_tid = action->tid;
+            create_done = 1;
         }
 
         release_thread(&all_threads[action->tid], INSTRUCTIONS_ON_ROUND);

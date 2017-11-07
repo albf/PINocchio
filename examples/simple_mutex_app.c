@@ -55,6 +55,7 @@ int main(int argc , char **argv)
     }
 
     for(i = 0; i < num_threads; i++) {
+        fprintf(stdout, "JOINING THREAD\n");
         if(pthread_join(inc_x_thread[i], NULL)) {
             fprintf(stderr, "Error joining thread\n");
             return 2;
