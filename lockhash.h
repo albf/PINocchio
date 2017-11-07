@@ -44,7 +44,7 @@ struct _JOIN_ENTRY {
 // It will automatically update allThreads variable from controller.h.
 // Return values helps sync define when to check other threads status.
 int handle_lock(void *key, THREADID tid);
-int handle_try(void *key, THREADID tid);
+int handle_try_lock(void *key, THREADID tid);
 
 // handle_Unlock returns the awake thread, if any.
 THREAD_INFO * handle_unlock(void *key, THREADID tid);

@@ -241,7 +241,7 @@ void sync(ACTION *action)
 
     case ACTION_TRY_LOCK:
         // Pass the value back to try_lock function.
-        action->arg.i = handle_try(action->arg.p, action->tid);
+        action->arg.i = handle_try_lock(action->arg.p, action->tid);
         break;
 
     case ACTION_UNLOCK:

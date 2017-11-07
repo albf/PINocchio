@@ -31,11 +31,11 @@ int hj_pthread_mutex_lock(pthread_mutex_t *mutex, THREADID tid)
     DEBUG(*out << "mutex_lock called: " << mutex << std::endl);
 
     ACTION action = {
-        .tid = tid,
-        .action = ACTION_LOCK,
-        .arg = (void *) mutex,
+        tid,
+        ACTION_LOCK,
+        {.p = (void *) mutex},
     };
-    sync(action);
+    sync(&action);
     return 0;
 }
 
@@ -44,14 +44,14 @@ int hj_pthread_mutex_trylock(pthread_mutex_t *mutex, THREADID tid)
     DEBUG(*out << "mutex_try_lock called: " << mutex << std::endl);
 
     ACTION action = {
-        .tid = tid,
-        .action_type = MSG_BEFORE_TRY_LOCK,
-        .arg = (void *) mutex,
+        tid,
+        ACTION_TRY_LOCK,
+        {.p = (void *) mutex},
     };
-    sync(action);
+    sync(&action);
 
     // Try lock result should come as the action arg.
-    return action.arg;
+    return action.arg.i;
 }
 
 int pthread_mutex_unlock(pthread_mutex_t *mutex, THREADID tid)
@@ -59,11 +59,11 @@ int pthread_mutex_unlock(pthread_mutex_t *mutex, THREADID tid)
     DEBUG(*out << "after_unlock: " << mutex << std::endl);
 
     ACTION action = {
-        .tid = tid,
-        .action_type = MSG_AFTER_UNLOCK,
-        .arg = (void *) mutex,
+        tid,
+        ACTION_UNLOCK,
+        {.p = (void *) mutex},
     };
-    sync(action);
+    sync(&action);
     return 0;
 }
 
@@ -73,10 +73,10 @@ VOID before_create(pthread_t *thread, THREADID tid)
 
     all_threads[tid].holder = (void *) thread;
     ACTION action = {
-        .tid = tid,
-        .action_type = MSG_BEFORE_CREATE,
+        tid,
+        ACTION_BEFORE_CREATE,
     };
-    sync(action);
+    sync(&action);
 }
 
 VOID after_create(THREADID tid)
@@ -85,12 +85,12 @@ VOID after_create(THREADID tid)
 
     pthread_t *thread = (pthread_t *) all_threads[tid].holder;
     ACTION action = {
-        .tid = tid,
-        .action_type = MSG_AFTER_CREATE,
+        tid,
+        ACTION_AFTER_CREATE,
         // Save pthread_t parameter as usual, but it's value, not the pointer
-        .arg = (void *)(*thread),
+        {.p = (void *)(*thread)},
     };
-    sync(action);
+    sync(&action);
 }
 
 VOID before_join(pthread_t thread, THREADID tid)
@@ -98,11 +98,11 @@ VOID before_join(pthread_t thread, THREADID tid)
     DEBUG(*out << "before_join" << std::endl);
 
     ACTION action = {
-        .tid = tid,
-        .action_type = MSG_BEFORE_JOIN,
-        .arg = (void *) thread,
+        tid,
+        ACTION_BEFORE_JOIN,
+        {.p = (void *) thread},
     };
-    sync(action);
+    sync(&action);
 }
 
 VOID module_load_handler(IMG img, void *v)
@@ -196,11 +196,11 @@ VOID thread_start(THREADID thread_id, CONTEXT *ctxt, INT32 flags, VOID *v)
 
     // Send register to controller
     ACTION action = {
-        .tid = thread_id,
-        .action_type = MSG_REGISTER,
-        .arg = NULL,
+        thread_id,
+        ACTION_REGISTER,
+        {.p = NULL},
     };
-    sync(action);
+    sync(&action);
 }
 
 VOID thread_fini(THREADID thread_id, CONTEXT const *ctxt, INT32 flags, VOID *v)
@@ -208,11 +208,11 @@ VOID thread_fini(THREADID thread_id, CONTEXT const *ctxt, INT32 flags, VOID *v)
     *out << "[PINocchio] Thread Finished: " << thread_id << std::endl;
 
     ACTION action = {
-        .tid = thread_id,
-        .action_type = MSG_FINI,
-        .arg = NULL,
+        thread_id,
+        ACTION_FINI,
+        {.p = NULL},
     };
-    sync(action);
+    sync(&action);
 }
 
 VOID Fini(INT32 code, VOID *v)
@@ -233,9 +233,9 @@ VOID ins_handler()
         // Send done do controller and wait for a "continue" message
         ACTION action = {
             .tid = thread_id,
-            .action_type = MSG_DONE,
+            .action_type = ACTION_DONE,
         };
-        sync(action);
+        sync(&action);
     }
 
     my_thread_info->ins_count++;
@@ -259,9 +259,6 @@ int main(int argc, char *argv[])
 
     // Initialize sync structure 
     sync_init();
-
-    // Spawn controller
-    PIN_SpawnInternalThread(controller_main, 0, 0, &controller_tid);
 
     // Hadler for instructions
     INS_AddInstrumentFunction(instruction, 0);
