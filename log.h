@@ -24,7 +24,7 @@ extern T_log *tlog;
 // Init the log, allocating memory and initializing required fields.
 void log_init();
 
-// Flush status information into log strcture.
+// Flush status information into log structure.
 void log_add();
 
 // Dump current log to external file.

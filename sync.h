@@ -67,11 +67,10 @@ typedef enum {
     ACTION_AFTER_CREATE = 8,
 } ACTION_TYPE;
 
-// Arguments are used to pass data to/from sync. Since always one valued
-// is passed, it can be an union.
-union ACTION_ARG {
-    int i;
+// Arguments are used to pass data to/from sync.
+struct ACTION_ARG {
     void *p;
+    int i;
 };
 
 typedef struct _ACTION ACTION;

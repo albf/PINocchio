@@ -17,10 +17,13 @@ INT32 Usage()
 }
 
 /*
-pthread_mutex_lock, pthread_mutex_trylock and pthread_mutex_unlock
-will replace the original calls. Create and join follow different
+pthread_mutex_lock, pthread_mutex_trylock, pthread_mutex_unlock
+sem_destroy, sem_getvalue, sem_init, sem_post, sem_trywait and sem_wait
+will have their original calls replaced. Create and join follow different
 rules and have before and after callbacks.
 */
+
+/* Mutex hijackers */
 
 int hj_pthread_mutex_lock(pthread_mutex_t *mutex, THREADID tid)
 {
@@ -29,7 +32,7 @@ int hj_pthread_mutex_lock(pthread_mutex_t *mutex, THREADID tid)
     ACTION action = {
         tid,
         ACTION_LOCK,
-        {.p = (void *) mutex},
+        {(void *) mutex},
     };
     sync(&action);
     return 0;
@@ -42,7 +45,7 @@ int hj_pthread_mutex_trylock(pthread_mutex_t *mutex, THREADID tid)
     ACTION action = {
         tid,
         ACTION_TRY_LOCK,
-        {.p = (void *) mutex},
+        {(void *) mutex},
     };
     sync(&action);
 
@@ -57,11 +60,19 @@ int hj_pthread_mutex_unlock(pthread_mutex_t *mutex, THREADID tid)
     ACTION action = {
         tid,
         ACTION_UNLOCK,
-        {.p = (void *) mutex},
+        {(void *) mutex},
     };
     sync(&action);
     return 0;
 }
+
+/* Semaphore Hijackers */
+
+/*int sem_destroy(sem_t *sem, THREADID tid) {
+
+} */
+
+/* Create/Join callbacks */
 
 VOID before_create(pthread_t *thread, THREADID tid)
 {
@@ -84,7 +95,7 @@ VOID after_create(THREADID tid)
         tid,
         ACTION_AFTER_CREATE,
         // Save pthread_t parameter as usual, but it's value, not the pointer
-        {.p = (void *)(*thread)},
+        {(void *)(*thread)},
     };
     sync(&action);
 }
@@ -96,7 +107,7 @@ VOID before_join(pthread_t thread, THREADID tid)
     ACTION action = {
         tid,
         ACTION_BEFORE_JOIN,
-        {.p = (void *) thread},
+        {(void *) thread},
     };
     sync(&action);
 }
@@ -182,7 +193,6 @@ VOID thread_start(THREADID thread_id, CONTEXT *ctxt, INT32 flags, VOID *v)
     ACTION action = {
         thread_id,
         ACTION_REGISTER,
-        {.p = NULL},
     };
     sync(&action);
 }
@@ -194,7 +204,6 @@ VOID thread_fini(THREADID thread_id, CONTEXT const *ctxt, INT32 flags, VOID *v)
     ACTION action = {
         thread_id,
         ACTION_FINI,
-        {.p = NULL},
     };
     sync(&action);
 }
