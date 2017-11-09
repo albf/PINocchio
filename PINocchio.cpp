@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <iostream>
 #include <pthread.h>
+#include <semaphore.h>
 #include "error.h"
 #include "pin.H"
 
@@ -55,7 +56,7 @@ int hj_pthread_mutex_trylock(pthread_mutex_t *mutex, THREADID tid)
 
 int hj_pthread_mutex_unlock(pthread_mutex_t *mutex, THREADID tid)
 {
-    DEBUG(cerr << "after_unlock: " << mutex << std::endl);
+    DEBUG(cerr << "mutex_unlock called: " << mutex << std::endl);
 
     ACTION action = {
         tid,
@@ -68,9 +69,83 @@ int hj_pthread_mutex_unlock(pthread_mutex_t *mutex, THREADID tid)
 
 /* Semaphore Hijackers */
 
-/*int sem_destroy(sem_t *sem, THREADID tid) {
+int hj_sem_destroy(sem_t *sem, THREADID tid) {
+    DEBUG(cerr << "sem_destroy called: " << sem << std::endl);
 
-} */
+    ACTION action = {
+        tid,
+        ACTION_SEM_DESTROY,
+        {(void *) sem},
+    };
+    sync(&action);
+
+    return 0;
+}
+
+int hj_sem_getvalue(sem_t *sem, int *value, THREADID tid) {
+    DEBUG(cerr << "sem_getvalue called: " << sem << std::endl);
+
+    ACTION action = {
+        tid,
+        ACTION_SEM_GETVALUE,
+        {(void *) sem},
+    };
+    sync(&action);
+
+    return action.arg.i;
+}
+
+int hj_sem_init(sem_t *sem, int ignored, unsigned int value, THREADID tid) {
+    DEBUG(cerr << "sem_init called: " << sem << std::endl);
+
+    ACTION action = {
+        tid,
+        ACTION_SEM_INIT,
+        {(void *) sem, (int) value},
+    };
+    sync(&action);
+
+    return 0;
+}
+
+int hj_sem_post(sem_t *sem, THREADID tid) {
+    DEBUG(cerr << "sem_post called: " << sem << std::endl);
+
+    ACTION action = {
+        tid,
+        ACTION_SEM_POST,
+        {(void *) sem},
+    };
+    sync(&action);
+
+    return 0;
+}
+
+int hj_sem_trywait(sem_t *sem, THREADID tid) {
+    DEBUG(cerr << "sem_trywait called: " << sem << std::endl);
+
+    ACTION action = {
+        tid,
+        ACTION_SEM_TRYWAIT,
+        {(void *) sem},
+    };
+    sync(&action);
+
+    return action.arg.i;
+}
+
+int hj_sem_wait(sem_t *sem, THREADID tid) {
+    DEBUG(cerr << "sem_wait called: " << sem << std::endl);
+
+    ACTION action = {
+        tid,
+        ACTION_SEM_WAIT,
+        {(void *) sem},
+    };
+    sync(&action);
+
+    return 0;
+}
 
 /* Create/Join callbacks */
 
@@ -150,6 +225,66 @@ VOID module_load_handler(IMG img, void *v)
                        IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
                        IARG_THREAD_ID, IARG_END);
         DEBUG(cerr << "pthread_mutex_unlock hijacked" << std::endl);
+    }
+
+    // Look for sem_destroy and hijack it
+    rtn = RTN_FindByName(img, "sem_destroy");
+    if(RTN_Valid(rtn)) {
+        DEBUG(cerr << "Found sem_destroy on image" << std::endl);
+        RTN_ReplaceSignature(rtn, (AFUNPTR)hj_sem_destroy,
+                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                       IARG_THREAD_ID, IARG_END);
+        DEBUG(cerr << "sem_destroy hijacked" << std::endl);
+    }
+
+    // Look for sem_getvalue and hijack it
+    rtn = RTN_FindByName(img, "sem_getvalue");
+    if(RTN_Valid(rtn)) {
+        DEBUG(cerr << "Found sem_getvalue on image" << std::endl);
+        RTN_ReplaceSignature(rtn, (AFUNPTR)hj_sem_getvalue,
+                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                       IARG_THREAD_ID, IARG_END);
+        DEBUG(cerr << "sem_getvalue hijacked" << std::endl);
+    }
+
+    // Look for sem_init and hijack it
+    rtn = RTN_FindByName(img, "sem_init");
+    if(RTN_Valid(rtn)) {
+        DEBUG(cerr << "Found sem_init on image" << std::endl);
+        RTN_ReplaceSignature(rtn, (AFUNPTR)hj_sem_init,
+                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                       IARG_THREAD_ID, IARG_END);
+        DEBUG(cerr << "sem_init hijacked" << std::endl);
+    }
+
+    // Look for sem_post and hijack it
+    rtn = RTN_FindByName(img, "sem_post");
+    if(RTN_Valid(rtn)) {
+        DEBUG(cerr << "Found sem_post on image" << std::endl);
+        RTN_ReplaceSignature(rtn, (AFUNPTR)hj_sem_post,
+                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                       IARG_THREAD_ID, IARG_END);
+        DEBUG(cerr << "sem_post hijacked" << std::endl);
+    }
+
+    // Look for sem_trywait and hijack it
+    rtn = RTN_FindByName(img, "sem_trywait");
+    if(RTN_Valid(rtn)) {
+        DEBUG(cerr << "Found sem_trywait on image" << std::endl);
+        RTN_ReplaceSignature(rtn, (AFUNPTR)hj_sem_trywait,
+                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                       IARG_THREAD_ID, IARG_END);
+        DEBUG(cerr << "sem_trywait hijacked" << std::endl);
+    }
+
+    // Look for sem_wait and hijack it
+    rtn = RTN_FindByName(img, "sem_wait");
+    if(RTN_Valid(rtn)) {
+        DEBUG(cerr << "Found sem_wait on image" << std::endl);
+        RTN_ReplaceSignature(rtn, (AFUNPTR)hj_sem_wait,
+                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                       IARG_THREAD_ID, IARG_END);
+        DEBUG(cerr << "sem_wait hijacked" << std::endl);
     }
 
     // Look for pthread_create and insert callbacks

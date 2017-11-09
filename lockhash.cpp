@@ -260,7 +260,7 @@ int handle_semaphore_trywait(void *key)
     return -1;
 }
 
-void handle_semaphore_wait(void *key, THREADID tid)
+int handle_semaphore_wait(void *key, THREADID tid)
 {
     SEMAPHORE_ENTRY * s = get_semaphore_entry(key);
 
@@ -270,13 +270,14 @@ void handle_semaphore_wait(void *key, THREADID tid)
     }
 
     if(s->value > 0) {
-        s->value = s->value -1;
-        return;
+        s->value = s->value - 1;
+        return 0;
     }
 
     THREAD_INFO *t = &all_threads[tid];
     t->status = LOCKED;
     insert_semaphore_locked(s, t);
+    return -1;
 }
 
 // Used to debug lock hash states

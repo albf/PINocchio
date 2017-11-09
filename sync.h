@@ -65,6 +65,12 @@ typedef enum {
     ACTION_BEFORE_CREATE = 6,
     ACTION_BEFORE_JOIN = 7,
     ACTION_AFTER_CREATE = 8,
+    ACTION_SEM_DESTROY = 9,
+    ACTION_SEM_GETVALUE = 10,
+    ACTION_SEM_INIT = 11,
+    ACTION_SEM_POST = 12,
+    ACTION_SEM_TRYWAIT = 13,
+    ACTION_SEM_WAIT = 14,
 } ACTION_TYPE;
 
 // Arguments are used to pass data to/from sync.

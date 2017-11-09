@@ -244,6 +244,37 @@ void sync(ACTION *action)
             release_thread(awaked, INSTRUCTIONS_ON_ROUND);
         }
         break;
+
+    case ACTION_SEM_DESTROY:
+        handle_semaphore_destroy(action->arg.p);
+        break;
+
+    case ACTION_SEM_GETVALUE:
+        action->arg.i = handle_semaphore_getvalue(action->arg.p);
+        break;
+
+    case ACTION_SEM_INIT:
+        handle_semaphore_init(action->arg.p, action->arg.i);
+        break;
+
+    case ACTION_SEM_POST:
+        awaked = handle_semaphore_post(action->arg.p);
+        if (awaked != NULL) {
+            release_thread(awaked, INSTRUCTIONS_ON_ROUND);
+        }
+        break;
+
+    case ACTION_SEM_TRYWAIT:
+        // Pass the value back to sem_trywait function.
+        action->arg.i = handle_semaphore_trywait(action->arg.p);
+        break;
+
+    case ACTION_SEM_WAIT:
+        // If got locked, try to release the others.
+        if (handle_semaphore_wait(action->arg.p, action->tid) >= 0) {
+            try_release_all();
+        }
+        break;
     }
 
     // Release sync_mutex so other thread can sync.

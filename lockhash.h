@@ -35,14 +35,14 @@ int handle_semaphore_getvalue(void *key);
 // Initialize semaphore. Will fail if rewriting a semaphore with waiting threads.
 void handle_semaphore_init(void *key, int value);
 
-// Increase value by 1. Will fail if semaphore doesn't exist.
+// Increase value by 1. Return NULL or the thread awaked. Will fail if semaphore doesn't exist.
 THREAD_INFO *handle_semaphore_post(void *key);
 
-// If value > 0, return 1 and decrease the value by 1. -1 otherwise. Will fail if doesn't exist.
+// If value > 0, return 0 and decrease the value by 1. -1 otherwise. Will fail if doesn't exist.
 int handle_semaphore_trywait(void *key);
 
 //  Same as trywait, but will lock if no success. Will fail if doesn't exist.
-void handle_semaphore_wait(void *key, THREADID tid);
+int handle_semaphore_wait(void *key, THREADID tid);
 
 
 
