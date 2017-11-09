@@ -3,6 +3,46 @@
 #include "error.h"
 #include "pin.H"
 
+// Current lock status
+typedef enum {
+    M_LOCKED = 0,     // Currently locked: accepts try to pass, hold locks attempts.
+    M_UNLOCKED = 1,   // Nothing happening, could be locked by a lucky thread.
+}   LOCK_STATUS;
+
+// Lock hash
+typedef struct _MUTEX_ENTRY MUTEX_ENTRY;
+struct _MUTEX_ENTRY {
+    void *key;
+    LOCK_STATUS status;             // Current status of mutex
+
+    UT_hash_handle hh;
+
+    THREAD_INFO *locked;            // Waiting to go
+};
+
+// Semaphore hash
+typedef struct _SEMAPHORE_ENTRY SEMAPHORE_ENTRY;
+struct _SEMAPHORE_ENTRY {
+    void *key;
+    int value;                      // Current value of semaphore
+
+    UT_hash_handle hh;
+
+    THREAD_INFO *locked;            // Waiting to go
+};
+
+// Join Hash
+typedef struct _JOIN_ENTRY JOIN_ENTRY;
+struct _JOIN_ENTRY {
+    pthread_t key;
+
+    UT_hash_handle hh;
+
+    int allow;                      // Allow continue if thread exited already
+    THREAD_INFO *locked;            // Waiting for given tread
+};
+
+// Since there is only one hash for each type, keeping a global value seems cheaper.
 MUTEX_ENTRY *mutex_hash = NULL;
 SEMAPHORE_ENTRY *semaphore_hash = NULL;
 JOIN_ENTRY *join_hash = NULL;
@@ -67,7 +107,7 @@ int handle_lock(void *key, THREADID tid)
     return 1;
 }
 
-int handle_try_lock(void *key, THREADID tid)
+int handle_try_lock(void *key)
 {
     MUTEX_ENTRY *s = get_mutex_entry(key);
 
@@ -80,7 +120,7 @@ int handle_try_lock(void *key, THREADID tid)
 
 // Handle_unlock returns the data from the awaked thread.
 // If none was awaked, just return NULL.
-THREAD_INFO * handle_unlock(void *key, THREADID tid)
+THREAD_INFO * handle_unlock(void *key)
 {
     MUTEX_ENTRY *s = get_mutex_entry(key);
 
@@ -159,7 +199,8 @@ int handle_semaphore_getvalue(void *key)
 
     // Semaphore doesn't even exist. Return -1.
     if(s == NULL) {
-        return -1;
+        cerr << "Semaphore getvalue on a non-existent semaphore." << std::endl;
+        fail();
     }
 
     return s->value;

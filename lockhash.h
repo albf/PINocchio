@@ -2,68 +2,47 @@
 #define LOCKHASH_H_
 
 /*
-lockhash implement a simple hash for mutex pointers, using uthash
-and pintool types. It meant to be used only by sync, since its
-functions changes thread status. Since there is only one hash for
-each type, keeping a global value seems cheaper.
+lockhash implement a simple hashes for mutex, semaphores and joins.
+It's meant to be used only by sync, since its functions changes thread status.
+(It will modify status, but won't relase the threads)
 */
 
 #include "sync.h"
 #include "uthash.h"
 #include <pthread.h>
 
-// Current lock status
-typedef enum {
-    M_LOCKED = 0,     // Currently locked: accepts try to pass, hold locks attempts.
-    M_UNLOCKED = 1,   // Nothing happening, could be locked by a lucky thread.
-}   LOCK_STATUS;
-
-// Lock hash
-typedef struct _MUTEX_ENTRY MUTEX_ENTRY;
-struct _MUTEX_ENTRY {
-    void *key;
-    LOCK_STATUS status;             // Current status of mutex
-
-    UT_hash_handle hh;
-
-    THREAD_INFO *locked;            // Waiting to go
-};
-
-// Semaphore hash
-typedef struct _SEMAPHORE_ENTRY SEMAPHORE_ENTRY;
-struct _SEMAPHORE_ENTRY {
-    void *key;
-    int value;                      // Current value of semaphore
-
-    UT_hash_handle hh;
-
-    THREAD_INFO *locked;            // Waiting to go
-};
-
-// Join Hash
-typedef struct _JOIN_ENTRY JOIN_ENTRY;
-struct _JOIN_ENTRY {
-    pthread_t key;
-
-    UT_hash_handle hh;
-
-    int allow;                      // Allow continue if thread exited already
-    THREAD_INFO *locked;            // Waiting for given tread
-};
-
-
-
 /* Mutex Handlers */
-
-// Handle functions to deal with each mutex function, during execution.
-// It will automatically update allThreads variable from sync.h - but won't release.
 
 // Returns 0 if lock was successfull, 1 otherwise.
 int handle_lock(void *key, THREADID tid);
+
 // Returns 0 if lock was successfull, 1 otherwise.
-int handle_try_lock(void *key, THREADID tid);
+int handle_try_lock(void *key);
+
 // Returns the awake thread, if any.
-THREAD_INFO * handle_unlock(void *key, THREADID tid);
+THREAD_INFO * handle_unlock(void *key);
+
+
+
+/* Semaphore Handlers */
+
+// Just destroy the semaphore. Will fail if doesn't exist.
+void handle_semaphore_destroy(void *key);
+
+// Just get the current value. Will fail if doesn't exist.
+int handle_semaphore_getvalue(void *key);
+
+// Initialize semaphore. Will fail if rewriting a semaphore with waiting threads.
+void handle_semaphore_init(void *key, int value);
+
+// Increase value by 1. Will fail if semaphore doesn't exist.
+THREAD_INFO *handle_semaphore_post(void *key);
+
+// If value > 0, return 1 and decrease the value by 1. -1 otherwise. Will fail if doesn't exist.
+int handle_semaphore_trywait(void *key);
+
+//  Same as trywait, but will lock if no success. Will fail if doesn't exist.
+void handle_semaphore_wait(void *key, THREADID tid);
 
 
 

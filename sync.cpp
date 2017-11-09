@@ -234,12 +234,12 @@ void sync(ACTION *action)
 
     case ACTION_TRY_LOCK:
         // Pass the value back to try_lock function.
-        action->arg.i = handle_try_lock(action->arg.p, action->tid);
+        action->arg.i = handle_try_lock(action->arg.p);
         break;
 
     case ACTION_UNLOCK:
         THREAD_INFO * awaked;
-        awaked = handle_unlock(action->arg.p, action->tid);
+        awaked = handle_unlock(action->arg.p);
         if (awaked != NULL) {
             release_thread(awaked, INSTRUCTIONS_ON_ROUND);
         }
