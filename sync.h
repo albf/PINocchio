@@ -9,15 +9,6 @@
 #define INSTRUCTIONS_ON_ROUND 1      // Number of instructions to be executed per round
 #define INSTRUCTIONS_ON_EXIT  100000 // On exit, just give instructions to finish nicely
 
-// Turn on several logs outputs
-#define DEBUG_MODE
-
-#ifdef DEBUG_MODE
-#define DEBUG(WHAT) WHAT
-#else
-#define DEBUG(WHAT) do { } while(0)
-#endif
-
 // --- Thread info ---
 
 // Status structs Indicate current thread status regarding lock and step

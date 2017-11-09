@@ -6,9 +6,8 @@
 #include <unistd.h>
 #include <iostream>
 #include <pthread.h>
+#include "error.h"
 #include "pin.H"
-
-std::ostream *out = &cerr;
 
 INT32 Usage()
 {
@@ -25,7 +24,7 @@ rules and have before and after callbacks.
 
 int hj_pthread_mutex_lock(pthread_mutex_t *mutex, THREADID tid)
 {
-    DEBUG(*out << "mutex_lock called: " << mutex << std::endl);
+    DEBUG(cerr << "mutex_lock called: " << mutex << std::endl);
 
     ACTION action = {
         tid,
@@ -38,7 +37,7 @@ int hj_pthread_mutex_lock(pthread_mutex_t *mutex, THREADID tid)
 
 int hj_pthread_mutex_trylock(pthread_mutex_t *mutex, THREADID tid)
 {
-    DEBUG(*out << "mutex_try_lock called: " << mutex << std::endl);
+    DEBUG(cerr << "mutex_try_lock called: " << mutex << std::endl);
 
     ACTION action = {
         tid,
@@ -53,7 +52,7 @@ int hj_pthread_mutex_trylock(pthread_mutex_t *mutex, THREADID tid)
 
 int hj_pthread_mutex_unlock(pthread_mutex_t *mutex, THREADID tid)
 {
-    DEBUG(*out << "after_unlock: " << mutex << std::endl);
+    DEBUG(cerr << "after_unlock: " << mutex << std::endl);
 
     ACTION action = {
         tid,
@@ -66,7 +65,7 @@ int hj_pthread_mutex_unlock(pthread_mutex_t *mutex, THREADID tid)
 
 VOID before_create(pthread_t *thread, THREADID tid)
 {
-    DEBUG(*out << "before_create" << std::endl);
+    DEBUG(cerr << "before_create" << std::endl);
 
     all_threads[tid].holder = (void *) thread;
     ACTION action = {
@@ -78,7 +77,7 @@ VOID before_create(pthread_t *thread, THREADID tid)
 
 VOID after_create(THREADID tid)
 {
-    DEBUG(*out << "after_create" << std::endl);
+    DEBUG(cerr << "after_create" << std::endl);
 
     pthread_t *thread = (pthread_t *) all_threads[tid].holder;
     ACTION action = {
@@ -92,7 +91,7 @@ VOID after_create(THREADID tid)
 
 VOID before_join(pthread_t thread, THREADID tid)
 {
-    DEBUG(*out << "before_join" << std::endl);
+    DEBUG(cerr << "before_join" << std::endl);
 
     ACTION action = {
         tid,
@@ -104,9 +103,9 @@ VOID before_join(pthread_t thread, THREADID tid)
 
 VOID module_load_handler(IMG img, void *v)
 {
-    DEBUG(*out << "module_load_handler" << std::endl);
+    DEBUG(cerr << "module_load_handler" << std::endl);
     if(img == IMG_Invalid()) {
-        *out << "ModuleLoadallback received invalid IMG" << std::endl;
+        cerr << "ModuleLoadallback received invalid IMG" << std::endl;
         return;
     }
 
@@ -115,37 +114,37 @@ VOID module_load_handler(IMG img, void *v)
     // Look for pthread_mutex_lock and hijack it
     rtn = RTN_FindByName(img, "pthread_mutex_lock");
     if(RTN_Valid(rtn)) {
-        DEBUG(*out << "Found pthread_mutex_lock on image" << std::endl);
+        DEBUG(cerr << "Found pthread_mutex_lock on image" << std::endl);
         RTN_ReplaceSignature(rtn, (AFUNPTR)hj_pthread_mutex_lock,
                        IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
                        IARG_THREAD_ID, IARG_END);
-        DEBUG(*out << "pthread_mutex_lock hijacked" << std::endl);
+        DEBUG(cerr << "pthread_mutex_lock hijacked" << std::endl);
     }
 
     // Look for pthread_mutex_trylock and hijack it
     rtn = RTN_FindByName(img, "pthread_mutex_trylock");
     if(RTN_Valid(rtn)) {
-        DEBUG(*out << "Found pthread_mutex_trylock on image" << std::endl);
+        DEBUG(cerr << "Found pthread_mutex_trylock on image" << std::endl);
         RTN_ReplaceSignature(rtn, (AFUNPTR)hj_pthread_mutex_trylock,
                        IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
                        IARG_THREAD_ID, IARG_END);
-        DEBUG(*out << "pthread_mutex_trylock hijacked" << std::endl);
+        DEBUG(cerr << "pthread_mutex_trylock hijacked" << std::endl);
     }
 
     // Look for pthread_mutex_unlock and hijack it
     rtn = RTN_FindByName(img, "pthread_mutex_unlock");
     if(RTN_Valid(rtn)) {
-        DEBUG(*out << "Found pthread_mutex_unlock on image" << std::endl);
+        DEBUG(cerr << "Found pthread_mutex_unlock on image" << std::endl);
         RTN_ReplaceSignature(rtn, (AFUNPTR)hj_pthread_mutex_unlock,
                        IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
                        IARG_THREAD_ID, IARG_END);
-        DEBUG(*out << "pthread_mutex_unlock hijacked" << std::endl);
+        DEBUG(cerr << "pthread_mutex_unlock hijacked" << std::endl);
     }
 
     // Look for pthread_create and insert callbacks
     rtn = RTN_FindByName(img, "pthread_create");
     if(RTN_Valid(rtn)) {
-        DEBUG(*out << "Found pthread_create on image" << std::endl);
+        DEBUG(cerr << "Found pthread_create on image" << std::endl);
         RTN_Open(rtn);
         RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)before_create,
                        IARG_FUNCARG_CALLSITE_VALUE, 0,
@@ -153,29 +152,29 @@ VOID module_load_handler(IMG img, void *v)
         RTN_InsertCall(rtn, IPOINT_AFTER, (AFUNPTR)after_create,
                        IARG_THREAD_ID, IARG_END);
         RTN_Close(rtn);
-        DEBUG(*out << "pthread_create registered" << std::endl);
+        DEBUG(cerr << "pthread_create registered" << std::endl);
     }
 
     // Look for pthread_join and insert callbacks
     rtn = RTN_FindByName(img, "pthread_join");
     if(RTN_Valid(rtn)) {
-        DEBUG(*out << "Found pthread_join on image" << std::endl);
+        DEBUG(cerr << "Found pthread_join on image" << std::endl);
         RTN_Open(rtn);
         RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)before_join,
                        IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
                        IARG_THREAD_ID, IARG_END);
         RTN_Close(rtn);
-        DEBUG(*out << "pthread_join registered" << std::endl);
+        DEBUG(cerr << "pthread_join registered" << std::endl);
     }
 }
 
 VOID thread_start(THREADID thread_id, CONTEXT *ctxt, INT32 flags, VOID *v)
 {
-    *out << "[PINocchio] Thread Initialized: " << thread_id << std::endl;
+    cerr << "[PINocchio] Thread Initialized: " << thread_id << std::endl;
 
     // Check if thread id is under limit
     if(thread_id >= MAX_THREADS) {
-        *out << "[PINocchio] Internal error: thread_id not allowed: " << thread_id << std::endl;
+        cerr << "[PINocchio] Internal error: thread_id not allowed: " << thread_id << std::endl;
         fail();
     }
 
@@ -190,7 +189,7 @@ VOID thread_start(THREADID thread_id, CONTEXT *ctxt, INT32 flags, VOID *v)
 
 VOID thread_fini(THREADID thread_id, CONTEXT const *ctxt, INT32 flags, VOID *v)
 {
-    *out << "[PINocchio] Thread Finished: " << thread_id << std::endl;
+    cerr << "[PINocchio] Thread Finished: " << thread_id << std::endl;
 
     ACTION action = {
         thread_id,
@@ -204,9 +203,9 @@ VOID Fini(INT32 code, VOID *v)
 {
     log_dump();
     log_free();
-    *out << "===============================================" << std::endl;
-    *out << " PINocchio exiting " << std::endl;
-    *out << "===============================================" << std::endl;
+    cerr << "===============================================" << std::endl;
+    cerr << " PINocchio exiting " << std::endl;
+    cerr << "===============================================" << std::endl;
 }
 
 VOID ins_handler()

@@ -20,11 +20,6 @@ REENTRANT_LOCK create_lock;
 
 
 
-void fail()
-{
-    PIN_Detach();
-}
-
 void sync_init()
 {
     // Initialize thread information, including mutex and initial states
