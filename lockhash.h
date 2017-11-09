@@ -29,6 +29,17 @@ struct _MUTEX_ENTRY {
     THREAD_INFO *locked;            // Waiting to go
 };
 
+// Semaphore hash
+typedef struct _SEMAPHORE_ENTRY SEMAPHORE_ENTRY;
+struct _SEMAPHORE_ENTRY {
+    void *key;
+    int value;                      // Current value of semaphore
+
+    UT_hash_handle hh;
+
+    THREAD_INFO *locked;            // Waiting to go
+};
+
 // Join Hash
 typedef struct _JOIN_ENTRY JOIN_ENTRY;
 struct _JOIN_ENTRY {
@@ -40,22 +51,33 @@ struct _JOIN_ENTRY {
     THREAD_INFO *locked;            // Waiting for given tread
 };
 
-// Handle functions to deal with each mutex function, during execution.
-// It will automatically update allThreads variable from controller.h.
-// Return values helps sync define when to check other threads status.
-int handle_lock(void *key, THREADID tid);
-int handle_try_lock(void *key, THREADID tid);
 
-// handle_Unlock returns the awake thread, if any.
+
+/* Mutex Handlers */
+
+// Handle functions to deal with each mutex function, during execution.
+// It will automatically update allThreads variable from sync.h - but won't release.
+
+// Returns 0 if lock was successfull, 1 otherwise.
+int handle_lock(void *key, THREADID tid);
+// Returns 0 if lock was successfull, 1 otherwise.
+int handle_try_lock(void *key, THREADID tid);
+// Returns the awake thread, if any.
 THREAD_INFO * handle_unlock(void *key, THREADID tid);
 
-// Used for join management
 
-// handle_thread_exit returns a list with threads waiting to join.
+
+/* Thread create/exit Handlers */ 
+
+// Returns a list with threads waiting to join.
 THREAD_INFO * handle_thread_exit(pthread_t key);
 
-// handle_before_join returns 1 if allowed, 0 if not allowed.
+// Returns 1 if allowed, 0 if not allowed.
 int handle_before_join(pthread_t key, THREADID tid);
+
+
+
+/* Reentrant Lock (function lock) */
 
 // Used for locking reentrant lock.
 typedef struct _REENTRANT_LOCK REENTRANT_LOCK;
@@ -69,6 +91,8 @@ int handle_reentrant_start(REENTRANT_LOCK *rl, THREADID tid);
 
 // handle_reentrant_exit will return a thread to get into the reentrant function or null.
 THREAD_INFO * handle_reentrant_exit(REENTRANT_LOCK *rl);
+
+
 
 // Debug function, print lock hash on stderr
 void print_hash();

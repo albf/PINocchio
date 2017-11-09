@@ -1,11 +1,14 @@
 #include <iostream>
 #include "lockhash.h"
+#include "error.h"
 #include "pin.H"
 
 MUTEX_ENTRY *mutex_hash = NULL;
+SEMAPHORE_ENTRY *semaphore_hash = NULL;
+JOIN_ENTRY *join_hash = NULL;
 
-// get_entry will find a given entry or, if doesn't exist, create one.
-MUTEX_ENTRY *get_entry(void *key)
+// get_mutex_entry will find a given entry or, if doesn't exist, create one.
+static MUTEX_ENTRY *get_mutex_entry(void *key)
 {
     MUTEX_ENTRY *s;
 
@@ -26,7 +29,7 @@ MUTEX_ENTRY *get_entry(void *key)
 
 // Insert a given THREAD_INFO on a linked list. Returns the new pointer
 // to the list head.
-THREAD_INFO *insert(THREAD_INFO *list, THREAD_INFO *entry)
+static THREAD_INFO *insert(THREAD_INFO *list, THREAD_INFO *entry)
 {
     entry->next = NULL;
 
@@ -42,14 +45,14 @@ THREAD_INFO *insert(THREAD_INFO *list, THREAD_INFO *entry)
     return list;
 }
 
-void insert_locked(MUTEX_ENTRY *mutex, THREAD_INFO *entry)
+static void insert_locked(MUTEX_ENTRY *mutex, THREAD_INFO *entry)
 {
     mutex->locked = insert(mutex->locked, entry);
 }
 
 int handle_lock(void *key, THREADID tid)
 {
-    MUTEX_ENTRY *s = get_entry(key);
+    MUTEX_ENTRY *s = get_mutex_entry(key);
 
     if (s->status == M_UNLOCKED) {
         // If unlocked, first to come, just start locking.
@@ -66,7 +69,7 @@ int handle_lock(void *key, THREADID tid)
 
 int handle_try_lock(void *key, THREADID tid)
 {
-    MUTEX_ENTRY *s = get_entry(key);
+    MUTEX_ENTRY *s = get_mutex_entry(key);
 
     if (s->status == M_UNLOCKED) {
         s->status = M_LOCKED;
@@ -79,7 +82,7 @@ int handle_try_lock(void *key, THREADID tid)
 // If none was awaked, just return NULL.
 THREAD_INFO * handle_unlock(void *key, THREADID tid)
 {
-    MUTEX_ENTRY *s = get_entry(key);
+    MUTEX_ENTRY *s = get_mutex_entry(key);
 
     if(s->locked != NULL) {
         s->status = M_LOCKED;
@@ -95,6 +98,146 @@ THREAD_INFO * handle_unlock(void *key, THREADID tid)
     }
 }
 
+static void insert_semaphore_locked(SEMAPHORE_ENTRY *sem, THREAD_INFO *entry)
+{
+    sem->locked = insert(sem->locked, entry);
+}
+
+// get_semaphore_entry will find a given entry or return null. 
+static SEMAPHORE_ENTRY *get_semaphore_entry(void *key)
+{
+    SEMAPHORE_ENTRY *s;
+
+    HASH_FIND_PTR(semaphore_hash, &key, s);
+    if(s) {
+        return s;
+    }
+
+    return NULL;
+}
+
+static void delete_semaphore_entry(SEMAPHORE_ENTRY * entry) {
+    HASH_DEL(semaphore_hash, entry);
+}
+
+static void initialize_semaphore(SEMAPHORE_ENTRY *s, void *key, int value) {
+    s->key = key;
+    s->value = value;
+    s->locked = NULL;
+}
+
+static void add_semaphore_entry(void *key, int value)
+{
+    SEMAPHORE_ENTRY *s;
+
+    s = (SEMAPHORE_ENTRY *) malloc(sizeof(SEMAPHORE_ENTRY));
+    initialize_semaphore(s, key, value);
+    HASH_ADD_PTR(semaphore_hash, key, s);
+}
+
+void handle_semaphore_destroy(void *key)
+{
+    SEMAPHORE_ENTRY * s = get_semaphore_entry(key);
+
+    // Semaphore doesn't even exist. Just return.
+    if(s == NULL) {
+        return;
+    }
+
+    // Destroying a semaphore with other threads waiting.
+    if(s->locked != NULL) {
+        cerr << "Semaphore destroyed when other threads are waiting." << std::endl;
+        fail();
+    }
+
+    delete_semaphore_entry(s);
+}
+
+int handle_semaphore_getvalue(void *key)
+{
+    SEMAPHORE_ENTRY * s = get_semaphore_entry(key);
+
+    // Semaphore doesn't even exist. Return -1.
+    if(s == NULL) {
+        return -1;
+    }
+
+    return s->value;
+}
+
+void handle_semaphore_init(void *key, int value)
+{
+    SEMAPHORE_ENTRY * s = get_semaphore_entry(key);
+
+    if(s == NULL) {
+        add_semaphore_entry(key, value);
+        return;
+    }
+    if(s->locked != NULL) {
+        cerr << "Semaphore destroyed (by init) when other threads are waiting." << std::endl;
+        fail();
+    }
+
+    // Exists but no one is waiting. Just initialize it.
+    initialize_semaphore(s, key, value);
+}
+
+THREAD_INFO *handle_semaphore_post(void *key)
+{
+    SEMAPHORE_ENTRY * s = get_semaphore_entry(key);
+
+    if(s == NULL) {
+        cerr << "Semaphore post on a non-existent semaphore." << std::endl;
+        fail();
+    }
+
+    if(s->locked != NULL) {
+        s->locked->status = UNLOCKED;
+
+        THREAD_INFO * awaked = s->locked;
+        s->locked = s->locked->next;
+        return awaked;
+    }
+
+    s->value = s->value + 1;
+    return NULL;
+}
+
+int handle_semaphore_trywait(void *key)
+{
+    SEMAPHORE_ENTRY * s = get_semaphore_entry(key);
+
+    if(s == NULL) {
+        cerr << "Semaphore trywait on a non-existent semaphore." << std::endl;
+        fail();
+    }
+
+    if(s->value > 0) {
+        s->value = s->value -1;
+        return 0;
+    }
+    return -1;
+}
+
+void handle_semaphore_wait(void *key, THREADID tid)
+{
+    SEMAPHORE_ENTRY * s = get_semaphore_entry(key);
+
+    if(s == NULL) {
+        cerr << "Semaphore wait on a non-existent semaphore." << std::endl;
+        fail();
+    }
+
+    if(s->value > 0) {
+        s->value = s->value -1;
+        return;
+    }
+
+    THREAD_INFO *t = &all_threads[tid];
+    t->status = LOCKED;
+    insert_semaphore_locked(s, t);
+}
+
 // Used to debug lock hash states
 void print_hash()
 {
@@ -108,9 +251,7 @@ void print_hash()
     cerr << "--------- ----------- ---------" << std::endl;
 }
 
-JOIN_ENTRY *join_hash = NULL;
-
-// get_entry will find a given entry or, if doesn't exist, create one.
+// get_mutex_entry will find a given entry or, if doesn't exist, create one.
 JOIN_ENTRY *get_join_entry(pthread_t key)
 {
     JOIN_ENTRY *s;
