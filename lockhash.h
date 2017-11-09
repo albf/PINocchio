@@ -3,9 +3,9 @@
 
 /*
 lockhash implement a simple hash for mutex pointers, using uthash
-and pintool types. It meant to be used only by controller, since hash
-table is accessible only by its thread. Since there is only one hash,
-keeping a global value seems cheaper.
+and pintool types. It meant to be used only by sync, since its
+functions changes thread status. Since there is only one hash for
+each type, keeping a global value seems cheaper.
 */
 
 #include "sync.h"

@@ -131,7 +131,7 @@ void sync(ACTION *action)
         // could change on function. But pointer should be
         // found on start, as it also might be changed.
     case ACTION_REGISTER:
-        cerr << "[Controller] Received register from: " << action->tid << std::endl;
+        cerr << "[Sync] Received register from: " << action->tid << std::endl;
 
         // Update holder max_tid if a bigger arrived
         if(max_tid < action->tid) {
@@ -194,7 +194,7 @@ void sync(ACTION *action)
         break;
 
     case ACTION_FINI:
-        cerr << "[Controller] Received fini from: " << action->tid << std::endl;
+        cerr << "[Sync] Received fini from: " << action->tid << std::endl;
 
         // Mark as finished
         all_threads[action->tid].status = FINISHED;
@@ -213,7 +213,7 @@ void sync(ACTION *action)
 
         // Check if all threads have finished
         if(is_finished() == 1) {
-            cerr << "[Controller] Program finished." << std::endl;
+            cerr << "[Sync] Program finished." << std::endl;
             return;
         }
         break;

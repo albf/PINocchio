@@ -1,4 +1,4 @@
-// Controller related
+// Sync related
 #include "sync.h"
 #include "log.h"
 
@@ -9,9 +9,6 @@
 #include "pin.H"
 
 std::ostream *out = &cerr;
-
-// Might be used to wait for controller
-PIN_THREAD_UID controller_tid;
 
 INT32 Usage()
 {
@@ -115,7 +112,7 @@ VOID module_load_handler(IMG img, void *v)
 
     RTN rtn;
 
-    // Look for pthread_mutex_lock
+    // Look for pthread_mutex_lock and hijack it
     rtn = RTN_FindByName(img, "pthread_mutex_lock");
     if(RTN_Valid(rtn)) {
         DEBUG(*out << "Found pthread_mutex_lock on image" << std::endl);
@@ -125,7 +122,7 @@ VOID module_load_handler(IMG img, void *v)
         DEBUG(*out << "pthread_mutex_lock hijacked" << std::endl);
     }
 
-    // Look for pthread_mutex_trylock
+    // Look for pthread_mutex_trylock and hijack it
     rtn = RTN_FindByName(img, "pthread_mutex_trylock");
     if(RTN_Valid(rtn)) {
         DEBUG(*out << "Found pthread_mutex_trylock on image" << std::endl);
@@ -135,7 +132,7 @@ VOID module_load_handler(IMG img, void *v)
         DEBUG(*out << "pthread_mutex_trylock hijacked" << std::endl);
     }
 
-    // Look for pthread_mutex_unlock
+    // Look for pthread_mutex_unlock and hijack it
     rtn = RTN_FindByName(img, "pthread_mutex_unlock");
     if(RTN_Valid(rtn)) {
         DEBUG(*out << "Found pthread_mutex_unlock on image" << std::endl);
@@ -145,7 +142,7 @@ VOID module_load_handler(IMG img, void *v)
         DEBUG(*out << "pthread_mutex_unlock hijacked" << std::endl);
     }
 
-    // Look for pthread_mutex_unlock
+    // Look for pthread_create and insert callbacks
     rtn = RTN_FindByName(img, "pthread_create");
     if(RTN_Valid(rtn)) {
         DEBUG(*out << "Found pthread_create on image" << std::endl);
@@ -159,7 +156,7 @@ VOID module_load_handler(IMG img, void *v)
         DEBUG(*out << "pthread_create registered" << std::endl);
     }
 
-    // Look for pthread_join
+    // Look for pthread_join and insert callbacks
     rtn = RTN_FindByName(img, "pthread_join");
     if(RTN_Valid(rtn)) {
         DEBUG(*out << "Found pthread_join on image" << std::endl);
@@ -182,7 +179,7 @@ VOID thread_start(THREADID thread_id, CONTEXT *ctxt, INT32 flags, VOID *v)
         fail();
     }
 
-    // Send register to controller
+    // Create register action
     ACTION action = {
         thread_id,
         ACTION_REGISTER,
@@ -218,7 +215,7 @@ VOID ins_handler()
     THREAD_INFO *my_thread_info = &all_threads[(int)thread_id];
     // Check if finish executing a batch
     if(my_thread_info->ins_count >= my_thread_info->ins_max) {
-        // Send done do controller and wait for a "continue" message
+        // Create done action, which could make it sleep
         ACTION action = {
             .tid = thread_id,
             .action_type = ACTION_DONE,
