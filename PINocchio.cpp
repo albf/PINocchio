@@ -95,8 +95,11 @@ int hj_sem_getvalue(sem_t *sem, int *value, THREADID tid) {
     return action.arg.i;
 }
 
-int hj_sem_init(sem_t *sem, int ignored, unsigned int value, THREADID tid) {
+// hj_sem_init is not accepting to receive THREADID tid. Avoiding it for now.
+int hj_sem_init(sem_t *sem, int pshared, unsigned int value)
+{
     DEBUG(cerr << "sem_init called: " << sem << std::endl);
+    THREADID tid = PIN_ThreadId();
 
     ACTION action = {
         tid,
@@ -251,9 +254,7 @@ VOID module_load_handler(IMG img, void *v)
     rtn = RTN_FindByName(img, "sem_init");
     if(RTN_Valid(rtn)) {
         DEBUG(cerr << "Found sem_init on image" << std::endl);
-        RTN_ReplaceSignature(rtn, (AFUNPTR)hj_sem_init,
-                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
-                       IARG_THREAD_ID, IARG_END);
+        RTN_Replace(rtn, (AFUNPTR)hj_sem_init);
         DEBUG(cerr << "sem_init hijacked" << std::endl);
     }
 

@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define LOOP_COUNT 10000
+#define LOOP_COUNT 1000
 #define SEM_VALUE 2
 
 sem_t sem;
