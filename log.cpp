@@ -66,7 +66,7 @@ int log_on_buffer()
 
 void reset_buffer()
 {
-    for(unsigned int i = 0; i < max_tid; i++) {
+    for(unsigned int i = 0; i <= max_tid; i++) {
         for(int j = 0; j < POSSIBLE_STATES; j++) {
             tlog->buffer[j][i] = 0;
         }
