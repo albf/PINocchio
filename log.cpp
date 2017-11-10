@@ -159,6 +159,13 @@ int log_merge(THREAD_STATUS v[MAXLOGSIZE][MAX_THREADS], int *next, int sizeofv, 
         }
     }
 
+    // log_start, for each thread, should also be updated
+    for(k = 0; k <= max_tid; k++) {
+        if(tlog->log_start[k] >= 0) {
+            tlog->log_start[k] = tlog->log_start[k]/REDUCTIONSTEP;
+        }
+    }
+
     return sizeofv / rs;
 }
 
