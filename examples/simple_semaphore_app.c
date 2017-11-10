@@ -3,13 +3,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define LOOP_COUNT 1000
+#define LOOP_COUNT 2000
 #define SEM_VALUE 2
 
 sem_t sem;
 sem_t mutex;
 
 int y;
+
+int mat(int a, int b) {
+    int sign = (b % 2 == 0) ? 1 : -1;
+    return a * sign;
+}
 
 void *dummy_func()
 {
@@ -18,11 +23,7 @@ void *dummy_func()
     sem_wait(&sem);
     for(int i = 0; i < LOOP_COUNT; i++) {
         for(int j = 0; j < LOOP_COUNT; j++) {
-            if(i%2 == 0) {
-                r++;
-            } else {
-                r--;
-            } 
+            r = r + mat(i,j);
         }
     }
     sem_post(&sem);
