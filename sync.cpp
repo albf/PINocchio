@@ -286,7 +286,7 @@ void sync(ACTION *action)
 
 void print_threads()
 {
-    const char *status[] = {"LOCKED", "UNLOCKED", "UNREGISTERED", "FINISHED"};
+    const char *status[] = {"UNLOCKED", "LOCKED", "UNREGISTERED", "FINISHED"};
     const char *step_status[] = {"STEP_MISS", "STEP_DONE"};
     cerr << "--------- thread status ---------" << std::endl;
     for(UINT32 i = 0; i <= max_tid; i++) {
