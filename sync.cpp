@@ -224,7 +224,16 @@ void sync(ACTION *action)
         }
         break;
 
+
         // Mutex events should be treated by lockhash, unlock thread once done.
+    case ACTION_LOCK_DESTROY:
+        handle_lock_init(action->arg.p); 
+        break;
+
+    case ACTION_LOCK_INIT:
+        handle_lock_init(action->arg.p);
+        break;
+
     case ACTION_LOCK:
         // If got locked, try to release the others.
         if (handle_lock(action->arg.p, action->tid) > 0) {

@@ -13,10 +13,16 @@ It's meant to be used only by sync, since its functions changes thread status.
 
 /* Mutex Handlers */
 
-// Returns 0 if lock was successfull, 1 otherwise.
+// Just destroy a mutex. Will fail if doesn't exist.
+void handle_mutex_destroy(void *key);
+
+// Initialize the mutex. Will fail if rewriting a mutex with waiting threads.
+void handle_lock_init(void *key); 
+
+// Returns 0 if lock was successfull, 1 otherwise. Will fail if doesn't exist.
 int handle_lock(void *key, THREADID tid);
 
-// Returns 0 if lock was successfull, 1 otherwise.
+// Returns 0 if lock was successfull, 1 otherwise. Will fail if doesn't exist.
 int handle_try_lock(void *key);
 
 // Returns the awake thread, if any.

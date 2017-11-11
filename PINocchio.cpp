@@ -26,6 +26,33 @@ rules and have before and after callbacks.
 
 /* Mutex hijackers */
 
+int hj_pthread_mutex_destroy(pthread_mutex_t *mutex, THREADID tid) {
+    DEBUG(cerr << "mutex_destroy called: " << mutex << std::endl);
+
+    ACTION action = {
+        tid,
+        ACTION_LOCK_DESTROY,
+        {(void *) mutex},
+    };
+    sync(&action);
+
+    return 0;
+}
+
+int hj_pthread_mutex_init(pthread_mutex_t *mutex, pthread_mutexattr_t attr, THREADID tid)
+{
+    DEBUG(cerr << "mutex_init called: " << mutex << std::endl);
+
+    ACTION action = {
+        tid,
+        ACTION_LOCK_INIT,
+        {(void *) mutex},
+    };
+    sync(&action);
+
+    return 0;
+}
+
 int hj_pthread_mutex_lock(pthread_mutex_t *mutex, THREADID tid)
 {
     DEBUG(cerr << "mutex_lock called: " << mutex << std::endl);
@@ -199,6 +226,26 @@ VOID module_load_handler(IMG img, void *v)
     }
 
     RTN rtn;
+
+    // Look for pthread_mutex_init and hijack it
+    rtn = RTN_FindByName(img, "pthread_mutex_init");
+    if(RTN_Valid(rtn)) {
+        DEBUG(cerr << "Found pthread_mutex_init on image" << std::endl);
+        RTN_ReplaceSignature(rtn, (AFUNPTR)hj_pthread_mutex_init,
+                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                       IARG_THREAD_ID, IARG_END);
+        DEBUG(cerr << "pthread_mutex_init hijacked" << std::endl);
+    }
+
+    // Look for pthread_mutex_destroy and hijack it
+    rtn = RTN_FindByName(img, "pthread_mutex_destroy");
+    if(RTN_Valid(rtn)) {
+        DEBUG(cerr << "Found pthread_mutex_destroy on image" << std::endl);
+        RTN_ReplaceSignature(rtn, (AFUNPTR)hj_pthread_mutex_destroy,
+                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                       IARG_THREAD_ID, IARG_END);
+        DEBUG(cerr << "pthread_mutex_destroy hijacked" << std::endl);
+    }
 
     // Look for pthread_mutex_lock and hijack it
     rtn = RTN_FindByName(img, "pthread_mutex_lock");

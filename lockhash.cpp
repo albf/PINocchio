@@ -57,14 +57,28 @@ static MUTEX_ENTRY *get_mutex_entry(void *key)
         return s;
     }
 
-    // Not found, add new and return it.
-    s = (MUTEX_ENTRY *) malloc(sizeof(MUTEX_ENTRY));
+    return NULL;
+}
+
+static void delete_mutex_entry(MUTEX_ENTRY * entry)
+{
+    HASH_DEL(mutex_hash, entry);
+}
+
+static void initialize_mutex(MUTEX_ENTRY *s, void *key)
+{
     s->key = key;
     s->status = M_UNLOCKED;
     s->locked = NULL;
+}
+
+static void add_mutex_entry(void * key) {
+    MUTEX_ENTRY *s;
+
+    s = (MUTEX_ENTRY *) malloc(sizeof(MUTEX_ENTRY));
+    initialize_mutex(s, key);
 
     HASH_ADD_PTR(mutex_hash, key, s);
-    return s;
 }
 
 // Insert a given THREAD_INFO on a linked list. Returns the new pointer
@@ -90,9 +104,54 @@ static void insert_locked(MUTEX_ENTRY *mutex, THREAD_INFO *entry)
     mutex->locked = insert(mutex->locked, entry);
 }
 
+static void fail_on_no_mutex(MUTEX_ENTRY *s, void * key)
+{
+    if(s == NULL) {
+        cerr << "Non-existent mutex acessed: " << key << "." << std::endl;
+        fail();
+    }
+}
+
+void handle_mutex_destroy(void *key)
+{
+    MUTEX_ENTRY * s = get_mutex_entry(key);
+
+    // Mutex doesn't even exist. Just return.
+    if(s == NULL) {
+        cerr << "Warning: Destroy on already unexistent mutex." << std::endl;
+        return;
+    }
+
+    // Destroying a mutex with other threads waiting.
+    if(s->locked != NULL) {
+        cerr << "Mutex destroyed when other threads are waiting." << std::endl;
+        fail();
+    }
+
+    delete_mutex_entry(s);
+}
+
+void handle_lock_init(void *key)
+{
+    MUTEX_ENTRY * s = get_mutex_entry(key);
+
+    if(s == NULL) {
+        add_mutex_entry(key);
+        return;
+    }
+    if(s->locked != NULL) {
+        cerr << "Mutex destroyed (by init) when other threads are waiting." << std::endl;
+        fail();
+    }
+
+    // Exists but no one is waiting. Just initialize it.
+    initialize_mutex(s, key);
+}
+
 int handle_lock(void *key, THREADID tid)
 {
     MUTEX_ENTRY *s = get_mutex_entry(key);
+    fail_on_no_mutex(s, key);
 
     if (s->status == M_UNLOCKED) {
         // If unlocked, first to come, just start locking.
@@ -110,6 +169,7 @@ int handle_lock(void *key, THREADID tid)
 int handle_try_lock(void *key)
 {
     MUTEX_ENTRY *s = get_mutex_entry(key);
+    fail_on_no_mutex(s, key);
 
     if (s->status == M_UNLOCKED) {
         s->status = M_LOCKED;
@@ -123,6 +183,7 @@ int handle_try_lock(void *key)
 THREAD_INFO * handle_unlock(void *key)
 {
     MUTEX_ENTRY *s = get_mutex_entry(key);
+    fail_on_no_mutex(s, key);
 
     if(s->locked != NULL) {
         s->status = M_LOCKED;
@@ -133,6 +194,7 @@ THREAD_INFO * handle_unlock(void *key)
         return awaked;
     } else {
         // Odd case, won't change anything.
+        cerr << "Warning: Unlock on already unlocked mutex." << std::endl;
         s->status = M_UNLOCKED;
         return NULL; 
     }
@@ -175,12 +237,20 @@ static void add_semaphore_entry(void *key, int value)
     HASH_ADD_PTR(semaphore_hash, key, s);
 }
 
+static void fail_on_no_semaphore(SEMAPHORE_ENTRY *s, void * key) {
+    if(s == NULL) {
+        cerr << "Non-existent semaphore acessed: " << key << "." << std::endl;
+        fail();
+    }
+}
+
 void handle_semaphore_destroy(void *key)
 {
     SEMAPHORE_ENTRY * s = get_semaphore_entry(key);
 
     // Semaphore doesn't even exist. Just return.
     if(s == NULL) {
+        cerr << "Warning: Destroy on already unexistent semaphore." << std::endl;
         return;
     }
 
@@ -196,12 +266,7 @@ void handle_semaphore_destroy(void *key)
 int handle_semaphore_getvalue(void *key)
 {
     SEMAPHORE_ENTRY * s = get_semaphore_entry(key);
-
-    // Semaphore doesn't even exist. Return -1.
-    if(s == NULL) {
-        cerr << "Semaphore getvalue on a non-existent semaphore." << std::endl;
-        fail();
-    }
+    fail_on_no_semaphore(s, key);
 
     return s->value;
 }
@@ -226,11 +291,7 @@ void handle_semaphore_init(void *key, int value)
 THREAD_INFO *handle_semaphore_post(void *key)
 {
     SEMAPHORE_ENTRY * s = get_semaphore_entry(key);
-
-    if(s == NULL) {
-        cerr << "Semaphore post on a non-existent semaphore." << std::endl;
-        fail();
-    }
+    fail_on_no_semaphore(s, key);
 
     if(s->locked != NULL) {
         s->locked->status = UNLOCKED;
@@ -247,11 +308,7 @@ THREAD_INFO *handle_semaphore_post(void *key)
 int handle_semaphore_trywait(void *key)
 {
     SEMAPHORE_ENTRY * s = get_semaphore_entry(key);
-
-    if(s == NULL) {
-        cerr << "Semaphore trywait on a non-existent semaphore." << std::endl;
-        fail();
-    }
+    fail_on_no_semaphore(s, key);
 
     if(s->value > 0) {
         s->value = s->value -1;
@@ -263,11 +320,7 @@ int handle_semaphore_trywait(void *key)
 int handle_semaphore_wait(void *key, THREADID tid)
 {
     SEMAPHORE_ENTRY * s = get_semaphore_entry(key);
-
-    if(s == NULL) {
-        cerr << "Semaphore wait on a non-existent semaphore." << std::endl;
-        fail();
-    }
+    fail_on_no_semaphore(s, key);
 
     if(s->value > 0) {
         s->value = s->value - 1;
