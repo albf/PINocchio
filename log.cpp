@@ -154,7 +154,7 @@ int log_merge(THREAD_STATUS v[MAXLOGSIZE][MAX_THREADS], int *next, int sizeofv, 
                     max = j;
                 }
             }
-            v[i][k] = (THREAD_STATUS) max;
+            v[i/rs][k] = (THREAD_STATUS) max;
             //cerr << "Merged[" << k << "] into " << max << std::endl;
         }
     }
