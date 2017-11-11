@@ -195,12 +195,16 @@ THREAD_INFO * handle_unlock(void *key)
         THREAD_INFO * awaked = s->locked;
         s->locked = s->locked->next;
         return awaked;
+    }
+
+    if (s->status == M_LOCKED) {
+        s->status = M_UNLOCKED;
     } else {
         // Odd case, won't change anything.
         cerr << "Warning: Unlock on already unlocked mutex." << std::endl;
-        s->status = M_UNLOCKED;
-        return NULL; 
     }
+
+    return NULL; 
 }
 
 static void insert_semaphore_locked(SEMAPHORE_ENTRY *sem, THREAD_INFO *entry)
