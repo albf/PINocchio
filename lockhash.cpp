@@ -72,13 +72,14 @@ static void initialize_mutex(MUTEX_ENTRY *s, void *key)
     s->locked = NULL;
 }
 
-static void add_mutex_entry(void * key) {
+static MUTEX_ENTRY * add_mutex_entry(void * key) {
     MUTEX_ENTRY *s;
 
     s = (MUTEX_ENTRY *) malloc(sizeof(MUTEX_ENTRY));
     initialize_mutex(s, key);
 
     HASH_ADD_PTR(mutex_hash, key, s);
+    return s;
 }
 
 // Insert a given THREAD_INFO on a linked list. Returns the new pointer
@@ -104,12 +105,14 @@ static void insert_locked(MUTEX_ENTRY *mutex, THREAD_INFO *entry)
     mutex->locked = insert(mutex->locked, entry);
 }
 
-static void fail_on_no_mutex(MUTEX_ENTRY *s, void * key)
+// Can't fail on no_mutex it's used by system during runtime Assume a new one.
+static MUTEX_ENTRY * handle_no_mutex(MUTEX_ENTRY *s, void * key)
 {
     if(s == NULL) {
-        cerr << "Non-existent mutex acessed: " << key << "." << std::endl;
-        fail();
+        s = add_mutex_entry(key);
+        cerr << "Warning: Non-existent mutex acessed: " << key << ". Implicit entry created." << std::endl;
     }
+    return s;
 }
 
 void handle_mutex_destroy(void *key)
@@ -151,7 +154,7 @@ void handle_lock_init(void *key)
 int handle_lock(void *key, THREADID tid)
 {
     MUTEX_ENTRY *s = get_mutex_entry(key);
-    fail_on_no_mutex(s, key);
+    s = handle_no_mutex(s, key);
 
     if (s->status == M_UNLOCKED) {
         // If unlocked, first to come, just start locking.
@@ -169,7 +172,7 @@ int handle_lock(void *key, THREADID tid)
 int handle_try_lock(void *key)
 {
     MUTEX_ENTRY *s = get_mutex_entry(key);
-    fail_on_no_mutex(s, key);
+    handle_no_mutex(s, key);
 
     if (s->status == M_UNLOCKED) {
         s->status = M_LOCKED;
@@ -183,7 +186,7 @@ int handle_try_lock(void *key)
 THREAD_INFO * handle_unlock(void *key)
 {
     MUTEX_ENTRY *s = get_mutex_entry(key);
-    fail_on_no_mutex(s, key);
+    handle_no_mutex(s, key);
 
     if(s->locked != NULL) {
         s->status = M_LOCKED;

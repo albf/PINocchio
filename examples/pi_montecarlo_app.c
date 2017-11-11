@@ -6,8 +6,6 @@
 #define COUNT_MAX 10
 #define NEXEC 10000
 
-pthread_mutex_t mutex;
-
 typedef struct {
     long long unsigned int n;   //Number of executions
     long long unsigned int in;  //Space to save the result
