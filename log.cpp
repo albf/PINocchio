@@ -140,7 +140,7 @@ int log_merge(THREAD_STATUS v[MAXLOGSIZE][MAX_THREADS], int *next, int sizeofv, 
         // Last vector @ each reduction block is taken as reference
         // (includes all threads)
 
-        for(k = 0; k < max_tid ; k++) {  // Iterate over each threadlog  (\/)
+        for(k = 0; k <= max_tid ; k++) {  // Iterate over each threadlog  (\/)
             int possible_states[4] = {0, 0, 0, 0};
             for(j = i; j < (i + rs); j++) { // Iterate inside a shrinking block (->)
                 possible_states[(int)v[j][k]]++;
