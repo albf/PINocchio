@@ -10,6 +10,7 @@
 #define DEBUG(WHAT) do { } while(0)
 #endif
 
+// Function used to when instrumentation should stop
 void fail();
 
 #endif // ERROR_H_ 

@@ -86,9 +86,6 @@ struct _ACTION {
     ACTION_ARG arg;
 };
 
-// Function used to when instrumentation should stop
-void fail();
-
 // Init sync structure 
 void sync_init();
 

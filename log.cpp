@@ -7,11 +7,11 @@
 T_log *tlog;
 
 // Internal auxiliary functions
-int log_on_buffer();
-void reset_buffer();
-void force_buffer_release();
-int log_merge(THREAD_STATUS v[MAXLOGSIZE][MAX_THREADS], int *next, int sizeofv, int rs);
-int log_make_status_string(char *s, int index);
+static int log_on_buffer();
+static void reset_buffer();
+static void force_buffer_release();
+static int log_merge();
+static int log_make_status_string(char *s, int index);
 
 void log_init()
 {
@@ -35,7 +35,7 @@ void log_init()
     }
 
     for(j = 0; j < MAX_THREADS; j++) {
-        for(i = 0; i < MAXLOGSIZE; i++) {
+        for(i = 0; i < MAX_LOG_SIZE; i++) {
             tlog->log[i][j] = UNREGISTERED;
         }
     }
@@ -44,7 +44,7 @@ void log_init()
 }
 
 // log_on_buffer returns 1 if it became full, 0 otherwise.
-int log_on_buffer()
+static int log_on_buffer()
 {
     // Log all threads status
     for(unsigned int i = 0; i <= max_tid; i++) {
@@ -64,7 +64,7 @@ int log_on_buffer()
     return 0;
 }
 
-void reset_buffer()
+static void reset_buffer()
 {
     for(unsigned int i = 0; i <= max_tid; i++) {
         for(int j = 0; j < POSSIBLE_STATES; j++) {
@@ -74,7 +74,7 @@ void reset_buffer()
     tlog->buffer_size = 0;
 }
 
-void force_buffer_release()
+static void force_buffer_release()
 {
     for(int i = tlog->buffer_size; i < tlog->buffer_capacity; i++) {
         log_on_buffer();
@@ -115,58 +115,58 @@ void log_add()
 
     // Check if should merge log too.
     tlog->log_next++;
-    if(tlog->log_next == MAXLOGSIZE) {
-        tlog->log_next = log_merge(tlog->log, tlog->log_start, MAXLOGSIZE, REDUCTIONSTEP);
+    if(tlog->log_next == MAX_LOG_SIZE) {
+        tlog->log_next = log_merge();
 
         // Update buffer size, since it was merged and should be increased.
-        tlog->buffer_capacity *= REDUCTIONSTEP;
+        tlog->buffer_capacity *= REDUCTION_STEP;
     }
 }
 
 // Returns the new next position available.
-int log_merge(THREAD_STATUS v[MAXLOGSIZE][MAX_THREADS], int *next, int sizeofv, int rs)
+static int log_merge()
 {
     int i, j, max;
     unsigned int k;
-    // i=5 ; REDUCTIONSTEP = 5
 
-    // next |... 5 6 7 8 9 ... SUM
-    // 0    |... 1 1 1 0 0 ... 3 3 -> 1
-    // 3    |... 1 1 0 1 1 ... 4 4 -> 1
-    // 7    |... 1 1 1 1 0 ... 4 2 -> 0
-    // 12   |... 1 1 1 1 1 ... 5 0 -> 1
+    // STATE/THREAD |... 0 1 2
+    // ---------------------------
+    // 0            |... 0 2 2
+    // 1            |... 0 5 2
+    // 2            |... 8 1 2
+    // 3            |... 0 0 2
+    // ---------------------------
+    // Result State |... 2 1 0
 
-    for(i = 0; i < sizeofv; i += rs) { // Iterate over blocks to shrink
+    for(i = 0; i < MAX_LOG_SIZE; i += REDUCTION_STEP) { // Iterate over blocks to shrink
         // Last vector @ each reduction block is taken as reference
         // (includes all threads)
 
         for(k = 0; k <= max_tid ; k++) {  // Iterate over each threadlog  (\/)
             int possible_states[4] = {0, 0, 0, 0};
-            for(j = i; j < (i + rs); j++) { // Iterate inside a shrinking block (->)
-                possible_states[(int)v[j][k]]++;
+            for(j = i; j < (i + REDUCTION_STEP); j++) { // Iterate inside a shrinking block (->)
+                possible_states[(int)tlog->log[j][k]]++;
             }
             // Use the most frequent state on block.
             max = 0;
-            //cerr << "Merging[" << k << "][" << j << "] = " << possible_states[0] << std::endl;
             for(j = 1; j < POSSIBLE_STATES; j++) {
-                //cerr << "Merging[" << k << "][" << j << "] = " << possible_states[j] << std::endl;
                 if(possible_states[j] > possible_states[max]) {
                     max = j;
                 }
             }
-            v[i/rs][k] = (THREAD_STATUS) max;
-            //cerr << "Merged[" << k << "] into " << max << std::endl;
+            // Beware: the new position for the block is i/REDUCTION_STEP
+            tlog->log[i/REDUCTION_STEP][k] = (THREAD_STATUS) max;
         }
     }
 
     // log_start, for each thread, should also be updated
     for(k = 0; k <= max_tid; k++) {
         if(tlog->log_start[k] >= 0) {
-            tlog->log_start[k] = tlog->log_start[k]/REDUCTIONSTEP;
+            tlog->log_start[k] = tlog->log_start[k]/REDUCTION_STEP;
         }
     }
 
-    return sizeofv / rs;
+    return MAX_LOG_SIZE / REDUCTION_STEP;
 }
 
 void log_free()
@@ -177,7 +177,7 @@ void log_free()
 
 void log_dump()
 {
-    char str[MAXLOGSIZE + 1];
+    char str[MAX_LOG_SIZE + 1];
     ofstream f;
 
     cerr << "[LOG] Dumping report to trace.json" << std::endl;
@@ -214,7 +214,7 @@ void log_dump()
 }
 
 // Returns 0 if stayed unregistered the whole time
-int log_make_status_string(char *s, int index)
+static int log_make_status_string(char *s, int index)
 {
     int any = 0;
     int start = tlog->log_start[index];

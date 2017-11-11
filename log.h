@@ -1,9 +1,9 @@
 #ifndef __LOG_H__
 #define __LOG_H__
 
-#define MAXLOGSIZE 2048           // Must be power of REDUCTIONSTEP
-#define REDUCTIONSTEP 8           // TODO Fix by adding remainings on new buffer
-#define OUTPUTFILE "trace.json"   // TODO: Change how name is defined
+#define MAX_LOG_SIZE 2048           // Must be power of REDUCTIONSTEP
+#define REDUCTION_STEP 8            // TODO Fix by adding remainings on new buffer
+#define OUTPUTFILE "trace.json"     // TODO: Change how name is defined
 
 #include "sync.h"
 
@@ -14,7 +14,7 @@ typedef struct {
     int buffer_capacity;
 
     // Log related fields
-    THREAD_STATUS log[MAXLOGSIZE][MAX_THREADS];
+    THREAD_STATUS log[MAX_LOG_SIZE][MAX_THREADS];
     int log_start[MAX_THREADS];
     int log_next;
 } T_log;
