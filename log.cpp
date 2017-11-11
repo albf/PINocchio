@@ -83,37 +83,26 @@ static void force_buffer_release()
 
 void log_add()
 {
-    int is_buffer_full;
     unsigned int i, j;
 
-    if(tlog->buffer_capacity == 1) {
-        // First case, ignore buffer since it would be flushed anyway.
-        for(i = 0; i <= max_tid; i++) {
-            if(tlog->log_start[i] < 0) {
-                tlog->log_start[i] = tlog->log_next;
-            }
-            tlog->log[tlog->log_next][i] = all_threads[i].status;
-        }
-    } else {
-        // First insert on buffer, checking if full
-        is_buffer_full = log_on_buffer();
-        if(is_buffer_full == 0) {
-            return;
-        }
-
-        for(i = 0; i <= max_tid; i++) {
-            int max = 0;
-            for(j = 1; j < POSSIBLE_STATES; j++) {
-                if(tlog->buffer[j][i] > tlog->buffer[max][i]) {
-                    max = j;
-                }
-            }
-            tlog->log[tlog->log_next][i] = (THREAD_STATUS)max;
-        }
-        reset_buffer();
+    // First insert on buffer, checking if full. If not, just return.
+    if(log_on_buffer() == 0) {
+        return;
     }
 
-    // Check if should merge log too.
+    // Buffer is full, add a new position on the log.
+    for(i = 0; i <= max_tid; i++) {
+        int max = 0;
+        for(j = 1; j < POSSIBLE_STATES; j++) {
+            if(tlog->buffer[j][i] > tlog->buffer[max][i]) {
+                max = j;
+            }
+        }
+        tlog->log[tlog->log_next][i] = (THREAD_STATUS)max;
+    }
+    reset_buffer();
+
+    // Update position and check if should also merge. 
     tlog->log_next++;
     if(tlog->log_next == MAX_LOG_SIZE) {
         tlog->log_next = log_merge();
@@ -138,15 +127,22 @@ static int log_merge()
     // ---------------------------
     // Result State |... 2 1 0
 
-    for(i = 0; i < MAX_LOG_SIZE; i += REDUCTION_STEP) { // Iterate over blocks to shrink
-        // Last vector @ each reduction block is taken as reference
-        // (includes all threads)
+    for(k = 0; k <= max_tid ; k++) {                         // Iterate over each threadlog
 
-        for(k = 0; k <= max_tid ; k++) {  // Iterate over each threadlog  (\/)
+        if (tlog->log_start[k] < 0) {                        // Ignore non started threads
+            continue;
+        }
+
+        // update log_start, for each thread
+        tlog->log_start[k] = tlog->log_start[k]/REDUCTION_STEP;
+
+        for(i = 0; i < MAX_LOG_SIZE; i += REDUCTION_STEP) {  // Iterate over blocks to shrink
             int possible_states[4] = {0, 0, 0, 0};
-            for(j = i; j < (i + REDUCTION_STEP); j++) { // Iterate inside a shrinking block (->)
+
+            for(j = i; j < (i + REDUCTION_STEP); j++) {      // Iterate inside a shrinking block
                 possible_states[(int)tlog->log[j][k]]++;
             }
+
             // Use the most frequent state on block.
             max = 0;
             for(j = 1; j < POSSIBLE_STATES; j++) {
@@ -154,15 +150,9 @@ static int log_merge()
                     max = j;
                 }
             }
+
             // Beware: the new position for the block is i/REDUCTION_STEP
             tlog->log[i/REDUCTION_STEP][k] = (THREAD_STATUS) max;
-        }
-    }
-
-    // log_start, for each thread, should also be updated
-    for(k = 0; k <= max_tid; k++) {
-        if(tlog->log_start[k] >= 0) {
-            tlog->log_start[k] = tlog->log_start[k]/REDUCTION_STEP;
         }
     }
 
