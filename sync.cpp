@@ -15,6 +15,7 @@ PIN_MUTEX sync_mutex;
 pthread_t pthread_tid;
 THREADID pin_tid;
 int create_done;
+THREADID creator_pin_tid;
 
 REENTRANT_LOCK create_lock;
 
@@ -27,8 +28,8 @@ void sync_init()
     max_tid = 0;
 
     for(int i = 0; i < MAX_THREADS; i++) {
-        all_threads[i].ins_max = INSTRUCTIONS_ON_ROUND;
         all_threads[i].ins_count = 0;
+        all_threads[i].pin_tid = i;
 
         all_threads[i].step_status = STEP_MISS;
         all_threads[i].status = UNREGISTERED;
@@ -78,12 +79,9 @@ static int is_finished()
 }
 
 // Release a locked thread waiting for permission
-void release_thread(THREAD_INFO *ti, INT64 instructions)
+void release_thread(THREAD_INFO *ti)
 {
-    // Reset ins_count and update current state
     // Mark step status as missing answer
-    ti->ins_max = instructions;
-    ti->ins_count = 0;
     ti->step_status = STEP_MISS;
 
     // Release thread semaphore 
@@ -97,8 +95,7 @@ void try_release_all()
         for(UINT32 i = 0; i <= max_tid; i++) {
             if((all_threads[i].step_status == STEP_DONE)
                     && (all_threads[i].status == UNLOCKED)) {
-                trace_bank_update(i, all_threads[i].ins_count, UNLOCKED);
-                release_thread(&all_threads[i], INSTRUCTIONS_ON_ROUND);
+                release_thread(&all_threads[i]);
             }
         }
     }
@@ -135,11 +132,12 @@ void sync(ACTION *action)
 
         // Thread starts unlocked
         all_threads[action->tid].status = UNLOCKED;
+        trace_bank_register(action->tid, all_threads[creator_pin_tid].ins_count);
 
         // Thread 0 ins't created by pthread_create, but always existed.
         // Don't wait or do any black magic on that regard.
         if (action->tid == 0) {
-            release_thread(&all_threads[action->tid], INSTRUCTIONS_ON_ROUND);
+            release_thread(&all_threads[action->tid]);
             break;
         }
 
@@ -153,13 +151,13 @@ void sync(ACTION *action)
             create_done = 0;
             THREAD_INFO * awaked = handle_reentrant_exit(&create_lock);
             if (awaked != NULL) {
-                release_thread(awaked, INSTRUCTIONS_ON_ROUND);
+                release_thread(awaked);
             }
         } else {
             create_done = 1;
         }
 
-        release_thread(&all_threads[action->tid], INSTRUCTIONS_ON_ROUND);
+        release_thread(&all_threads[action->tid]);
         break;
 
     case ACTION_BEFORE_CREATE:
@@ -167,6 +165,9 @@ void sync(ACTION *action)
         if(handle_reentrant_start(&create_lock, action->tid) == 0) {
             try_release_all();
         }
+
+        // Save current instruction count from thread creator.
+        creator_pin_tid = action->tid;
         break;
 
     case ACTION_AFTER_CREATE:
@@ -179,13 +180,13 @@ void sync(ACTION *action)
             create_done = 0;
             THREAD_INFO * awaked = handle_reentrant_exit(&create_lock);
             if (awaked != NULL) {
-                release_thread(awaked, INSTRUCTIONS_ON_ROUND);
+                release_thread(awaked);
             }
         } else {
             create_done = 1;
         }
 
-        release_thread(&all_threads[action->tid], INSTRUCTIONS_ON_ROUND);
+        release_thread(&all_threads[action->tid]);
         break;
 
     case ACTION_FINI:
@@ -193,14 +194,16 @@ void sync(ACTION *action)
 
         // Mark as finished
         all_threads[action->tid].status = FINISHED;
-        release_thread(&all_threads[action->tid], INSTRUCTIONS_ON_EXIT);
+        trace_bank_finish(action->tid, all_threads[action->tid].ins_count);
+        release_thread(&all_threads[action->tid]);
 
         // Free any join locked thread, thread 0 shouldn't be joined
         if(action->tid > 0) {
             THREAD_INFO *t = handle_thread_exit(all_threads[action->tid].create_value);
             for(; t != NULL; t = t->next_lock) {
                 t->status = UNLOCKED;
-                release_thread(t, INSTRUCTIONS_ON_ROUND);
+                trace_bank_update(t->pin_tid, t->ins_count, UNLOCKED);
+                release_thread(t);
             }
         }
 
@@ -250,7 +253,7 @@ void sync(ACTION *action)
         THREAD_INFO * awaked;
         awaked = handle_unlock(action->arg.p);
         if (awaked != NULL) {
-            release_thread(awaked, INSTRUCTIONS_ON_ROUND);
+            release_thread(awaked);
         }
         break;
 
@@ -269,7 +272,7 @@ void sync(ACTION *action)
     case ACTION_SEM_POST:
         awaked = handle_semaphore_post(action->arg.p);
         if (awaked != NULL) {
-            release_thread(awaked, INSTRUCTIONS_ON_ROUND);
+            release_thread(awaked);
         }
         break;
 

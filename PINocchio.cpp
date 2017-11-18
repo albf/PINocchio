@@ -402,19 +402,17 @@ VOID Fini(INT32 code, VOID *v)
 
 VOID ins_handler()
 {
+    // Instruction callback, update instruction counter
     THREADID thread_id = PIN_ThreadId();
-    THREAD_INFO *my_thread_info = &all_threads[(int)thread_id];
-    // Check if finish executing a batch
-    if(my_thread_info->ins_count >= my_thread_info->ins_max) {
-        // Create done action, which could make it sleep
-        ACTION action = {
-            .tid = thread_id,
-            .action_type = ACTION_DONE,
-        };
-        sync(&action);
-    }
+    all_threads[(int)thread_id].ins_count++;
 
-    my_thread_info->ins_count++;
+    // Sync, which could make it sleep
+    ACTION action = {
+        .tid = thread_id,
+        .action_type = ACTION_DONE,
+    };
+    sync(&action);
+
 }
 
 VOID instruction(INS ins, VOID *v)

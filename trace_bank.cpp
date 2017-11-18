@@ -14,18 +14,6 @@ void trace_bank_init()
     cerr << "[Trace Bank] Bank Initiated" << std::endl;
 }
 
-void trace_bank_register(THREADID tid, UINT64 time) {
-    if (traces[tid] != NULL) {
-        free(traces[tid]);
-    }
-    
-    traces[tid] = (P_TRACE *) malloc (sizeof(P_TRACE));
-
-    traces[tid]->start = time;
-    traces[tid]->end = -1;
-    traces[tid]->total_changes = -1;
-}
-
 void trace_bank_filter(THREADID tid) {
     int index[REDUCTION_SIZE];
     UINT64 value[REDUCTION_SIZE];
@@ -91,6 +79,20 @@ void trace_bank_update(THREADID tid, UINT64 time, THREAD_STATUS status) {
     traces[tid]->total_changes++;
 }
 
+void trace_bank_register(THREADID tid, UINT64 time) {
+    if (traces[tid] != NULL) {
+        free(traces[tid]);
+    }
+    
+    traces[tid] = (P_TRACE *) malloc (sizeof(P_TRACE));
+
+    traces[tid]->start = time;
+    traces[tid]->end = -1;
+    traces[tid]->total_changes = 0;
+
+    trace_bank_update(tid, time, UNLOCKED);
+}
+
 void trace_bank_finish(THREADID tid, UINT64 time) {
     trace_bank_update(tid, time, FINISHED);
 
@@ -100,8 +102,12 @@ void trace_bank_finish(THREADID tid, UINT64 time) {
 UINT64 find_end() {
     UINT64 max = 0;
     for(int i = 0; i < MAX_THREADS; i++) {
-        if (traces[i] != NULL && traces[i]->end > max) {
+        if (traces[i] != NULL) {
+            if (traces[i]->end < 0) {
+                cerr << "Warning: Trace dump before thread exit: " << i << std::endl;
+            } else if (traces[i]->end > max) {
                 max = traces[i]->end;
+            }
         }
     }
     return max;

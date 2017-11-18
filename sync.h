@@ -6,8 +6,6 @@
 
 // Major settings regarding sync and round size
 #define MAX_THREADS 64               // Max number of spawned threads by application
-#define INSTRUCTIONS_ON_ROUND 1      // Number of instructions to be executed per round
-#define INSTRUCTIONS_ON_EXIT  100000 // On exit, just give instructions to finish nicely
 
 // --- Thread info ---
 
@@ -28,12 +26,12 @@ typedef enum {
 // Holds information of a given thread
 typedef struct _THREAD_INFO THREAD_INFO;
 struct _THREAD_INFO {
-    INT64 ins_max;                  // Current max of instructions to be executed
     INT64 ins_count;                // Number of instructions executed on current
 
     void *holder;                   // Saves parameters from being dirty between before_* and after_* calls
     PIN_SEMAPHORE active;           // Semaphore used to wake/wait
 
+    THREADID pin_tid;               // It's own pin tid. It's needed when on a list
     pthread_t create_value;         // Thread variable returned by create, used for join control
 
 

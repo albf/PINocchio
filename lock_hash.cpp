@@ -1,5 +1,6 @@
 #include <iostream>
 #include "lock_hash.h"
+#include "trace_bank.h"
 #include "error.h"
 #include "pin.H"
 
@@ -165,6 +166,8 @@ int handle_lock(void *key, THREADID tid)
     // If locked, just insert on list and mark as thread as locked.
     THREAD_INFO *t = &all_threads[tid];
     t->status = LOCKED;
+    trace_bank_update(t->pin_tid, t->ins_count, LOCKED);
+
     insert_locked(s, t);
     return 1;
 }
@@ -190,7 +193,9 @@ THREAD_INFO * handle_unlock(void *key)
 
     if(s->locked != NULL) {
         s->status = M_LOCKED;
+
         s->locked->status = UNLOCKED;
+        trace_bank_update(s->locked->pin_tid, s->locked->ins_count, UNLOCKED);
 
         THREAD_INFO * awaked = s->locked;
         s->locked = s->locked->next_lock;
@@ -302,6 +307,7 @@ THREAD_INFO *handle_semaphore_post(void *key)
 
     if(s->locked != NULL) {
         s->locked->status = UNLOCKED;
+        trace_bank_update(s->locked->pin_tid, s->locked->ins_count, UNLOCKED);
 
         THREAD_INFO * awaked = s->locked;
         s->locked = s->locked->next_lock;
@@ -336,6 +342,8 @@ int handle_semaphore_wait(void *key, THREADID tid)
 
     THREAD_INFO *t = &all_threads[tid];
     t->status = LOCKED;
+    trace_bank_update(t->pin_tid, t->ins_count, LOCKED);
+
     insert_semaphore_locked(s, t);
     return -1;
 }
@@ -399,6 +407,8 @@ int handle_before_join(pthread_t key, THREADID tid)
     if(s->allow == 0) {
         cerr << "[Lock Hash] s->locked! - " << s->locked << std::endl;
         t->status = LOCKED;
+        trace_bank_update(t->pin_tid, t->ins_count, LOCKED);
+
         s->locked = insert(s->locked, t);
         cerr << "[Lock Hash] s->locked! - " << s->locked << std::endl;
         return 0;
@@ -416,6 +426,8 @@ int handle_reentrant_start(REENTRANT_LOCK *rl, THREADID tid)
 
     if(rl->busy > 0) {
         t->status = LOCKED;
+        trace_bank_update(t->pin_tid, t->ins_count, LOCKED);
+
         rl->locked = insert(rl->locked, t);
         return 0;
     }
@@ -435,6 +447,8 @@ THREAD_INFO * handle_reentrant_exit(REENTRANT_LOCK *rl)
     }
 
     rl->locked->status = UNLOCKED;
+    trace_bank_update(rl->locked->pin_tid, rl->locked->ins_count, UNLOCKED);
+
     THREAD_INFO * awaked = rl->locked;
     rl->locked = rl->locked->next_lock;
     return awaked;
