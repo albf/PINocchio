@@ -1,31 +1,40 @@
 #ifndef __TRACE_H__
 #define __TRACE_H__
 
-#define MAX_BANK_SIZE 2048           // Must be power of REDUCTIONSTEP
-#define REDUCTION_STEP 8            // TODO Fix by adding remainings on new buffer
+#define MAX_BANK_SIZE 2048          // Max number of changes per threads.
+                                    // Once it's reached, some smaller ones will be lost.
+
+#define REDUCTION_SIZE 256          // Number of traces to be removed once limit is reached.
+
 #define OUTPUTFILE "trace.json"     // TODO: Change how name is defined
 
 #include "sync.h"
+#include "pin.H"
 
 typedef struct {
-    // Buffer related fields
-    int buffer[POSSIBLE_STATES][MAX_THREADS];
-    int buffer_size;
-    int buffer_capacity;
+    UINT64 time;
+    THREAD_STATUS status;
+} Change;
 
-    // Bank related fields
-    THREAD_STATUS bank[MAX_BANK_SIZE][MAX_THREADS];
-    int ins_start[MAX_THREADS];
-    int ins_next;
-} T_bank;
+typedef struct {
+    UINT64 start;
+    UINT64 end;
 
-extern T_bank *t_bank;
+    int total_changes;
+    Change changes[MAX_BANK_SIZE];
+} Trace;
 
 // Init trace bank, allocating memory and initializing required fields.
 void trace_bank_init();
 
-// Flush status information into trace bank structure.
-void trace_bank_add();
+// Register a newly created thread. Will consider it active during start.
+void trace_bank_register(THREADID tid, UINT64 time);
+
+// Insert the change on the status on the trace array.
+void trace_bank_update(THREADID tid, UINT64 time, THREAD_STATUS status);
+
+// Insert the change on the status on the trace array.
+void trace_bank_finish(THREADID tid, UINT64 time);
 
 // Dump current trace bank  to external file.
 void trace_bank_dump();

@@ -94,10 +94,10 @@ void release_thread(THREAD_INFO *ti, INT64 instructions)
 void try_release_all()
 {
     if(is_syncronized() > 0) {
-        trace_bank_add();
         for(UINT32 i = 0; i <= max_tid; i++) {
             if((all_threads[i].step_status == STEP_DONE)
                     && (all_threads[i].status == UNLOCKED)) {
+                trace_bank_update(i, all_threads[i].ins_count, UNLOCKED);
                 release_thread(&all_threads[i], INSTRUCTIONS_ON_ROUND);
             }
         }

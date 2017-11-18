@@ -4,180 +4,141 @@
 #include <iostream>
 #include <fstream>
 
-T_bank *t_bank;
-
-// Internal auxiliary functions
-static int trace_bank_record_on_buffer();
-static void reset_buffer();
-static void force_buffer_release();
-static int merge_buffer();
-static int make_status_string(char *s, int index);
+Trace * traces [MAX_THREADS];
 
 void trace_bank_init()
 {
-    int i, j;
-    cerr << "[Trace Bank] Bank Initializing..." << std::endl;
-    t_bank = (T_bank *) malloc(sizeof(T_bank));
-    if(t_bank == NULL) {
-        cerr << "[Trace Bank] ERROR: Allocation error. Exiting" << std::endl;
-        exit(-1);
+    for(int i = 0; i < MAX_THREADS; i++) {
+        traces[i] = NULL;
     }
-
-    // Init buffer fields
-    t_bank->buffer_capacity = 1;
-    reset_buffer();
-
-
-    // Init bank fields
-    t_bank->ins_next = 0;
-    for(i = 0; i < MAX_THREADS; i++) {
-        t_bank->ins_start[i] = -1;
-    }
-
-    for(j = 0; j < MAX_THREADS; j++) {
-        for(i = 0; i < MAX_BANK_SIZE; i++) {
-            t_bank->bank[i][j] = UNREGISTERED;
-        }
-    }
-
     cerr << "[Trace Bank] Bank Initiated" << std::endl;
 }
 
-// trace_bank_record_on_buffer returns 1 if it became full, 0 otherwise.
-static int trace_bank_record_on_buffer()
-{
-    // Record all threads status
-    for(unsigned int i = 0; i <= max_tid; i++) {
-        // If just start, mark its new position
-        if(t_bank->ins_start[i] < 0) {
-            t_bank->ins_start[i] = t_bank->ins_next;
+void trace_bank_register(THREADID tid, UINT64 time) {
+    if (traces[tid] != NULL) {
+        free(traces[tid]);
+    }
+    
+    traces[tid] = (Trace *) malloc (sizeof(Trace));
+
+    traces[tid]->start = time;
+    traces[tid]->end = -1;
+    traces[tid]->total_changes = -1;
+}
+
+void trace_bank_filter(THREADID tid) {
+    int index[REDUCTION_SIZE];
+    UINT64 value[REDUCTION_SIZE];
+
+    for (int i = 0; i < REDUCTION_SIZE; i++) {
+        index[i] = -1;
+        value[i] = -1;
+    }
+
+    for (int i = 0; i < (MAX_BANK_SIZE-1); i++) {
+        UINT64 diff = traces[tid]->changes[i+1].time - traces[tid]->changes[i].time;
+
+        if (i == 0 && diff < value[0]) {
+            value[0] = diff;
+            index[0] = tid;
         }
 
-        t_bank->buffer[(int)all_threads[i].status][i]++;
-    }
+        // Insert in a insertion-sort style.
+        for (int j = 1; j < REDUCTION_SIZE; j++) {
+            if (value[j-1] < value[j]) {
+                UINT64 r = value[j];
+                value[j] = value[j-1];
+                value[j-1] = r;
 
-    t_bank->buffer_size++;
-    if(t_bank->buffer_size == t_bank->buffer_capacity) {
-        return 1;
-    }
-
-    return 0;
-}
-
-static void reset_buffer()
-{
-    for(unsigned int i = 0; i <= max_tid; i++) {
-        for(int j = 0; j < POSSIBLE_STATES; j++) {
-            t_bank->buffer[j][i] = 0;
-        }
-    }
-    t_bank->buffer_size = 0;
-}
-
-static void force_buffer_release()
-{
-    for(int i = t_bank->buffer_size; i < t_bank->buffer_capacity; i++) {
-        trace_bank_record_on_buffer();
-    }
-}
-
-void trace_bank_add()
-{
-    unsigned int i, j;
-
-    // First insert on buffer, checking if full. If not, just return.
-    if(trace_bank_record_on_buffer() == 0) {
-        return;
-    }
-
-    // Buffer is full, add a new position on the bank.
-    for(i = 0; i <= max_tid; i++) {
-        int max = 0;
-        for(j = 1; j < POSSIBLE_STATES; j++) {
-            if(t_bank->buffer[j][i] > t_bank->buffer[max][i]) {
-                max = j;
+                int s = index[j];
+                index[j] = index[j-1];
+                index[j-1] = s;
+            } else {
+                break;
             }
         }
-        t_bank->bank[t_bank->ins_next][i] = (THREAD_STATUS)max;
     }
-    reset_buffer();
 
-    // Update position and check if should also merge. 
-    t_bank->ins_next++;
-    if(t_bank->ins_next == MAX_BANK_SIZE) {
-        t_bank->ins_next = merge_buffer();
-
-        // Update buffer size, since it was merged and should be increased.
-        t_bank->buffer_capacity *= REDUCTION_STEP;
+    // Elements to be removed were selected. Mark them.
+    for (int i = 0; i < REDUCTION_SIZE; i++) {
+        traces[tid]->changes[index[i]].status = UNREGISTERED;
     }
-}
 
-// Returns the new next position available.
-static int merge_buffer()
-{
-    int i, j, max;
-    unsigned int k;
-
-    // STATE/THREAD |... 0 1 2
-    // ---------------------------
-    // 0            |... 0 2 2
-    // 1            |... 0 5 2
-    // 2            |... 8 1 2
-    // 3            |... 0 0 2
-    // ---------------------------
-    // Result State |... 2 1 0
-
-    for(k = 0; k <= max_tid ; k++) {                         // Iterate over each threadbank
-
-        if (t_bank->ins_start[k] < 0) {                        // Ignore non started threads
-            continue;
-        }
-
-        // update ins_start, for each thread
-        t_bank->ins_start[k] = t_bank->ins_start[k]/REDUCTION_STEP;
-
-        for(i = 0; i < MAX_BANK_SIZE; i += REDUCTION_STEP) {  // Iterate over blocks to shrink
-            int possible_states[4] = {0, 0, 0, 0};
-
-            for(j = i; j < (i + REDUCTION_STEP); j++) {      // Iterate inside a shrinking block
-                possible_states[(int)t_bank->bank[j][k]]++;
-            }
-
-            // Use the most frequent state on block.
-            max = 0;
-            for(j = 1; j < POSSIBLE_STATES; j++) {
-                if(possible_states[j] > possible_states[max]) {
-                    max = j;
-                }
-            }
-
-            // Beware: the new position for the block is i/REDUCTION_STEP
-            t_bank->bank[i/REDUCTION_STEP][k] = (THREAD_STATUS) max;
+    // Remove the not used values. Notice it's not pretty but shouldn't happen often.
+    int jump = 0;
+    for (int i = 1; i < MAX_BANK_SIZE; i++) {
+        if (traces[tid]->changes[i].status == UNREGISTERED) {
+            jump++;
+        } else {
+            traces[tid]->changes[i-jump].status = traces[tid]->changes[i].status;
+            traces[tid]->changes[i-jump].time = traces[tid]->changes[i].time;
         }
     }
 
-    return MAX_BANK_SIZE / REDUCTION_STEP;
+    // Total_changes should also be updated, and here the reduction/filter is completed.
+    traces[tid]->total_changes = traces[tid]->total_changes - REDUCTION_SIZE;
 }
 
-void trace_bank_free()
+void trace_bank_update(THREADID tid, UINT64 time, THREAD_STATUS status) {
+    int n = traces[tid]->total_changes;
+    if (n >= MAX_BANK_SIZE) {
+        trace_bank_filter(tid);
+    }
+
+    traces[tid]->changes[n].time = time;
+    traces[tid]->changes[n].status = status;
+
+    traces[tid]->total_changes++;
+}
+
+void trace_bank_finish(THREADID tid, UINT64 time) {
+    trace_bank_update(tid, time, FINISHED);
+
+    traces[tid]->end = time;
+}
+
+UINT64 find_end() {
+    UINT64 max = 0;
+    for(int i = 0; i < MAX_THREADS; i++) {
+        if (traces[i] != NULL && traces[i]->end > max) {
+                max = traces[i]->end;
+        }
+    }
+    return max;
+}
+
+// Returns 0 if stayed unregistered the whole time
+static int make_status_string(char *s, int index)
 {
-    cerr << "[Trace Bank] Cleaning memory space" << std::endl;
-    free(t_bank);
+    if(traces[index] == NULL) {
+        return 0;
+    }
+
+    s[0] = '\0';
+    sprintf(s,"[");
+    for(int i = 0; i < traces[index]->total_changes; i++) {
+        if (i > 0) {
+            sprintf(s,", ");
+        }
+        char status = (char)(0x30 + traces[index]->changes[i].status);
+        sprintf(s,"[%lud, %c]", traces[i]->changes[i].time, status);
+    }
+    sprintf(s,"]");
+
+    return 1;
 }
 
 void trace_bank_dump()
 {
-    char str[MAX_BANK_SIZE + 1];
+    char str[32*MAX_BANK_SIZE];
     ofstream f;
 
     cerr << "[Trace Bank] Dumping report to trace.json" << std::endl;
 
-    force_buffer_release();
     f.open(OUTPUTFILE);
 
     f << "{\n" <<
-      "  \"end\":" << t_bank->ins_next << ",\n" <<
-      "  \"sample-size\":" << t_bank->buffer_capacity << ",\n";
+      "  \"end\":" << find_end() << ",\n" <<
 
     f << "  \"threads\": [\n";
     int first = 1;
@@ -193,7 +154,7 @@ void trace_bank_dump()
 
             f << "    {\n" <<
               "      \"pin-tid\":" << i << ",\n" <<
-              "      \"start\":" << t_bank->ins_start[i] << ",\n" <<
+              "      \"start\":" << traces[i]->start << ",\n" <<
               "      \"samples\":\"" << str << "\"\n" <<
               "    }";
         }
@@ -203,23 +164,10 @@ void trace_bank_dump()
     f.close();
 }
 
-// Returns 0 if stayed unregistered the whole time
-static int make_status_string(char *s, int index)
-{
-    int any = 0;
-    int start = t_bank->ins_start[index];
-
-    if(start < 0) {
-        return 0;
-    }
-
-    for(int i = start; i < t_bank->ins_next; i++) {
-        s[i - start] = (char)(0x30 + t_bank->bank[i][index]);
-        if(t_bank->bank[i][index] != UNREGISTERED) {
-            any = 1;
+void trace_bank_free() {
+    for(int i = 0; i < MAX_THREADS; i++) {
+        if (traces[i] != NULL) {
+            free(traces[i]);
         }
     }
-
-    s[t_bank->ins_next - start] = '\0';
-    return any;
-}
+};
