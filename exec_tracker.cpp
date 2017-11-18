@@ -8,14 +8,14 @@
 
 // Store both waiting and running heaps. Use global since they don't have
 // to be allocated in runtime. Order should be -1 for Min-Heap and 1 for Max-Heap.
-struct Heap {
+struct HEAP {
     THREAD_INFO * data[MAX_THREADS];
     int size;
     int order;
 };
 
-Heap * waiting_heap;
-Heap * running_heap;
+HEAP * waiting_heap;
+HEAP * running_heap;
 
 
 
@@ -52,7 +52,7 @@ int compare_threads(THREAD_INFO *t_a, THREAD_INFO *t_b) {
     return -1;
 }
 
-int compare_elem(Heap *heap, int a, int b) {
+int compare_elem(HEAP *heap, int a, int b) {
     THREAD_INFO *t_a, *t_b;
 
     t_a = heap->data[a];
@@ -63,7 +63,7 @@ int compare_elem(Heap *heap, int a, int b) {
 
 // Heap-related functions
 
-void heapify_down(Heap *heap, int i) {
+void heapify_down(HEAP *heap, int i) {
     // most is max/min(term, left child, right child), depending on heap order.
 
     int most = i;
@@ -85,7 +85,7 @@ void heapify_down(Heap *heap, int i) {
     }
 }
 
-void heapify_up(Heap *heap, int i) {
+void heapify_up(HEAP *heap, int i) {
     while((i > 0) && (compare_elem(heap, i, PARENT(i)) == heap->order)) {
         // Swap and continue 
         THREAD_INFO *a = heap->data[i];
@@ -95,14 +95,14 @@ void heapify_up(Heap *heap, int i) {
     }
 }
 
-void heap_push(Heap *heap, THREAD_INFO * t) {
+void heap_push(HEAP *heap, THREAD_INFO * t) {
     // Append to the last position and heapify.
     heap->data[heap->size] = t;
     heap->size++;
     heapify_up(heap, heap->size-1);
 }
 
-THREAD_INFO * heap_pop(Heap *heap) {
+THREAD_INFO * heap_pop(HEAP *heap) {
     THREAD_INFO * t;
 
     // Shouldn't happen.
@@ -118,7 +118,7 @@ THREAD_INFO * heap_pop(Heap *heap) {
     return t;
 }
 
-void heap_remove(Heap *heap, THREAD_INFO *t) {
+void heap_remove(HEAP *heap, THREAD_INFO *t) {
     // Find it, put the last one there and heapify.
     for (int i = 0; i < heap->size; i++) {
         if(heap->data[i] == t) {

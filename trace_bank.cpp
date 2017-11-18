@@ -4,7 +4,7 @@
 #include <iostream>
 #include <fstream>
 
-Trace * traces [MAX_THREADS];
+P_TRACE * traces [MAX_THREADS];
 
 void trace_bank_init()
 {
@@ -19,7 +19,7 @@ void trace_bank_register(THREADID tid, UINT64 time) {
         free(traces[tid]);
     }
     
-    traces[tid] = (Trace *) malloc (sizeof(Trace));
+    traces[tid] = (P_TRACE *) malloc (sizeof(P_TRACE));
 
     traces[tid]->start = time;
     traces[tid]->end = -1;

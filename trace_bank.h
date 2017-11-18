@@ -14,15 +14,15 @@
 typedef struct {
     UINT64 time;
     THREAD_STATUS status;
-} Change;
+} CHANGE;
 
 typedef struct {
     UINT64 start;
     UINT64 end;
 
     int total_changes;
-    Change changes[MAX_BANK_SIZE];
-} Trace;
+    CHANGE changes[MAX_BANK_SIZE];
+} P_TRACE;
 
 // Init trace bank, allocating memory and initializing required fields.
 void trace_bank_init();
