@@ -12,7 +12,6 @@
 // --- Thread info ---
 
 // Status structs Indicate current thread status regarding lock and step
-// Order will be considered preference on log merge
 #define POSSIBLE_STATES 4
 typedef enum {
     UNLOCKED = 0,     // Running other stuff free

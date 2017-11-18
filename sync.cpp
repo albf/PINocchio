@@ -2,7 +2,7 @@
 #include <iostream>
 #include "sync.h"
 #include "lockhash.h"
-#include "log.h"
+#include "trace_bank.h"
 
 // Current thread status
 THREAD_INFO *all_threads;
@@ -49,8 +49,8 @@ void sync_init()
     create_lock.busy = 0;
     create_lock.locked = NULL;
 
-    // Lastly, init log structure.
-    log_init();
+    // Lastly, init trace bank structure.
+    trace_bank_init();
 }
 
 // Returns 1 if can continue, 0 otherwise.
@@ -94,7 +94,7 @@ void release_thread(THREAD_INFO *ti, INT64 instructions)
 void try_release_all()
 {
     if(is_syncronized() > 0) {
-        log_add();
+        trace_bank_add();
         for(UINT32 i = 0; i <= max_tid; i++) {
             if((all_threads[i].step_status == STEP_DONE)
                     && (all_threads[i].status == UNLOCKED)) {

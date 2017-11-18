@@ -1,6 +1,6 @@
 // Sync related
 #include "sync.h"
-#include "log.h"
+#include "trace_bank.h"
 
 // Pin related
 #include <unistd.h>
@@ -393,8 +393,8 @@ VOID thread_fini(THREADID thread_id, CONTEXT const *ctxt, INT32 flags, VOID *v)
 
 VOID Fini(INT32 code, VOID *v)
 {
-    log_dump();
-    log_free();
+    trace_bank_dump();
+    trace_bank_free();
     cerr << "===============================================" << std::endl;
     cerr << " PINocchio exiting " << std::endl;
     cerr << "===============================================" << std::endl;
