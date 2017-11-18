@@ -40,7 +40,8 @@ struct _THREAD_INFO {
     THREAD_STATUS status;           // Current Status of executing and step
     STEP_STATUS step_status;
 
-    _THREAD_INFO *next;             // Linked list, used if on a waiting queue
+    _THREAD_INFO *next_lock;        // Linked list, used if on a lock queue (lock_hash)
+    _THREAD_INFO *next_running;     // Linked list, used if on the waiting queue (exec_tracker)
 };
 
 // THREAD_INFO declared on controller.h should be visible

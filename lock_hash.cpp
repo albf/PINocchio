@@ -86,7 +86,7 @@ static MUTEX_ENTRY * add_mutex_entry(void * key) {
 // to the list head.
 static THREAD_INFO *insert(THREAD_INFO *list, THREAD_INFO *entry)
 {
-    entry->next = NULL;
+    entry->next_lock = NULL;
 
     // Unique entry on the moment
     if(list == NULL) {
@@ -95,8 +95,8 @@ static THREAD_INFO *insert(THREAD_INFO *list, THREAD_INFO *entry)
 
     // Add on the end of the list
     THREAD_INFO *t;
-    for(t = list; t->next != NULL; t = t->next);
-    t->next = entry;
+    for(t = list; t->next_lock != NULL; t = t->next_lock);
+    t->next_lock = entry;
     return list;
 }
 
@@ -193,7 +193,7 @@ THREAD_INFO * handle_unlock(void *key)
         s->locked->status = UNLOCKED;
 
         THREAD_INFO * awaked = s->locked;
-        s->locked = s->locked->next;
+        s->locked = s->locked->next_lock;
         return awaked;
     }
 
@@ -304,7 +304,7 @@ THREAD_INFO *handle_semaphore_post(void *key)
         s->locked->status = UNLOCKED;
 
         THREAD_INFO * awaked = s->locked;
-        s->locked = s->locked->next;
+        s->locked = s->locked->next_lock;
         return awaked;
     }
 
@@ -436,6 +436,6 @@ THREAD_INFO * handle_reentrant_exit(REENTRANT_LOCK *rl)
 
     rl->locked->status = UNLOCKED;
     THREAD_INFO * awaked = rl->locked;
-    rl->locked = rl->locked->next;
+    rl->locked = rl->locked->next_lock;
     return awaked;
 }

@@ -198,7 +198,7 @@ void sync(ACTION *action)
         // Free any join locked thread, thread 0 shouldn't be joined
         if(action->tid > 0) {
             THREAD_INFO *t = handle_thread_exit(all_threads[action->tid].create_value);
-            for(; t != NULL; t = t->next) {
+            for(; t != NULL; t = t->next_lock) {
                 t->status = UNLOCKED;
                 release_thread(t, INSTRUCTIONS_ON_ROUND);
             }
