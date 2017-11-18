@@ -1,8 +1,8 @@
-#ifndef LOCKHASH_H_
-#define LOCKHASH_H_
+#ifndef LOCK_HASH_H_
+#define LOCK_HASH_H_
 
 /*
-lockhash implement a simple hashes for mutex, semaphores and joins.
+lock_hash implement a simple hashes for mutex, semaphores and joins.
 It's meant to be used only by sync, since its functions changes thread status.
 (It will modify status, but won't relase the threads)
 */

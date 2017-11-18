@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <iostream>
 #include "sync.h"
-#include "lockhash.h"
+#include "lock_hash.h"
 #include "trace_bank.h"
 
 // Current thread status
@@ -225,7 +225,7 @@ void sync(ACTION *action)
         break;
 
 
-        // Mutex events should be treated by lockhash, unlock thread once done.
+        // Mutex events should be treated by lock_hash, unlock thread once done.
     case ACTION_LOCK_DESTROY:
         handle_lock_init(action->arg.p); 
         break;

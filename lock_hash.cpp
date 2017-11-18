@@ -1,5 +1,5 @@
 #include <iostream>
-#include "lockhash.h"
+#include "lock_hash.h"
 #include "error.h"
 #include "pin.H"
 
@@ -378,7 +378,7 @@ JOIN_ENTRY *get_join_entry(pthread_t key)
 // Return the list of locked threads on join.
 THREAD_INFO * handle_thread_exit(pthread_t key)
 {
-    cerr << "[lockhash] handle_thread_exit! - key: " << key << std::endl;
+    cerr << "[Lock Hash] handle_thread_exit! - key: " << key << std::endl;
     JOIN_ENTRY *s = get_join_entry(key);
     s->allow = 1;
 
@@ -391,16 +391,16 @@ THREAD_INFO * handle_thread_exit(pthread_t key)
 // running threads could continue.
 int handle_before_join(pthread_t key, THREADID tid)
 {
-    cerr << "[lockhash] before_join! - " << tid << std::endl;
-    cerr << "[lockhash] before_join! - key: " << key << std::endl;
+    cerr << "[Lock Hash] before_join! - " << tid << std::endl;
+    cerr << "[Lock Hash] before_join! - key: " << key << std::endl;
     JOIN_ENTRY *s = get_join_entry(key);
     THREAD_INFO *t = &all_threads[tid];
 
     if(s->allow == 0) {
-        cerr << "[lockhash] s->locked! - " << s->locked << std::endl;
+        cerr << "[Lock Hash] s->locked! - " << s->locked << std::endl;
         t->status = LOCKED;
         s->locked = insert(s->locked, t);
-        cerr << "[lockhash] s->locked! - " << s->locked << std::endl;
+        cerr << "[Lock Hash] s->locked! - " << s->locked << std::endl;
         return 0;
     }
 
