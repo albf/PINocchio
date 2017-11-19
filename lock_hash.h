@@ -7,7 +7,7 @@ It's meant to be used only by sync, since its functions changes thread status.
 (It will modify status, but won't relase the threads)
 */
 
-#include "sync.h"
+#include "thread.h"
 #include "uthash.h"
 #include <pthread.h>
 

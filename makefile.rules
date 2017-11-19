@@ -78,13 +78,16 @@ SANITY_SUBSET := $(TEST_TOOL_ROOTS) $(TEST_ROOTS)
 $(OBJDIR)error$(OBJ_SUFFIX): error.cpp error.h
 	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
 
-$(OBJDIR)trace_bank$(OBJ_SUFFIX): trace_bank.cpp trace_bank.h sync.h
+$(OBJDIR)thread$(OBJ_SUFFIX): thread.cpp thread.h
 	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
 
-$(OBJDIR)lock_hash$(OBJ_SUFFIX): lock_hash.cpp lock_hash.h sync.h uthash.h
+$(OBJDIR)trace_bank$(OBJ_SUFFIX): trace_bank.cpp trace_bank.h thread.h
 	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
 
-$(OBJDIR)exec_tracker$(OBJ_SUFFIX): exec_tracker.cpp exec_tracker.h sync.h
+$(OBJDIR)lock_hash$(OBJ_SUFFIX): lock_hash.cpp lock_hash.h thread.h uthash.h
+	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
+
+$(OBJDIR)exec_tracker$(OBJ_SUFFIX): exec_tracker.cpp exec_tracker.h thread.h
 	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
 
 $(OBJDIR)sync$(OBJ_SUFFIX): sync.cpp sync.h lock_hash.h trace_bank.h
@@ -94,7 +97,7 @@ $(OBJDIR)PINocchio$(OBJ_SUFFIX): PINocchio.cpp sync.h trace_bank.h error.h
 	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
 
 # Build the tool as a dll (shared object).
-$(OBJDIR)PINocchio$(PINTOOL_SUFFIX): $(OBJDIR)error$(OBJ_SUFFIX) $(OBJDIR)sync$(OBJ_SUFFIX) $(OBJDIR)lock_hash$(OBJ_SUFFIX) $(OBJDIR)exec_tracker$(OBJ_SUFFIX) $(OBJDIR)trace_bank$(OBJ_SUFFIX) $(OBJDIR)PINocchio$(OBJ_SUFFIX)
+$(OBJDIR)PINocchio$(PINTOOL_SUFFIX): $(OBJDIR)error$(OBJ_SUFFIX) $(OBJDIR)thread$(OBJ_SUFFIX) $(OBJDIR)sync$(OBJ_SUFFIX) $(OBJDIR)lock_hash$(OBJ_SUFFIX) $(OBJDIR)exec_tracker$(OBJ_SUFFIX) $(OBJDIR)trace_bank$(OBJ_SUFFIX) $(OBJDIR)PINocchio$(OBJ_SUFFIX)
 	$(LINKER) $(TOOL_LDFLAGS_NOOPT) $(LINK_EXE)$@ $(^:%.h=) $(TOOL_LPATHS) $(TOOL_LIBS)
 
 # This section contains the build rules for all binaries that have special build rules.

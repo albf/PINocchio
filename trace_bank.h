@@ -8,7 +8,7 @@
 
 #define OUTPUTFILE "trace.json"     // TODO: Change how name is defined
 
-#include "sync.h"
+#include "thread.h"
 #include "pin.H"
 
 typedef struct {

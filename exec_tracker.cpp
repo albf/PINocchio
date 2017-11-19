@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "sync.h"
+#include "thread.h"
 
 #define LCHILD(x) 2 * x + 1
 #define RCHILD(x) 2 * x + 2
@@ -135,7 +135,7 @@ void heap_remove(HEAP *heap, THREAD_INFO *t) {
 // keep track on what threads should (if any) be awake next or are running.
 
 void exec_tracker_insert(THREAD_INFO *t) {
-    heap_push(running_heap, t);
+    heap_push(waiting_heap, t);
 }
 
 void exec_tracker_remove(THREAD_INFO *t) {

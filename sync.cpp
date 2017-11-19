@@ -2,11 +2,7 @@
 #include <iostream>
 #include "sync.h"
 #include "lock_hash.h"
-#include "trace_bank.h"
-
-// Current thread status
-THREAD_INFO *all_threads;
-THREADID max_tid;
+#include "thread.h"
 
 // Used to only allow one thread to sync
 PIN_MUTEX sync_mutex;
@@ -23,22 +19,6 @@ REENTRANT_LOCK create_lock;
 
 void sync_init()
 {
-    // Initialize thread information, including mutex and initial states
-    all_threads = (THREAD_INFO *) malloc(MAX_THREADS * sizeof(THREAD_INFO));
-    max_tid = 0;
-
-    for(int i = 0; i < MAX_THREADS; i++) {
-        all_threads[i].ins_count = 0;
-        all_threads[i].pin_tid = i;
-
-        all_threads[i].step_status = STEP_MISS;
-        all_threads[i].status = UNREGISTERED;
-        all_threads[i].create_value = 0;
-
-        // If sleeping, threads should be stopped by the semaphores.
-        PIN_SemaphoreInit(&all_threads[i].active);
-        PIN_SemaphoreClear(&all_threads[i].active);
-    }
     PIN_MutexInit(&sync_mutex);
 
     // Initialize thread creation structures. Avoids some nasty locks by
@@ -50,55 +30,8 @@ void sync_init()
     create_lock.busy = 0;
     create_lock.locked = NULL;
 
-    // Lastly, init trace bank structure.
-    trace_bank_init();
-}
-
-// Returns 1 if can continue, 0 otherwise.
-static int is_syncronized()
-{
-    for(UINT32 i = 0; i <= max_tid; i++) {
-        if((all_threads[i].step_status != STEP_DONE)
-                && (all_threads[i].status == UNLOCKED)) {
-            return 0;
-        }
-    }
-    return 1;
-}
-
-// Returns 1 if all threads have finished, 0 otherwise.
-static int is_finished()
-{
-    for(UINT32 i = 0; i <= max_tid; i++) {
-        if(all_threads[i].status != FINISHED &&
-                all_threads[i].status != UNREGISTERED) {
-            return 0;
-        }
-    }
-    return 1;
-}
-
-// Release a locked thread waiting for permission
-void release_thread(THREAD_INFO *ti)
-{
-    // Mark step status as missing answer
-    ti->step_status = STEP_MISS;
-
-    // Release thread semaphore 
-    PIN_SemaphoreSet(&ti->active);
-}
-
-// If syncronized, release all unlocked.
-void try_release_all()
-{
-    if(is_syncronized() > 0) {
-        for(UINT32 i = 0; i <= max_tid; i++) {
-            if((all_threads[i].step_status == STEP_DONE)
-                    && (all_threads[i].status == UNLOCKED)) {
-                release_thread(&all_threads[i]);
-            }
-        }
-    }
+    // Lastly, init thread, trace bank and exec tracker structures.
+    thread_init();
 }
 
 void sync(ACTION *action)
@@ -112,7 +45,7 @@ void sync(ACTION *action)
         all_threads[action->tid].step_status = STEP_DONE;
         PIN_SemaphoreClear(&all_threads[action->tid].active);
 
-        try_release_all();
+        thread_try_release_all();
         break;
 
         // Thread creation works with the following rules:
@@ -125,45 +58,35 @@ void sync(ACTION *action)
     case ACTION_REGISTER:
         cerr << "[Sync] Received register from: " << action->tid << std::endl;
 
-        // Update holder max_tid if a bigger arrived
-        if(max_tid < action->tid) {
-            max_tid = action->tid;
-        }
-
         // Thread starts unlocked
-        all_threads[action->tid].status = UNLOCKED;
-        trace_bank_register(action->tid, all_threads[creator_pin_tid].ins_count);
+        thread_start(&all_threads[action->tid], &all_threads[creator_pin_tid]);
 
         // Thread 0 ins't created by pthread_create, but always existed.
         // Don't wait or do any black magic on that regard.
-        if (action->tid == 0) {
-            release_thread(&all_threads[action->tid]);
-            break;
-        }
-
-        pin_tid = action->tid;
-
-        // If done > 0, ACTION_AFTER_CREATE already done, must release it,
-        // update my own create_value and go on. If not, save pin_tid
-        // for later use and mark myself as locked.
-        if(create_done > 0) {
-            all_threads[pin_tid].create_value = pthread_tid;
-            create_done = 0;
-            THREAD_INFO * awaked = handle_reentrant_exit(&create_lock, action->tid);
-            if (awaked != NULL) {
-                release_thread(awaked);
+        if (action->tid > 0) {
+            pin_tid = action->tid;
+            // If done > 0, ACTION_AFTER_CREATE already done, must release it,
+            // update my own create_value and go on. If not, save pin_tid
+            // for later use and mark myself as locked.
+            if(create_done > 0) {
+                all_threads[pin_tid].create_value = pthread_tid;
+                create_done = 0;
+                THREAD_INFO * awaked = handle_reentrant_exit(&create_lock, action->tid);
+                if (awaked != NULL) {
+                    thread_try_release_all();
+                }
+            } else {
+                create_done = 1;
             }
-        } else {
-            create_done = 1;
         }
 
-        release_thread(&all_threads[action->tid]);
+        thread_try_release_all();
         break;
 
     case ACTION_BEFORE_CREATE:
         // If get locked, try to release everyone active.
         if(handle_reentrant_start(&create_lock, action->tid) == 0) {
-            try_release_all();
+            thread_try_release_all();
         }
 
         // Save current instruction count from thread creator.
@@ -180,42 +103,36 @@ void sync(ACTION *action)
             create_done = 0;
             THREAD_INFO * awaked = handle_reentrant_exit(&create_lock, action->tid);
             if (awaked != NULL) {
-                release_thread(awaked);
+                thread_try_release_all();
             }
         } else {
             create_done = 1;
         }
 
-        release_thread(&all_threads[action->tid]);
+        thread_try_release_all();
         break;
 
     case ACTION_FINI:
         cerr << "[Sync] Received fini from: " << action->tid << std::endl;
 
         // Mark as finished
-        all_threads[action->tid].status = FINISHED;
-        trace_bank_finish(action->tid, all_threads[action->tid].ins_count);
-        release_thread(&all_threads[action->tid]);
+        thread_finish(&all_threads[action->tid]);
 
         // Free any join locked thread, thread 0 shouldn't be joined
         if(action->tid > 0) {
             THREAD_INFO *t = handle_thread_exit(all_threads[action->tid].create_value);
             for(; t != NULL; t = t->next_lock) {
-                t->status = UNLOCKED;
-                t->ins_count = all_threads[action->tid].ins_count;
-                trace_bank_update(t->pin_tid, t->ins_count, UNLOCKED);
-
-                release_thread(t);
+                thread_unlock(t, &all_threads[action->tid]);
             }
         }
 
-        try_release_all();
-
         // Check if all threads have finished
-        if(is_finished() == 1) {
+        if(thread_all_finished() == 1) {
             cerr << "[Sync] Program finished." << std::endl;
             return;
         }
+
+        thread_try_release_all();
         break;
 
     case ACTION_BEFORE_JOIN:
@@ -225,7 +142,7 @@ void sync(ACTION *action)
         // If not allowed, should await.
         if (allowed == 0) {
             PIN_SemaphoreClear(&all_threads[action->tid].active);
-            try_release_all();
+            thread_try_release_all();
         }
         break;
 
@@ -242,7 +159,7 @@ void sync(ACTION *action)
     case ACTION_LOCK:
         // If got locked, try to release the others.
         if (handle_lock(action->arg.p, action->tid) > 0) {
-            try_release_all();
+            thread_try_release_all();
         }
         break;
 
@@ -255,7 +172,7 @@ void sync(ACTION *action)
         THREAD_INFO * awaked;
         awaked = handle_unlock(action->arg.p, action->tid);
         if (awaked != NULL) {
-            release_thread(awaked);
+            thread_try_release_all();
         }
         break;
 
@@ -273,9 +190,7 @@ void sync(ACTION *action)
 
     case ACTION_SEM_POST:
         awaked = handle_semaphore_post(action->arg.p, action->tid);
-        if (awaked != NULL) {
-            release_thread(awaked);
-        }
+        thread_try_release_all();
         break;
 
     case ACTION_SEM_TRYWAIT:
@@ -286,7 +201,7 @@ void sync(ACTION *action)
     case ACTION_SEM_WAIT:
         // If got locked, try to release the others.
         if (handle_semaphore_wait(action->arg.p, action->tid) >= 0) {
-            try_release_all();
+            thread_try_release_all();
         }
         break;
     }
@@ -296,17 +211,4 @@ void sync(ACTION *action)
 
     // Should sleep here if not synced.
     PIN_SemaphoreWait(&all_threads[action->tid].active);
-}
-
-void print_threads()
-{
-    const char *status[] = {"UNLOCKED", "LOCKED", "UNREGISTERED", "FINISHED"};
-    const char *step_status[] = {"STEP_MISS", "STEP_DONE"};
-    cerr << "--------- thread status ---------" << std::endl;
-    for(UINT32 i = 0; i <= max_tid; i++) {
-        cerr << "Thread id: " << i << " - status: " << status[all_threads[i].status];
-        cerr << " - step status: " << step_status[all_threads[i].step_status];
-        cerr << " - create value: " << all_threads[i].create_value << std::endl;
-    }
-    cerr << "------------------------ " << std::endl;
 }

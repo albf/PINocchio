@@ -1,51 +1,7 @@
 #ifndef CONTROLLER_H_
 #define CONTROLLER_H_
 
-#include <pthread.h>
 #include "pin.H"
-
-// Major settings regarding sync and round size
-#define MAX_THREADS 64               // Max number of spawned threads by application
-
-// --- Thread info ---
-
-// Status structs Indicate current thread status regarding lock and step
-#define POSSIBLE_STATES 4
-typedef enum {
-    UNLOCKED = 0,     // Running other stuff free
-    LOCKED = 1,       // Waiting within a lock
-    UNREGISTERED = 2, // Not registered yet, must use message
-    FINISHED = 3,     // Already finished its job
-}   THREAD_STATUS;
-
-typedef enum {
-    STEP_MISS = 0,
-    STEP_DONE = 1,
-}   STEP_STATUS;
-
-// Holds information of a given thread
-typedef struct _THREAD_INFO THREAD_INFO;
-struct _THREAD_INFO {
-    INT64 ins_count;                // Number of instructions executed on current
-
-    void *holder;                   // Saves parameters from being dirty between before_* and after_* calls
-    PIN_SEMAPHORE active;           // Semaphore used to wake/wait
-
-    THREADID pin_tid;               // It's own pin tid. It's needed when on a list
-    pthread_t create_value;         // Thread variable returned by create, used for join control
-
-
-    THREAD_STATUS status;           // Current Status of executing and step
-    STEP_STATUS step_status;
-
-    _THREAD_INFO *next_lock;        // Linked list, used if on a lock queue (lock_hash)
-    _THREAD_INFO *next_running;     // Linked list, used if on the waiting queue (exec_tracker)
-};
-
-// THREAD_INFO declared on controller.h should be visible
-// to all files
-extern THREAD_INFO *all_threads;
-extern THREADID max_tid;
 
 // --- Communication related ---
 
@@ -91,8 +47,5 @@ void sync_init();
 
 // Perform a sync based on a valid action
 void sync(ACTION *action);
-
-// Debug funtion, print thread table on stderr
-void print_threads();
 
 #endif // CONTROLLER_H_

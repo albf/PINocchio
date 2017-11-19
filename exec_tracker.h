@@ -1,12 +1,12 @@
 #ifndef EXEC_TRACKER_H_
 #define EXEC_TRACKER_H_
 
-#include "sync.h"
+#include "thread.h"
 
 // Init the static heap structures.
 void exec_tracker_init();
 
-// Insert a newly added thread, should be running.
+// Insert a newly added thread, should be waiting.
 void exec_tracker_insert(THREAD_INFO *t);
 
 // Remove a thread that just ended.

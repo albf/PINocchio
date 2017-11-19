@@ -1,6 +1,5 @@
 #include <iostream>
 #include "lock_hash.h"
-#include "trace_bank.h"
 #include "error.h"
 #include "pin.H"
 
@@ -165,9 +164,7 @@ int handle_lock(void *key, THREADID tid)
 
     // If locked, just insert on list and mark as thread as locked.
     THREAD_INFO *t = &all_threads[tid];
-    t->status = LOCKED;
-    trace_bank_update(t->pin_tid, t->ins_count, LOCKED);
-
+    thread_lock(t);
     insert_locked(s, t);
     return 1;
 }
@@ -193,10 +190,7 @@ THREAD_INFO * handle_unlock(void *key, THREADID tid)
 
     if(s->locked != NULL) {
         s->status = M_LOCKED;
-
-        s->locked->status = UNLOCKED;
-        s->locked->ins_count = all_threads[tid].ins_count;
-        trace_bank_update(s->locked->pin_tid, s->locked->ins_count, UNLOCKED);
+        thread_unlock(s->locked, &all_threads[tid]);
 
         THREAD_INFO * awaked = s->locked;
         s->locked = s->locked->next_lock;
@@ -307,9 +301,7 @@ THREAD_INFO *handle_semaphore_post(void *key, THREADID tid)
     fail_on_no_semaphore(s, key);
 
     if(s->locked != NULL) {
-        s->locked->status = UNLOCKED;
-        s->locked->ins_count = all_threads[tid].ins_count;
-        trace_bank_update(s->locked->pin_tid, s->locked->ins_count, UNLOCKED);
+        thread_unlock(s->locked, &all_threads[tid]);
 
         THREAD_INFO * awaked = s->locked;
         s->locked = s->locked->next_lock;
@@ -343,8 +335,7 @@ int handle_semaphore_wait(void *key, THREADID tid)
     }
 
     THREAD_INFO *t = &all_threads[tid];
-    t->status = LOCKED;
-    trace_bank_update(t->pin_tid, t->ins_count, LOCKED);
+    thread_lock(&all_threads[tid]); 
 
     insert_semaphore_locked(s, t);
     return -1;
@@ -401,18 +392,12 @@ THREAD_INFO * handle_thread_exit(pthread_t key)
 // running threads could continue.
 int handle_before_join(pthread_t key, THREADID tid)
 {
-    cerr << "[Lock Hash] before_join! - " << tid << std::endl;
-    cerr << "[Lock Hash] before_join! - key: " << key << std::endl;
     JOIN_ENTRY *s = get_join_entry(key);
     THREAD_INFO *t = &all_threads[tid];
 
     if(s->allow == 0) {
-        cerr << "[Lock Hash] s->locked! - " << s->locked << std::endl;
-        t->status = LOCKED;
-        trace_bank_update(t->pin_tid, t->ins_count, LOCKED);
-
+        thread_lock(t);
         s->locked = insert(s->locked, t);
-        cerr << "[Lock Hash] s->locked! - " << s->locked << std::endl;
         return 0;
     }
 
@@ -427,9 +412,7 @@ int handle_reentrant_start(REENTRANT_LOCK *rl, THREADID tid)
     THREAD_INFO *t = &all_threads[tid];
 
     if(rl->busy > 0) {
-        t->status = LOCKED;
-        trace_bank_update(t->pin_tid, t->ins_count, LOCKED);
-
+        thread_lock(t);
         rl->locked = insert(rl->locked, t);
         return 0;
     }
@@ -448,9 +431,7 @@ THREAD_INFO * handle_reentrant_exit(REENTRANT_LOCK *rl, THREADID tid)
         return NULL;
     }
 
-    rl->locked->status = UNLOCKED;
-    rl->locked->ins_count = all_threads[tid].ins_count;
-    trace_bank_update(rl->locked->pin_tid, rl->locked->ins_count, UNLOCKED);
+    thread_unlock(rl->locked, &all_threads[tid]);
 
     THREAD_INFO * awaked = rl->locked;
     rl->locked = rl->locked->next_lock;
