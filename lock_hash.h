@@ -26,7 +26,7 @@ int handle_lock(void *key, THREADID tid);
 int handle_try_lock(void *key);
 
 // Returns the awake thread, if any.
-THREAD_INFO * handle_unlock(void *key);
+THREAD_INFO * handle_unlock(void *key, THREADID tid);
 
 
 
@@ -42,7 +42,7 @@ int handle_semaphore_getvalue(void *key);
 void handle_semaphore_init(void *key, int value);
 
 // Increase value by 1. Return NULL or the thread awaked. Will fail if semaphore doesn't exist.
-THREAD_INFO *handle_semaphore_post(void *key);
+THREAD_INFO *handle_semaphore_post(void *key, THREADID tid);
 
 // If value > 0, return 0 and decrease the value by 1. -1 otherwise. Will fail if doesn't exist.
 int handle_semaphore_trywait(void *key);
@@ -75,7 +75,7 @@ struct _REENTRANT_LOCK {
 int handle_reentrant_start(REENTRANT_LOCK *rl, THREADID tid);
 
 // handle_reentrant_exit will return a thread to get into the reentrant function or null.
-THREAD_INFO * handle_reentrant_exit(REENTRANT_LOCK *rl);
+THREAD_INFO * handle_reentrant_exit(REENTRANT_LOCK *rl, THREADID tid);
 
 
 

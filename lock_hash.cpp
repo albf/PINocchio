@@ -186,7 +186,7 @@ int handle_try_lock(void *key)
 
 // Handle_unlock returns the data from the awaked thread.
 // If none was awaked, just return NULL.
-THREAD_INFO * handle_unlock(void *key)
+THREAD_INFO * handle_unlock(void *key, THREADID tid)
 {
     MUTEX_ENTRY *s = get_mutex_entry(key);
     handle_no_mutex(s, key);
@@ -195,6 +195,7 @@ THREAD_INFO * handle_unlock(void *key)
         s->status = M_LOCKED;
 
         s->locked->status = UNLOCKED;
+        s->locked->ins_count = all_threads[tid].ins_count;
         trace_bank_update(s->locked->pin_tid, s->locked->ins_count, UNLOCKED);
 
         THREAD_INFO * awaked = s->locked;
@@ -300,13 +301,14 @@ void handle_semaphore_init(void *key, int value)
     initialize_semaphore(s, key, value);
 }
 
-THREAD_INFO *handle_semaphore_post(void *key)
+THREAD_INFO *handle_semaphore_post(void *key, THREADID tid)
 {
     SEMAPHORE_ENTRY * s = get_semaphore_entry(key);
     fail_on_no_semaphore(s, key);
 
     if(s->locked != NULL) {
         s->locked->status = UNLOCKED;
+        s->locked->ins_count = all_threads[tid].ins_count;
         trace_bank_update(s->locked->pin_tid, s->locked->ins_count, UNLOCKED);
 
         THREAD_INFO * awaked = s->locked;
@@ -439,7 +441,7 @@ int handle_reentrant_start(REENTRANT_LOCK *rl, THREADID tid)
 // handle_reentrant_exit will check if there is
 // any thread awaiting to get into the function and
 // return it, or null otherwise. 
-THREAD_INFO * handle_reentrant_exit(REENTRANT_LOCK *rl)
+THREAD_INFO * handle_reentrant_exit(REENTRANT_LOCK *rl, THREADID tid)
 {
     if(rl->locked == NULL) {
         rl->busy = 0;
@@ -447,6 +449,7 @@ THREAD_INFO * handle_reentrant_exit(REENTRANT_LOCK *rl)
     }
 
     rl->locked->status = UNLOCKED;
+    rl->locked->ins_count = all_threads[tid].ins_count;
     trace_bank_update(rl->locked->pin_tid, rl->locked->ins_count, UNLOCKED);
 
     THREAD_INFO * awaked = rl->locked;

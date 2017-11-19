@@ -149,7 +149,7 @@ void sync(ACTION *action)
         if(create_done > 0) {
             all_threads[pin_tid].create_value = pthread_tid;
             create_done = 0;
-            THREAD_INFO * awaked = handle_reentrant_exit(&create_lock);
+            THREAD_INFO * awaked = handle_reentrant_exit(&create_lock, action->tid);
             if (awaked != NULL) {
                 release_thread(awaked);
             }
@@ -178,7 +178,7 @@ void sync(ACTION *action)
         if(create_done > 0) {
             all_threads[pin_tid].create_value = pthread_tid;
             create_done = 0;
-            THREAD_INFO * awaked = handle_reentrant_exit(&create_lock);
+            THREAD_INFO * awaked = handle_reentrant_exit(&create_lock, action->tid);
             if (awaked != NULL) {
                 release_thread(awaked);
             }
@@ -202,7 +202,9 @@ void sync(ACTION *action)
             THREAD_INFO *t = handle_thread_exit(all_threads[action->tid].create_value);
             for(; t != NULL; t = t->next_lock) {
                 t->status = UNLOCKED;
+                t->ins_count = all_threads[action->tid].ins_count;
                 trace_bank_update(t->pin_tid, t->ins_count, UNLOCKED);
+
                 release_thread(t);
             }
         }
@@ -251,7 +253,7 @@ void sync(ACTION *action)
 
     case ACTION_UNLOCK:
         THREAD_INFO * awaked;
-        awaked = handle_unlock(action->arg.p);
+        awaked = handle_unlock(action->arg.p, action->tid);
         if (awaked != NULL) {
             release_thread(awaked);
         }
@@ -270,7 +272,7 @@ void sync(ACTION *action)
         break;
 
     case ACTION_SEM_POST:
-        awaked = handle_semaphore_post(action->arg.p);
+        awaked = handle_semaphore_post(action->arg.p, action->tid);
         if (awaked != NULL) {
             release_thread(awaked);
         }
