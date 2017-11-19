@@ -162,7 +162,7 @@ void trace_bank_dump()
             f << "    {\n" <<
               "      \"pin-tid\":" << i << ",\n" <<
               "      \"start\":" << traces[i]->start << ",\n" <<
-              "      \"samples\":\"" << str << "\"\n" <<
+              "      \"samples\":" << str << "\n" <<
               "    }";
         }
     }

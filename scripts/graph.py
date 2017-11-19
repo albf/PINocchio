@@ -12,7 +12,6 @@ if __name__ == "__main__":
         data = json.load(data_file)
 
     print "json parsed correctly, processing..."
-    sample_size = data["sample-size"]
     end = data["end"]
     threads = data["threads"]
 
@@ -41,15 +40,20 @@ if __name__ == "__main__":
         actors.append("thread " + str(t))
 
         # update Final execution statistics
-        work += sample_size*trace.thread_work(t_duration, t_color, "b")
+        work += trace.thread_work(t_duration, t_color, "b")
+
+    max_duration = trace.duration(threads)
+    efficiency = work/float(max_duration*len(threads))
 
     print "------"
     print "Total Work: " + str(work) + " cycles"
+    print "Duration:   " + str(max_duration) + " cycles"
+    print "Efficiency: " + str(efficiency)
     print "------"
 
     print "processing done, plotting graph"
     plt.barh(ypos, duration, left=left, align='center', alpha=0.4, color=color)
-    plt.xlabel('Cycles (*' + str(sample_size) + ")")
+    plt.xlabel('Cycles')
     plt.yticks(range(len(threads)), actors)
     plt.title('Threads Events')
     plt.show()

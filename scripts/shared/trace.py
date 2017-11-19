@@ -3,7 +3,7 @@
 import json
 
 def process_thread(thread):
-    ''' Generate information regarding one thread: left postions,
+    ''' Generate information regarding one thread: left positions,
     duration of each sample, it color and how many were added '''
 
     # Order: unlocked, locked, unregistered, finished
@@ -24,28 +24,17 @@ def process_thread(thread):
             _color.append(colors_map[2])
             size += 1
 
-        accumulated = 0
-        current = thread["samples"][0]
+        for e in range(len(thread["samples"])-1):
+            # Duration is the difference between two changes
+            duration = thread["samples"][e+1][0] - thread["samples"][e][0]
+            current = thread["samples"][e][1]
 
-        for e in thread["samples"]:
-            # add only when status changes
-            if current != e:
-                _left.append(offset)
-                _duration.append(accumulated)
-                _color.append(colors_map[int(current)])
+            _left.append(offset)
+            _duration.append(duration)
+            _color.append(colors_map[int(current)])
 
-                offset += accumulated
-                size += 1
-                current = e
-                accumulated = 1
-            else:
-                accumulated += 1
-
-        # add last one
-        size += 1
-        _left.append(offset)
-        _duration.append(accumulated)
-        _color.append(colors_map[int(current)])
+            offset += duration 
+            size += 1
 
     return (_left, _duration, _color, size)
 
@@ -72,14 +61,11 @@ def all_work_from_file(filename):
 
     return all_work(data["threads"], data["sample-size"])
 
-def duration(_threads, _sample_size):
+def duration(_threads):
     ''' Duration of computation, from the start of first thread and
     end of last thread to exit '''
 
     # Currently, thread 0 must be responsible for starting and
     # finishing threads, so it's both first and last.
     loop = len(_threads[0]["samples"])-1
-    for s in range(len(_threads[0]["samples"])):
-        if int(s[loop-s]) != 3:
-            return (loop-s)*_sample_size
-    return 0
+    return _threads[0]["samples"][loop][0]
