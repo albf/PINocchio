@@ -18,6 +18,9 @@ void exec_tracker_sleep(THREAD_INFO *t);
 // Mark a thread as running, move frome one heap to another.
 void exec_tracker_awake();
 
+// Debug function, print what heaps currently hold.
+void exec_tracker_print();
+
 // Return the first thread on the waiting heap.
 THREAD_INFO * exec_tracker_peek_waiting();
 

@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <iostream>
 #include "thread.h"
 
 #define LCHILD(x) 2 * x + 1
@@ -16,8 +17,6 @@ struct HEAP {
 
 HEAP * waiting_heap;
 HEAP * running_heap;
-
-
 
 // Init heap and list (static initialized). Compare function should
 // be used to define what thread should be awaked first.
@@ -157,4 +156,18 @@ THREAD_INFO * exec_tracker_peek_waiting() {
 
 THREAD_INFO * exec_tracker_peek_running() {
     return running_heap->data[0];
+}
+
+void exec_tracker_print() {
+    cerr << "[Exec Tracker] Running max-heap: " << std::endl;
+    for (int i = 0; i < waiting_heap->size; i++) {
+        cerr << "[tid: " << waiting_heap->data[i]->pin_tid;
+        cerr << ", ins_count: " << waiting_heap->data[i]->ins_count << "]" << std::endl;
+    }
+
+    cerr << "[Exec Tracker] Waiting min-heap: " << std::endl;
+    for (int i = 0; i < running_heap->size; i++) {
+        cerr << "[tid: " << running_heap->data[i]->pin_tid;
+        cerr << ", ins_count: " << running_heap->data[i]->ins_count << "]" << std::endl;
+    }
 }
