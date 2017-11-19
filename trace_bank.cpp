@@ -80,6 +80,7 @@ void trace_bank_update(THREADID tid, UINT64 time, THREAD_STATUS status) {
 }
 
 void trace_bank_register(THREADID tid, UINT64 time) {
+    cerr << "[Trace Bank] Register: " << tid << std::endl;
     if (traces[tid] != NULL) {
         free(traces[tid]);
     }
@@ -87,7 +88,7 @@ void trace_bank_register(THREADID tid, UINT64 time) {
     traces[tid] = (P_TRACE *) malloc (sizeof(P_TRACE));
 
     traces[tid]->start = time;
-    traces[tid]->end = -1;
+    traces[tid]->end = 0;
     traces[tid]->total_changes = 0;
 
     trace_bank_update(tid, time, UNLOCKED);
@@ -103,7 +104,7 @@ UINT64 find_end() {
     UINT64 max = 0;
     for(int i = 0; i < MAX_THREADS; i++) {
         if (traces[i] != NULL) {
-            if (traces[i]->end < 0) {
+            if (traces[i]->end < 1) {
                 cerr << "Warning: Trace dump before thread exit: " << i << std::endl;
             } else if (traces[i]->end > max) {
                 max = traces[i]->end;
@@ -124,12 +125,12 @@ static int make_status_string(char *s, int index)
     sprintf(s,"[");
     for(int i = 0; i < traces[index]->total_changes; i++) {
         if (i > 0) {
-            sprintf(s,", ");
+            sprintf(s,"%s, ", s);
         }
         char status = (char)(0x30 + traces[index]->changes[i].status);
-        sprintf(s,"[%lud, %c]", traces[i]->changes[i].time, status);
+        sprintf(s,"%s[%lu, %c]", s, traces[index]->changes[i].time, status);
     }
-    sprintf(s,"]");
+    sprintf(s,"%s]", s);
 
     return 1;
 }
@@ -144,7 +145,7 @@ void trace_bank_dump()
     f.open(OUTPUTFILE);
 
     f << "{\n" <<
-      "  \"end\":" << find_end() << ",\n" <<
+      "  \"end\":" << find_end() << ",\n";
 
     f << "  \"threads\": [\n";
     int first = 1;
@@ -177,3 +178,24 @@ void trace_bank_free() {
         }
     }
 };
+
+void trace_bank_print() {
+    cerr << "[Trace Bank] Printing current state" << std::endl;
+    for(int i = 0; i < MAX_THREADS; i++) {
+        P_TRACE *tr = traces[i];
+        if (tr != NULL) {
+            cerr << "Thread: " << i << std::endl;
+            cerr << "start: " << tr->start << std::endl;
+            cerr << "End: " << tr->end << std::endl;
+            cerr << "total_changes: " << tr->total_changes << std::endl;
+
+            cerr << "Changes: " << std::endl;
+            for(int j = 0; j < tr->total_changes; j++) {
+                cerr << "  time:" << traces[i]->changes[j].time << std::endl; 
+                cerr << "  status:" << traces[i]->changes[j].status << std::endl; 
+                cerr << "-----"<< std::endl; 
+            }
+            cerr << "--------------------" << std::endl; 
+        }
+    }
+}

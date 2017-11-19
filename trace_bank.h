@@ -42,4 +42,7 @@ void trace_bank_dump();
 // Free flusher allocated memory.
 void trace_bank_free();
 
+// Debug function to print trace_bank current state.
+void trace_bank_print();
+
 #endif
