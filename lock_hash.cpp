@@ -151,7 +151,7 @@ void handle_lock_init(void *key)
     initialize_mutex(s, key);
 }
 
-int handle_lock(void *key, THREADID tid)
+void handle_lock(void *key, THREADID tid)
 {
     MUTEX_ENTRY *s = get_mutex_entry(key);
     s = handle_no_mutex(s, key);
@@ -159,14 +159,14 @@ int handle_lock(void *key, THREADID tid)
     if (s->status == M_UNLOCKED) {
         // If unlocked, first to come, just start locking.
         s->status = M_LOCKED;
-        return 0;
+        return;
     }
 
     // If locked, just insert on list and mark as thread as locked.
     THREAD_INFO *t = &all_threads[tid];
     thread_lock(t);
     insert_locked(s, t);
-    return 1;
+    return;
 }
 
 int handle_try_lock(void *key)
@@ -181,9 +181,7 @@ int handle_try_lock(void *key)
     return 1;
 }
 
-// Handle_unlock returns the data from the awaked thread.
-// If none was awaked, just return NULL.
-THREAD_INFO * handle_unlock(void *key, THREADID tid)
+void handle_unlock(void *key, THREADID tid)
 {
     MUTEX_ENTRY *s = get_mutex_entry(key);
     handle_no_mutex(s, key);
@@ -192,9 +190,8 @@ THREAD_INFO * handle_unlock(void *key, THREADID tid)
         s->status = M_LOCKED;
         thread_unlock(s->locked, &all_threads[tid]);
 
-        THREAD_INFO * awaked = s->locked;
         s->locked = s->locked->next_lock;
-        return awaked;
+        return;
     }
 
     if (s->status == M_LOCKED) {
@@ -204,7 +201,7 @@ THREAD_INFO * handle_unlock(void *key, THREADID tid)
         cerr << "Warning: Unlock on already unlocked mutex." << std::endl;
     }
 
-    return NULL; 
+    return; 
 }
 
 static void insert_semaphore_locked(SEMAPHORE_ENTRY *sem, THREAD_INFO *entry)
@@ -295,21 +292,18 @@ void handle_semaphore_init(void *key, int value)
     initialize_semaphore(s, key, value);
 }
 
-THREAD_INFO *handle_semaphore_post(void *key, THREADID tid)
+void handle_semaphore_post(void *key, THREADID tid)
 {
     SEMAPHORE_ENTRY * s = get_semaphore_entry(key);
     fail_on_no_semaphore(s, key);
 
     if(s->locked != NULL) {
         thread_unlock(s->locked, &all_threads[tid]);
-
-        THREAD_INFO * awaked = s->locked;
         s->locked = s->locked->next_lock;
-        return awaked;
     }
 
     s->value = s->value + 1;
-    return NULL;
+    return;
 }
 
 int handle_semaphore_trywait(void *key)
@@ -324,21 +318,21 @@ int handle_semaphore_trywait(void *key)
     return -1;
 }
 
-int handle_semaphore_wait(void *key, THREADID tid)
+void handle_semaphore_wait(void *key, THREADID tid)
 {
     SEMAPHORE_ENTRY * s = get_semaphore_entry(key);
     fail_on_no_semaphore(s, key);
 
     if(s->value > 0) {
         s->value = s->value - 1;
-        return 0;
+        return; 
     }
 
     THREAD_INFO *t = &all_threads[tid];
     thread_lock(&all_threads[tid]); 
 
     insert_semaphore_locked(s, t);
-    return -1;
+    return;
 }
 
 // Used to debug lock hash states
@@ -407,33 +401,32 @@ int handle_before_join(pthread_t key, THREADID tid)
 // handle_reentrant_start will deal with the case
 // of a starting reentrat function that the tool
 // wants to lock.
-int handle_reentrant_start(REENTRANT_LOCK *rl, THREADID tid)
+void handle_reentrant_start(REENTRANT_LOCK *rl, THREADID tid)
 {
     THREAD_INFO *t = &all_threads[tid];
 
     if(rl->busy > 0) {
         thread_lock(t);
         rl->locked = insert(rl->locked, t);
-        return 0;
+        return;
     }
 
     rl->busy = 1;
-    return 1;
+    return;
 }
 
 // handle_reentrant_exit will check if there is
 // any thread awaiting to get into the function and
-// return it, or null otherwise. 
-THREAD_INFO * handle_reentrant_exit(REENTRANT_LOCK *rl, THREADID tid)
+// update it.
+void handle_reentrant_exit(REENTRANT_LOCK *rl, THREADID tid)
 {
     if(rl->locked == NULL) {
         rl->busy = 0;
-        return NULL;
+        return;
     }
 
     thread_unlock(rl->locked, &all_threads[tid]);
 
-    THREAD_INFO * awaked = rl->locked;
     rl->locked = rl->locked->next_lock;
-    return awaked;
+    return; 
 }

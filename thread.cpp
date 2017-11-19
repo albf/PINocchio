@@ -18,7 +18,6 @@ void thread_init()
         all_threads[i].ins_count = 0;
         all_threads[i].pin_tid = i;
 
-        all_threads[i].step_status = STEP_MISS;
         all_threads[i].status = UNREGISTERED;
         all_threads[i].create_value = 0;
 
@@ -106,14 +105,18 @@ void thread_unlock(THREAD_INFO *target, THREAD_INFO *unlocker)
     exec_tracker_insert(target);
 }
 
+void thread_sleep(THREAD_INFO *target)
+{
+    PIN_SemaphoreClear(&target->active);
+    exec_tracker_sleep(target);
+}
+
 void print_threads()
 {
     const char *status[] = {"UNLOCKED", "LOCKED", "UNREGISTERED", "FINISHED"};
-    const char *step_status[] = {"STEP_MISS", "STEP_DONE"};
     cerr << "--------- thread status ---------" << std::endl;
     for(UINT32 i = 0; i <= max_tid; i++) {
         cerr << "Thread id: " << i << " - status: " << status[all_threads[i].status];
-        cerr << " - step status: " << step_status[all_threads[i].step_status];
         cerr << " - create value: " << all_threads[i].create_value << std::endl;
     }
     cerr << "------------------------ " << std::endl;

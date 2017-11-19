@@ -15,11 +15,6 @@ typedef enum {
     FINISHED = 3,     // Already finished its job
 }   THREAD_STATUS;
 
-typedef enum {
-    STEP_MISS = 0,
-    STEP_DONE = 1,
-}   STEP_STATUS;
-
 // Holds information of a given thread
 typedef struct _THREAD_INFO THREAD_INFO;
 struct _THREAD_INFO {
@@ -33,7 +28,6 @@ struct _THREAD_INFO {
 
 
     THREAD_STATUS status;           // Current Status of executing and step
-    STEP_STATUS step_status;
 
     _THREAD_INFO *next_lock;        // Linked list, used if on a lock queue (lock_hash)
     _THREAD_INFO *next_running;     // Linked list, used if on the waiting queue (exec_tracker)
@@ -63,6 +57,8 @@ void thread_finish(THREAD_INFO *target);
 void thread_lock(THREAD_INFO *target);
 
 void thread_unlock(THREAD_INFO *target, THREAD_INFO *unlocker);
+
+void thread_sleep(THREAD_INFO *target);
 
 // Debug funtion, print thread table on stderr
 void print_threads();

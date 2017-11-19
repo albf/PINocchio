@@ -41,11 +41,8 @@ void sync(ACTION *action)
 
     switch(action->action_type) {
     case ACTION_DONE:
-        // Thread has finished one step, mark as done and try to release all
-        all_threads[action->tid].step_status = STEP_DONE;
-        PIN_SemaphoreClear(&all_threads[action->tid].active);
-
-        thread_try_release_all();
+        // Thread has finished one step, just mark as waiting.
+        thread_sleep(&all_threads[action->tid]);
         break;
 
         // Thread creation works with the following rules:
@@ -71,23 +68,16 @@ void sync(ACTION *action)
             if(create_done > 0) {
                 all_threads[pin_tid].create_value = pthread_tid;
                 create_done = 0;
-                THREAD_INFO * awaked = handle_reentrant_exit(&create_lock, action->tid);
-                if (awaked != NULL) {
-                    thread_try_release_all();
-                }
+                handle_reentrant_exit(&create_lock, action->tid);
             } else {
                 create_done = 1;
             }
         }
 
-        thread_try_release_all();
         break;
 
     case ACTION_BEFORE_CREATE:
-        // If get locked, try to release everyone active.
-        if(handle_reentrant_start(&create_lock, action->tid) == 0) {
-            thread_try_release_all();
-        }
+        handle_reentrant_start(&create_lock, action->tid);
 
         // Save current instruction count from thread creator.
         creator_pin_tid = action->tid;
@@ -101,15 +91,11 @@ void sync(ACTION *action)
         if(create_done > 0) {
             all_threads[pin_tid].create_value = pthread_tid;
             create_done = 0;
-            THREAD_INFO * awaked = handle_reentrant_exit(&create_lock, action->tid);
-            if (awaked != NULL) {
-                thread_try_release_all();
-            }
+            handle_reentrant_exit(&create_lock, action->tid);
         } else {
             create_done = 1;
         }
 
-        thread_try_release_all();
         break;
 
     case ACTION_FINI:
@@ -157,10 +143,7 @@ void sync(ACTION *action)
         break;
 
     case ACTION_LOCK:
-        // If got locked, try to release the others.
-        if (handle_lock(action->arg.p, action->tid) > 0) {
-            thread_try_release_all();
-        }
+        handle_lock(action->arg.p, action->tid);
         break;
 
     case ACTION_TRY_LOCK:
@@ -169,11 +152,7 @@ void sync(ACTION *action)
         break;
 
     case ACTION_UNLOCK:
-        THREAD_INFO * awaked;
-        awaked = handle_unlock(action->arg.p, action->tid);
-        if (awaked != NULL) {
-            thread_try_release_all();
-        }
+        handle_unlock(action->arg.p, action->tid);
         break;
 
     case ACTION_SEM_DESTROY:
@@ -189,8 +168,7 @@ void sync(ACTION *action)
         break;
 
     case ACTION_SEM_POST:
-        awaked = handle_semaphore_post(action->arg.p, action->tid);
-        thread_try_release_all();
+        handle_semaphore_post(action->arg.p, action->tid);
         break;
 
     case ACTION_SEM_TRYWAIT:
@@ -199,12 +177,13 @@ void sync(ACTION *action)
         break;
 
     case ACTION_SEM_WAIT:
-        // If got locked, try to release the others.
-        if (handle_semaphore_wait(action->arg.p, action->tid) >= 0) {
-            thread_try_release_all();
-        }
+        handle_semaphore_wait(action->arg.p, action->tid);
         break;
     }
+
+    // Once the big switch has finished, all threads are updated.
+    // Try to release whoever possible.
+    thread_try_release_all();
 
     // Release sync_mutex so other thread can sync.
     PIN_MutexUnlock(&sync_mutex);
