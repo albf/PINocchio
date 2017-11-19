@@ -28,6 +28,7 @@ void thread_init()
 
     trace_bank_init();
     exec_tracker_init();
+    cerr << "[Thread] Threads structure initialized" << std::endl;
 }
 
 // Returns 1 if all threads have finished, 0 otherwise.

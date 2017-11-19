@@ -15,22 +15,22 @@ struct HEAP {
     int order;
 };
 
-HEAP * waiting_heap;
-HEAP * running_heap;
+HEAP waiting_heap;
+HEAP running_heap;
 
 // Init heap and list (static initialized). Compare function should
 // be used to define what thread should be awaked first.
 
 void exec_tracker_init() {
-    waiting_heap->size = 0;
-    running_heap->size = 0;
+    waiting_heap.size = 0;
+    running_heap.size = 0;
 
-    waiting_heap->order = -1;
-    running_heap->order = 1;
+    waiting_heap.order = -1;
+    running_heap.order = 1;
 
     for(int i = 0; i < MAX_THREADS; i++) {
-        waiting_heap->data[i] = NULL;
-        running_heap->data[i] = NULL;
+        waiting_heap.data[i] = NULL;
+        running_heap.data[i] = NULL;
     }
 }
 
@@ -134,40 +134,46 @@ void heap_remove(HEAP *heap, THREAD_INFO *t) {
 // keep track on what threads should (if any) be awake next or are running.
 
 void exec_tracker_insert(THREAD_INFO *t) {
-    heap_push(waiting_heap, t);
+    heap_push(&waiting_heap, t);
 }
 
 void exec_tracker_remove(THREAD_INFO *t) {
-    heap_remove(running_heap, t);
+    heap_remove(&running_heap, t);
 }
 
 void exec_tracker_sleep(THREAD_INFO *t) {
-    heap_remove(running_heap, t);
-    heap_push(waiting_heap, t);
+    heap_remove(&running_heap, t);
+    heap_push(&waiting_heap, t);
 }
 
 void exec_tracker_awake() {
-    heap_push(running_heap, heap_pop(waiting_heap));
+    heap_push(&running_heap, heap_pop(&waiting_heap));
 }
 
 THREAD_INFO * exec_tracker_peek_waiting() {
-    return waiting_heap->data[0];
+    if (waiting_heap.size == 0) {
+        return NULL;
+    }
+    return waiting_heap.data[0];
 }
 
 THREAD_INFO * exec_tracker_peek_running() {
-    return running_heap->data[0];
+    if (running_heap.size == 0) {
+        return NULL;
+    }
+    return running_heap.data[0];
 }
 
 void exec_tracker_print() {
     cerr << "[Exec Tracker] Running max-heap: " << std::endl;
-    for (int i = 0; i < waiting_heap->size; i++) {
-        cerr << "[tid: " << waiting_heap->data[i]->pin_tid;
-        cerr << ", ins_count: " << waiting_heap->data[i]->ins_count << "]" << std::endl;
+    for (int i = 0; i < running_heap.size; i++) {
+        cerr << "[tid: " << running_heap.data[i]->pin_tid;
+        cerr << ", ins_count: " << running_heap.data[i]->ins_count << "]" << std::endl;
     }
 
     cerr << "[Exec Tracker] Waiting min-heap: " << std::endl;
-    for (int i = 0; i < running_heap->size; i++) {
-        cerr << "[tid: " << running_heap->data[i]->pin_tid;
-        cerr << ", ins_count: " << running_heap->data[i]->ins_count << "]" << std::endl;
+    for (int i = 0; i < waiting_heap.size; i++) {
+        cerr << "[tid: " << waiting_heap.data[i]->pin_tid;
+        cerr << ", ins_count: " << waiting_heap.data[i]->ins_count << "]" << std::endl;
     }
 }
