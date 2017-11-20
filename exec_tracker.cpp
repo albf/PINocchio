@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <iostream>
 #include "thread.h"
+#include "exec_tracker.h"
 
 #define LCHILD(x) 2 * x + 1
 #define RCHILD(x) 2 * x + 2
@@ -122,8 +123,10 @@ static void heap_remove(HEAP *heap, THREAD_INFO *t) {
     for (int i = 0; i < heap->size; i++) {
         if(heap->data[i] == t) {
             heap->size--;
-            heap->data[i] = heap->data[heap->size];
-            heapify_up(heap, i);
+            if (i < heap->size) {
+                heap->data[i] = heap->data[heap->size];
+                heapify_up(heap, i);
+            }
             return;
         }
     }

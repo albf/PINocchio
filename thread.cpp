@@ -59,7 +59,7 @@ void thread_try_release_all()
     // In other words: while there is someone waiting and:
     // - There is no running thread.
     // - If there is, the one more advanced is before the more late thread.
-    while(w != NULL && (r == NULL || w ->ins_count < r ->ins_count)) {
+    while(w != NULL && (r == NULL || w ->ins_count <= r ->ins_count)) {
         exec_tracker_awake();
         release_thread(w);
 
@@ -75,8 +75,10 @@ void thread_start(THREAD_INFO *target, THREAD_INFO *creator)
         max_tid = target->pin_tid;
     }
 
+    // Thread 0 is special, will pass NULL and starts with 0.
+    // Other threads should start running and should be awake at first round.
+    target->ins_count = creator != NULL ? (creator->ins_count-1) : 0;
     target->status = UNLOCKED;
-    target->ins_count = creator->ins_count;
     trace_bank_register(target->pin_tid, target->ins_count);
 
     exec_tracker_insert(target);

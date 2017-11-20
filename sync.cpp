@@ -55,12 +55,10 @@ void sync(ACTION *action)
     case ACTION_REGISTER:
         cerr << "[Sync] Received register from: " << action->tid << std::endl;
 
-        // Thread starts unlocked
-        thread_start(&all_threads[action->tid], &all_threads[creator_pin_tid]);
-
         // Thread 0 ins't created by pthread_create, but always existed.
         // Don't wait or do any black magic on that regard.
         if (action->tid > 0) {
+            thread_start(&all_threads[action->tid], &all_threads[creator_pin_tid]);
             pin_tid = action->tid;
             // If done > 0, ACTION_AFTER_CREATE already done, must release it,
             // update my own create_value and go on. If not, save pin_tid
@@ -72,6 +70,9 @@ void sync(ACTION *action)
             } else {
                 create_done = 1;
             }
+        } else {
+            // Thread start for action->tid = 0
+            thread_start(&all_threads[action->tid], NULL);
         }
 
         break;
