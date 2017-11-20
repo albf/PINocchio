@@ -46,12 +46,12 @@ def thread_work(_duration, _color, color_selected):
             _work += _duration[i]
     return _work
 
-def all_work(_threads, _sample_size):
+def all_work(_threads):
     ''' Return all work in instructions for all threads '''
     _work = 0
     for _t in _threads:
         _, d, c, _ = process_thread(_t)
-        _work += _sample_size*thread_work(d, c, "b")
+        _work += thread_work(d, c, "b")
     return _work
 
 def all_work_from_file(filename):
@@ -59,7 +59,7 @@ def all_work_from_file(filename):
     with open(filename) as data_file:
         data = json.load(data_file)
 
-    return all_work(data["threads"], data["sample-size"])
+    return all_work(data["threads"])
 
 def duration(_threads):
     ''' Duration of computation, from the start of first thread and
@@ -69,3 +69,22 @@ def duration(_threads):
     # finishing threads, so it's both first and last.
     loop = len(_threads[0]["samples"])-1
     return _threads[0]["samples"][loop][0]
+
+def validate(_data):
+    ''' Common validations on a corrected parsed json '''
+
+    _threads = _data["threads"]
+    for _t in _threads:
+        if _t["start"] < 0:
+            print "Warning, thread with negative start"
+
+        p_counter = _t["start"]
+        p_state = -1
+        for _d in _t["samples"]:
+            if p_counter > _d[0]:
+                print "Warning: Bad sample counters order: " + p_counter
+            if p_state == _d[1]:
+                print "Warning: Bad sample states order, counter: " + p_counter
+
+            p_counter = _d[0]
+            p_state = _d[1]

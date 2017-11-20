@@ -11,6 +11,7 @@ if __name__ == "__main__":
     with open('trace.json') as data_file:
         data = json.load(data_file)
 
+    trace.validate(data)
     print "json parsed correctly, processing..."
     end = data["end"]
     threads = data["threads"]
