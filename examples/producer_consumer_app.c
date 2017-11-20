@@ -49,7 +49,7 @@ void *consumer(void *thread_data)
         pthread_mutex_unlock(&mutex);
 
         if(task == -2) {
-            return;
+            return NULL;
         }
 
         calculate_result(task);
@@ -88,8 +88,8 @@ int main(int argc , char **argv)
 
     if(argc > 1) {
         num_threads = atoi(argv[1]);
-        if(num_threads < 1) {
-            fprintf(stderr, "num_threads must be at least 1");
+        if(num_threads < 2) {
+            fprintf(stderr, "num_threads must be at least 2 for this example");
         }
     }
 

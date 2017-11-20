@@ -177,6 +177,37 @@ int hj_sem_wait(sem_t *sem, THREADID tid) {
     return 0;
 }
 
+/* Conditional Variables Hijackers  */
+
+int hj_pthread_cond_broadcast(pthread_cond_t *cond, THREADID tid) {
+    DEBUG(cerr << "pthread_cond_broadcast called: " << cond << std::endl);
+    return 0;
+}
+
+int hj_pthread_cond_destroy(pthread_cond_t *cond, THREADID tid) {
+    DEBUG(cerr << "pthread_cond_destroy called: " << cond << std::endl);
+    return 0;
+}
+
+int hj_pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr, THREADID tid) {
+    DEBUG(cerr << "pthread_cond_init called: " << cond << std::endl);
+    if (attr != NULL) {
+        cerr << "[PINocchio] Error: pthread_cond_init attr should be NULL on tid: " << tid << std::endl;
+        fail();
+    }
+    return 0;
+}
+
+int hj_pthread_cond_signal(pthread_cond_t *cond, THREADID tid) {
+    DEBUG(cerr << "pthread_cond_signal called: " << cond << std::endl);
+    return 0;
+}
+
+int hj_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex, THREADID tid) {
+    DEBUG(cerr << "pthread_cond_wait called: " << cond << ", " << mutex << std::endl);
+    return 0;
+}
+
 /* Create/Join callbacks */
 
 VOID before_create(pthread_t *thread, THREADID tid)
@@ -333,6 +364,56 @@ VOID module_load_handler(IMG img, void *v)
                        IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
                        IARG_THREAD_ID, IARG_END);
         DEBUG(cerr << "sem_wait hijacked" << std::endl);
+    }
+
+    // Look for pthread_cond_broadcast and hijack it
+    rtn = RTN_FindByName(img, "pthread_cond_broadcast");
+    if(RTN_Valid(rtn)) {
+        DEBUG(cerr << "Found pthread_cond_broadcast on image" << std::endl);
+        RTN_ReplaceSignature(rtn, (AFUNPTR)hj_pthread_cond_broadcast,
+                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                       IARG_THREAD_ID, IARG_END);
+        DEBUG(cerr << "pthread_cond_broadcast hijacked" << std::endl);
+    }
+
+    // Look for pthread_cond_destroy and hijack it
+    rtn = RTN_FindByName(img, "pthread_cond_destroy");
+    if(RTN_Valid(rtn)) {
+        DEBUG(cerr << "Found pthread_cond_destroy on image" << std::endl);
+        RTN_ReplaceSignature(rtn, (AFUNPTR)hj_pthread_cond_destroy,
+                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                       IARG_THREAD_ID, IARG_END);
+        DEBUG(cerr << "pthread_cond_destroy hijacked" << std::endl);
+    }
+
+    // Look for pthread_cond_init and hijack it
+    rtn = RTN_FindByName(img, "pthread_cond_init");
+    if(RTN_Valid(rtn)) {
+        DEBUG(cerr << "Found pthread_cond_init on image" << std::endl);
+        RTN_ReplaceSignature(rtn, (AFUNPTR)hj_pthread_cond_init,
+                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                       IARG_THREAD_ID, IARG_END);
+        DEBUG(cerr << "pthread_cond_init hijacked" << std::endl);
+    }
+
+    // Look for pthread_cond_signal and hijack it
+    rtn = RTN_FindByName(img, "pthread_cond_signal");
+    if(RTN_Valid(rtn)) {
+        DEBUG(cerr << "Found pthread_cond_signal on image" << std::endl);
+        RTN_ReplaceSignature(rtn, (AFUNPTR)hj_pthread_cond_signal,
+                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                       IARG_THREAD_ID, IARG_END);
+        DEBUG(cerr << "pthread_cond_signal hijacked" << std::endl);
+    }
+
+    // Look for pthread_cond_wait and hijack it
+    rtn = RTN_FindByName(img, "pthread_cond_wait");
+    if(RTN_Valid(rtn)) {
+        DEBUG(cerr << "Found pthread_cond_wait on image" << std::endl);
+        RTN_ReplaceSignature(rtn, (AFUNPTR)hj_pthread_cond_wait,
+                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                       IARG_THREAD_ID, IARG_END);
+        DEBUG(cerr << "pthread_cond_wait hijacked" << std::endl);
     }
 
     // Look for pthread_create and insert callbacks
