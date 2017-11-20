@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define LOOP_COUNT 2000
+#define LOOP_COUNT 4000000 
 #define SEM_VALUE 2
 
 sem_t sem;
@@ -16,13 +16,17 @@ int mat(int a, int b) {
     return a * sign;
 }
 
-void *dummy_func()
+void *dummy_func(void *pn)
 {
     int r = 0;
+    int n = *((int *) pn);
+
+    int OUTER_LOOP = n/1000;
+    int INNER_LOOP = 1000;
 
     sem_wait(&sem);
-    for(int i = 0; i < LOOP_COUNT; i++) {
-        for(int j = 0; j < LOOP_COUNT; j++) {
+    for(int i = 0; i < OUTER_LOOP; i++) {
+        for(int j = 0; j < INNER_LOOP; j++) {
             r = r + mat(i,j);
         }
     }
@@ -38,7 +42,7 @@ void *dummy_func()
 
 int main(int argc , char **argv)
 {
-    int i;
+    int i, *n;
     int num_threads = 2;
 
     if(sem_init(&sem, 0, SEM_VALUE)) {
@@ -57,11 +61,14 @@ int main(int argc , char **argv)
         num_threads = atoi(argv[1]);
     }
 
+    n = (int *) malloc(num_threads*sizeof(int));
+
     pthread_t *dummy_thread;
     dummy_thread = (pthread_t *) malloc(num_threads * sizeof(pthread_t));
 
     for(i = 0; i < num_threads; i++) {
-        if(pthread_create(&dummy_thread[i], NULL, dummy_func, NULL)) {
+            n[i] = LOOP_COUNT/(num_threads);
+            if(pthread_create(&dummy_thread[i], NULL, dummy_func, &n[i])) {
             fprintf(stderr, "Error creating thread\n");
             return 1;
         }
