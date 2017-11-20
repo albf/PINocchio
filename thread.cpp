@@ -76,7 +76,8 @@ void thread_start(THREAD_INFO *target, THREAD_INFO *creator)
     }
 
     target->status = UNLOCKED;
-    trace_bank_register(target->pin_tid, creator->ins_count);
+    target->ins_count = creator->ins_count;
+    trace_bank_register(target->pin_tid, target->ins_count);
 
     exec_tracker_insert(target);
 }
