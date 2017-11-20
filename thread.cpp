@@ -43,28 +43,13 @@ int thread_all_finished()
     return 1;
 }
 
-// Release a locked thread waiting for permission
-void release_thread(THREAD_INFO *ti)
-{
-    // Release thread semaphore 
-    PIN_SemaphoreSet(&ti->active);
-}
-
 // Check what are the threads that can be released.
 void thread_try_release_all()
 {
-    THREAD_INFO *r = exec_tracker_peek_running();
-    THREAD_INFO *w = exec_tracker_peek_waiting();
-
-    // In other words: while there is someone waiting and:
-    // - There is no running thread.
-    // - If there is, the one more advanced is before the more late thread.
-    while(w != NULL && (r == NULL || w ->ins_count <= r ->ins_count)) {
-        exec_tracker_awake();
-        release_thread(w);
-
-        r = exec_tracker_peek_waiting();
-        w = exec_tracker_peek_waiting();
+    // In other words: keep trying to start threads until it's not possible. 
+    for (THREAD_INFO *t = exec_tracker_awake(); t != NULL; t = exec_tracker_awake()) {
+        // Release thread semaphore, that's all required to let thread continue.
+        PIN_SemaphoreSet(&t->active);
     }
 }
 
@@ -89,13 +74,13 @@ void thread_finish(THREAD_INFO *target)
     target->status = FINISHED;
     trace_bank_finish(target->pin_tid, target->ins_count);
 
-    exec_tracker_remove(target);
+    exec_tracker_minus();
 }
 
 // Should:
 // - Lock the semaphore. It will be awake, so it requires to be locked.
 // - Update trace bank, it's a change on thread state.
-// - Remove from running execution heap.
+// - Update exec_tracker running counter. 
 void thread_lock(THREAD_INFO *target)
 {
     PIN_SemaphoreClear(&target->active);
@@ -103,7 +88,7 @@ void thread_lock(THREAD_INFO *target)
     target->status = LOCKED;
     trace_bank_update(target->pin_tid, target->ins_count, LOCKED);
 
-    exec_tracker_remove(target);
+    exec_tracker_minus();
 }
 
 void thread_unlock(THREAD_INFO *target, THREAD_INFO *unlocker)
@@ -126,8 +111,11 @@ void print_threads()
     const char *status[] = {"UNLOCKED", "LOCKED", "UNREGISTERED", "FINISHED"};
     cerr << "--------- thread status ---------" << std::endl;
     for(UINT32 i = 0; i <= max_tid; i++) {
-        cerr << "Thread id: " << i << " - status: " << status[all_threads[i].status];
-        cerr << " - create value: " << all_threads[i].create_value << std::endl;
+        cerr << "Thread id: " << i << std::endl;
+        cerr << " -       status: " << status[all_threads[i].status] << std::endl;
+        cerr << " - create_value: " << all_threads[i].create_value << std::endl;
+        cerr << " -    ins_count: " << all_threads[i].ins_count << std::endl;
+        cerr << " -       active: " << PIN_SemaphoreIsSet(&all_threads[i].active) << std::endl;
     }
     cerr << "------------------------ " << std::endl;
 }

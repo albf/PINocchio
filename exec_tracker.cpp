@@ -4,180 +4,122 @@
 #include "thread.h"
 #include "exec_tracker.h"
 
-#define LCHILD(x) 2 * x + 1
-#define RCHILD(x) 2 * x + 2
-#define PARENT(x) (x - 1) / 2
+struct ORDERED_LIST {
+    THREAD_INFO * start;
+    THREAD_INFO * end;
 
-// Store both waiting and running heaps. Use global since they don't have
-// to be allocated in runtime. Order should be -1 for Min-Heap and 1 for Max-Heap.
-struct HEAP {
-    THREAD_INFO * data[MAX_THREADS];
-    int size;
-    int order;
+    int running;
+    INT64 ins_max;
 };
 
-HEAP waiting_heap;
-HEAP running_heap;
+ORDERED_LIST waiting_list;
 
-// Init heap and list (static initialized). Compare function should
+// Init list (static initialized). Compare function should
 // be used to define what thread should be awaked first.
 
-void exec_tracker_init() {
-    waiting_heap.size = 0;
-    running_heap.size = 0;
+void exec_tracker_init()
+{
+    waiting_list.start = NULL;
+    waiting_list.end = NULL;
 
-    waiting_heap.order = -1;
-    running_heap.order = 1;
-
-    for(int i = 0; i < MAX_THREADS; i++) {
-        waiting_heap.data[i] = NULL;
-        running_heap.data[i] = NULL;
-    }
+    waiting_list.running = 0;
+    waiting_list.ins_max = 0;
 }
 
-// Compare two threads and return -1 (a<b), 0 (a==b), or 1 (a>b),
-// taking into consideration the number of instructions executed so far.
-static int compare_threads(THREAD_INFO *t_a, THREAD_INFO *t_b) {
-    int i_a, i_b;
 
-    i_a = t_a->ins_count;
-    i_b = t_b->ins_count;
+// Exposed API, used by sync. They are just simple operations using
+// the list. Tracker shouldn't unlock or do anything but keep track on
+// what threads should (if any) be awake next or are waiting.
 
-    if (i_a == i_b)
-        return 0;
+void exec_tracker_insert(THREAD_INFO *t)
+{
+    // Empty list.
+    if (waiting_list.start == NULL) {
+        t->waiting_previous = NULL;
+        t->waiting_next = NULL;
 
-    if (i_a > i_b)
-        return 1;
-    
-    return -1;
-}
-
-int compare_elem(HEAP *heap, int a, int b) {
-    THREAD_INFO *t_a, *t_b;
-
-    t_a = heap->data[a];
-    t_b = heap->data[b];
-
-    return  compare_threads(t_a, t_b);
-}
-
-// Heap-related functions
-
-static void heapify_down(HEAP *heap, int i) {
-    // most is max/min(term, left child, right child), depending on heap order.
-
-    int most = i;
-    if ((LCHILD(i) < heap->size) && (compare_elem(heap, i, LCHILD(i)) == heap->order)) {
-        most = LCHILD(i);
-    }
-    if ((RCHILD(i) < heap->size) && (compare_elem(heap, i, RCHILD(i)) == heap->order)) {
-        most = RCHILD(i);
+        waiting_list.start = t;
+        waiting_list.end = t;
+        
+        return;
     }
 
-    if(most != i) {
-        // Swap and heapify
-        THREAD_INFO * a = heap->data[i];
+    // At least someone there. Begin searching from the back.    
+    for(THREAD_INFO *c = waiting_list.end; c != NULL; c = c->waiting_previous) {
+        // Found it's position, insert there.
+        if(t->ins_count > c->ins_count) {
+            t->waiting_next = c;
+            t->waiting_previous = c->waiting_previous;
 
-        heap->data[i] = heap->data[most];
-        heap->data[most] = a;
-
-        heapify_down(heap, most);
-    }
-}
-
-static void heapify_up(HEAP *heap, int i) {
-    while((i > 0) && (compare_elem(heap, i, PARENT(i)) == heap->order)) {
-        // Swap and continue 
-        THREAD_INFO *a = heap->data[i];
-
-        heap->data[i] = heap->data[PARENT(i)];
-        heap->data[PARENT(i)] = a;
-    }
-}
-
-static void heap_push(HEAP *heap, THREAD_INFO * t) {
-    // Append to the last position and heapify.
-    heap->data[heap->size] = t;
-    heap->size++;
-    heapify_up(heap, heap->size-1);
-}
-
-THREAD_INFO * heap_pop(HEAP *heap) {
-    THREAD_INFO * t;
-
-    // Shouldn't happen.
-    if (heap->size <= 0) {
-        return NULL;
-    }
-
-    // Remove first, put last in there, heapify.
-    t = heap->data[0];
-    heap->size--;
-    heap->data[0] = heap->data[heap->size];
-    heapify_down(heap, 0);
-    return t;
-}
-
-static void heap_remove(HEAP *heap, THREAD_INFO *t) {
-    // Find it, put the last one there and heapify.
-    for (int i = 0; i < heap->size; i++) {
-        if(heap->data[i] == t) {
-            heap->size--;
-            if (i < heap->size) {
-                heap->data[i] = heap->data[heap->size];
-                heapify_up(heap, i);
+            // Update, if any, the previous guy. If not, guess who is the new end element.
+            if (c->waiting_previous!= NULL) {
+                c->waiting_previous->waiting_next = t;
+            } else {
+                waiting_list.end = t;
             }
+            c->waiting_previous = t;
             return;
         }
     }
-    cerr << "[Exec Tracker] Internal Error: Heap remove didn't remove anything." << std::endl;
+
+    // If passed by the whole list, it's still the first. Not cool.
+    t->waiting_next = waiting_list.start;
+    t->waiting_previous = NULL;
+    waiting_list.start = t;
+} 
+
+// Sleeping is basically an insert, but should update running counter.
+void exec_tracker_sleep(THREAD_INFO *t)
+{
+    waiting_list.running--;
+    exec_tracker_insert(t);
 }
 
-// Exposed API, used by sync. They are just simple operations using
-// the two chosen heaps. Tracker shouldn't unlock or do anything but
-// keep track on what threads should (if any) be awake next or are running.
-
-void exec_tracker_insert(THREAD_INFO *t) {
-    heap_push(&waiting_heap, t);
-}
-
-void exec_tracker_remove(THREAD_INFO *t) {
-    heap_remove(&running_heap, t);
-}
-
-void exec_tracker_sleep(THREAD_INFO *t) {
-    heap_remove(&running_heap, t);
-    heap_push(&waiting_heap, t);
-}
-
-void exec_tracker_awake() {
-    heap_push(&running_heap, heap_pop(&waiting_heap));
-}
-
-THREAD_INFO * exec_tracker_peek_waiting() {
-    if (waiting_heap.size == 0) {
+THREAD_INFO *exec_tracker_awake()
+{
+    // Check if there is at least one, of course.
+    if (waiting_list.start == NULL) {
         return NULL;
     }
-    return waiting_heap.data[0];
+
+    // No one is running, guess we could just wake someone.
+    if (waiting_list.running == 0) {
+        THREAD_INFO *t = waiting_list.start;
+
+        waiting_list.ins_max = t->ins_count;
+        waiting_list.start = t->waiting_next;
+
+        waiting_list.running++;
+        return t;
+    }
+
+    // Someone is running. Can't go unless they are in sync.
+    if (waiting_list.ins_max >= waiting_list.start->ins_count) {
+        THREAD_INFO *t = waiting_list.start;
+
+        waiting_list.start = t->waiting_next;
+
+        waiting_list.running++;
+        return t;
+    }
+
+    // There is someone running and should wait.
+    return NULL;
 }
 
-THREAD_INFO * exec_tracker_peek_running() {
-    if (running_heap.size == 0) {
-        return NULL;
-    }
-    return running_heap.data[0];
+void exec_tracker_minus()
+{
+    waiting_list.running--;
 }
 
 void exec_tracker_print() {
-    cerr << "[Exec Tracker] Running max-heap: " << std::endl;
-    for (int i = 0; i < running_heap.size; i++) {
-        cerr << "[tid: " << running_heap.data[i]->pin_tid;
-        cerr << ", ins_count: " << running_heap.data[i]->ins_count << "]" << std::endl;
+    cerr << "[Exec Tracker] Waiting-List:" << std::endl; 
+    cerr << "  -- running: " << waiting_list.running << std::endl; 
+    cerr << "  -- ins_max: " << waiting_list.ins_max << std::endl; 
+    cerr << "  --    list:"; 
+    for (THREAD_INFO *t = waiting_list.start; t != NULL; t = t->waiting_next) {
+        cerr << " [tid: " << t->pin_tid;
+        cerr << ", ins_count: " << t->ins_count << "]"; 
     }
-
-    cerr << "[Exec Tracker] Waiting min-heap: " << std::endl;
-    for (int i = 0; i < waiting_heap.size; i++) {
-        cerr << "[tid: " << waiting_heap.data[i]->pin_tid;
-        cerr << ", ins_count: " << waiting_heap.data[i]->ins_count << "]" << std::endl;
-    }
+    cerr << std::endl;
 }

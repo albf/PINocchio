@@ -9,23 +9,16 @@ void exec_tracker_init();
 // Insert a newly added thread, should be waiting.
 void exec_tracker_insert(THREAD_INFO *t);
 
-// Remove a thread that just ended.
-void exec_tracker_remove(THREAD_INFO *);
-
-// Mark a thread as sleeping, move from one heap to another.
+// Mark a thread as sleeping, add it to the list.
 void exec_tracker_sleep(THREAD_INFO *t);
 
 // Mark a thread as running, move frome one heap to another.
-void exec_tracker_awake();
+THREAD_INFO *exec_tracker_awake();
+
+// Inform one thread is not running anymore.
+void exec_tracker_minus();
 
 // Debug function, print what heaps currently hold.
 void exec_tracker_print();
 
-// Return the first thread on the waiting heap.
-THREAD_INFO * exec_tracker_peek_waiting();
-
-// Return the first thread on the running heap.
-THREAD_INFO * exec_tracker_peek_running();
-
 #endif // EXEC_TRACKER_H_
-
