@@ -57,5 +57,9 @@ int main(int argc , char **argv)
     }
 
     printf("All threads joined.\n");
+
+    free(x);
+    free(result);
+    free(inc_x_thread);
     return 0;
 }

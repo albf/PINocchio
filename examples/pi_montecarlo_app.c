@@ -78,5 +78,8 @@ int main(int argc , char **argv)
     double pi = 4 * in / ((double)NEXEC);
     printf("Pi result: %lf\n", pi);
     printf("All threads exit\n");
+
+    free(tp);
+    free(worker_threads);
     return 0;
 }

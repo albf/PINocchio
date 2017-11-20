@@ -98,5 +98,8 @@ int main(int argc , char **argv)
     }
 
     printf("All threads joined.\n");
+
+    free(n);
+    free(dummy_thread);
     return 0;
 }

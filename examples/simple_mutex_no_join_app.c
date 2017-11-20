@@ -70,7 +70,9 @@ int main(int argc , char **argv)
     }
 
     pthread_mutex_destroy(&mutex);
-
     printf("All threads exit\n");
+
+    free(x);
+    free(inc_x_thread);
     return 0;
 }
