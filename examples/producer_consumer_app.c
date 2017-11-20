@@ -11,7 +11,7 @@
 #include <pthread.h>
 
 #define MAX 100                 /* production max value */
-#define LOOP_MULTIPLIER 10000   /* loop of each produced task: LOOP_MULTIPLIER * TASK_ID */
+#define LOOP_MULTIPLIER 1000    /* loop of each produced task: LOOP_MULTIPLIER * TASK_ID */
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t sig_consumer = PTHREAD_COND_INITIALIZER;
@@ -93,7 +93,6 @@ int main(int argc , char **argv)
         }
     }
 
-    num_threads++;
     pthread_t *threads = (pthread_t *) malloc(num_threads * sizeof(pthread_t));;
     pthread_cond_init(&sig_consumer, NULL);
     pthread_cond_init(&sig_producer, NULL);

@@ -89,8 +89,14 @@ void thread_finish(THREAD_INFO *target)
     exec_tracker_remove(target);
 }
 
+// Should:
+// - Lock the semaphore. It will be awake, so it requires to be locked.
+// - Update trace bank, it's a change on thread state.
+// - Remove from running execution heap.
 void thread_lock(THREAD_INFO *target)
 {
+    PIN_SemaphoreClear(&target->active);
+
     target->status = LOCKED;
     trace_bank_update(target->pin_tid, target->ins_count, LOCKED);
 

@@ -235,8 +235,9 @@ int hj_pthread_cond_signal(pthread_cond_t *cond, THREADID tid) {
     return 0;
 }
 
-int hj_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex, THREADID tid) {
+int hj_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex) {
     DEBUG(cerr << "pthread_cond_wait called: " << cond << ", " << mutex << std::endl);
+    THREADID tid = PIN_ThreadId();
 
     ACTION action = {
         tid,
@@ -450,9 +451,7 @@ VOID module_load_handler(IMG img, void *v)
     rtn = RTN_FindByName(img, "pthread_cond_wait");
     if(RTN_Valid(rtn)) {
         DEBUG(cerr << "Found pthread_cond_wait on image" << std::endl);
-        RTN_ReplaceSignature(rtn, (AFUNPTR)hj_pthread_cond_wait,
-                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
-                       IARG_THREAD_ID, IARG_END);
+        RTN_Replace(rtn, (AFUNPTR)hj_pthread_cond_wait);
         DEBUG(cerr << "pthread_cond_wait hijacked" << std::endl);
     }
 

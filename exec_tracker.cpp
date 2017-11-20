@@ -36,7 +36,7 @@ void exec_tracker_init() {
 
 // Compare two threads and return -1 (a<b), 0 (a==b), or 1 (a>b),
 // taking into consideration the number of instructions executed so far.
-int compare_threads(THREAD_INFO *t_a, THREAD_INFO *t_b) {
+static int compare_threads(THREAD_INFO *t_a, THREAD_INFO *t_b) {
     int i_a, i_b;
 
     i_a = t_a->ins_count;
@@ -62,7 +62,7 @@ int compare_elem(HEAP *heap, int a, int b) {
 
 // Heap-related functions
 
-void heapify_down(HEAP *heap, int i) {
+static void heapify_down(HEAP *heap, int i) {
     // most is max/min(term, left child, right child), depending on heap order.
 
     int most = i;
@@ -84,7 +84,7 @@ void heapify_down(HEAP *heap, int i) {
     }
 }
 
-void heapify_up(HEAP *heap, int i) {
+static void heapify_up(HEAP *heap, int i) {
     while((i > 0) && (compare_elem(heap, i, PARENT(i)) == heap->order)) {
         // Swap and continue 
         THREAD_INFO *a = heap->data[i];
@@ -94,7 +94,7 @@ void heapify_up(HEAP *heap, int i) {
     }
 }
 
-void heap_push(HEAP *heap, THREAD_INFO * t) {
+static void heap_push(HEAP *heap, THREAD_INFO * t) {
     // Append to the last position and heapify.
     heap->data[heap->size] = t;
     heap->size++;
@@ -117,7 +117,7 @@ THREAD_INFO * heap_pop(HEAP *heap) {
     return t;
 }
 
-void heap_remove(HEAP *heap, THREAD_INFO *t) {
+static void heap_remove(HEAP *heap, THREAD_INFO *t) {
     // Find it, put the last one there and heapify.
     for (int i = 0; i < heap->size; i++) {
         if(heap->data[i] == t) {
@@ -127,6 +127,7 @@ void heap_remove(HEAP *heap, THREAD_INFO *t) {
             return;
         }
     }
+    cerr << "[Exec Tracker] Internal Error: Heap remove didn't remove anything." << std::endl;
 }
 
 // Exposed API, used by sync. They are just simple operations using

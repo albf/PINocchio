@@ -393,6 +393,20 @@ static void fail_on_no_cond(COND_ENTRY *s, void * key)
     }
 }
 
+static void cond_to_mutex(THREAD_INFO *t, THREADID tid) {
+    MUTEX_ENTRY *s = get_mutex_entry(t->holder);
+    s = handle_no_mutex(s, t->holder);
+
+    if (s->status == M_UNLOCKED) {
+        // If unlocked, first to come, just lock.
+        s->status = M_LOCKED;
+        thread_unlock(t, &all_threads[tid]);
+        return;
+    }
+
+    insert_locked(s, t);
+}
+
 void handle_cond_broadcast(void *key, THREADID tid)
 {
     COND_ENTRY *c = get_cond_entry(key);
@@ -400,8 +414,7 @@ void handle_cond_broadcast(void *key, THREADID tid)
 
     // Unlock from condition variable but lock on the mutex.
     for(THREAD_INFO * t = c->locked; t != NULL; t = t->next_lock) {
-        thread_unlock(t, &all_threads[tid]);
-        handle_lock(t->holder, tid);
+        cond_to_mutex(t, tid);
     }
     c->locked = NULL;
 }
@@ -450,9 +463,7 @@ void handle_cond_signal(void *key, THREADID tid) {
     // but lock on mutex. It could be awake or not, depending on the mutex.
     if (c->locked != NULL) {
         THREAD_INFO * t = c->locked;
-        thread_unlock(t, &all_threads[tid]);
-        handle_lock(t->holder, tid);
-
+        cond_to_mutex(t, tid);
         c->locked = c->locked->next_lock;
     }
 }
@@ -465,6 +476,7 @@ void handle_cond_wait(void *key, void *mutex, THREADID tid) {
     THREAD_INFO *t = &all_threads[tid];
     t->holder = mutex;
     thread_lock(&all_threads[tid]);
+    handle_unlock(mutex, tid);
 
     // Insert as locked for the request condition variable.
     insert_cond_locked(c, t);
@@ -472,14 +484,21 @@ void handle_cond_wait(void *key, void *mutex, THREADID tid) {
 }
 
 // Used to debug lock hash states
-void print_hash()
+void lock_hash_print_lock_hash()
 {
     MUTEX_ENTRY *s;
     const char *status[] = {"M_LOCKED", "M_UNLOCKED"};
 
     cerr << "--------- mutex table ---------" << std::endl;
     for(s = mutex_hash; s != NULL; s = (MUTEX_ENTRY *) s->hh.next) {
-        cerr << "Key: " << s->key << " - status: " << status[s->status] << std::endl;
+        cerr << "Key: " << s->key << " - status: " << status[s->status];
+        if (s != NULL) {
+            cerr << " - locked: ";
+            for (THREAD_INFO *t = s->locked; t != NULL; t = t->next_lock) {
+                cerr << t->pin_tid << " | ";
+            }
+        }
+        cerr << std::endl;
     }
     cerr << "--------- ----------- ---------" << std::endl;
 }

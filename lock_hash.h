@@ -99,6 +99,6 @@ void handle_reentrant_exit(REENTRANT_LOCK *rl, THREADID tid);
 
 
 // Debug function, print lock hash on stderr
-void print_hash();
+void lock_hash_print_lock_hash();
 
 #endif
