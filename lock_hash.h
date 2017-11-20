@@ -52,6 +52,25 @@ void handle_semaphore_wait(void *key, THREADID tid);
 
 
 
+/* Condition Variables Handlers */
+
+// Wake all threads waiting on the condition variables.
+void handle_cond_broadcast(void *key, THREADID tid);
+
+// Just destroy the condition variable. Will fail if doesn't exist.
+void handle_cond_destroy(void *key);
+
+// Init the condition variable and should be called before anything.
+void handle_cond_init(void *key);
+
+// Wake up to one thread waiting (if any). Will fail if it doesn't exist.
+void handle_cond_signal(void *key, THREADID tid);
+
+// Lock on the condition variable. Will unlock the mutex. Will fail if doesn't exist.
+void handle_cond_wait(void *key, void *mutex, THREADID tid);
+
+
+
 /* Thread create/exit Handlers */ 
 
 // Returns a list with threads waiting to join.

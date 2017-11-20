@@ -131,7 +131,7 @@ int hj_sem_init(sem_t *sem, int pshared, unsigned int value)
     ACTION action = {
         tid,
         ACTION_SEM_INIT,
-        {(void *) sem, (int) value},
+        {(void *) sem, NULL, (int) value},
     };
     sync(&action);
 
@@ -181,11 +181,27 @@ int hj_sem_wait(sem_t *sem, THREADID tid) {
 
 int hj_pthread_cond_broadcast(pthread_cond_t *cond, THREADID tid) {
     DEBUG(cerr << "pthread_cond_broadcast called: " << cond << std::endl);
+
+    ACTION action = {
+        tid,
+        ACTION_COND_BROADCAST,
+        {(void *) cond},
+    };
+    sync(&action);
+
     return 0;
 }
 
 int hj_pthread_cond_destroy(pthread_cond_t *cond, THREADID tid) {
     DEBUG(cerr << "pthread_cond_destroy called: " << cond << std::endl);
+
+    ACTION action = {
+        tid,
+        ACTION_COND_DESTROY,
+        {(void *) cond},
+    };
+    sync(&action);
+
     return 0;
 }
 
@@ -195,16 +211,40 @@ int hj_pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr, T
         cerr << "[PINocchio] Error: pthread_cond_init attr should be NULL on tid: " << tid << std::endl;
         fail();
     }
+
+    ACTION action = {
+        tid,
+        ACTION_COND_INIT,
+        {(void *) cond},
+    };
+    sync(&action);
+
     return 0;
 }
 
 int hj_pthread_cond_signal(pthread_cond_t *cond, THREADID tid) {
     DEBUG(cerr << "pthread_cond_signal called: " << cond << std::endl);
+
+    ACTION action = {
+        tid,
+        ACTION_COND_SIGNAL,
+        {(void *) cond},
+    };
+    sync(&action);
+
     return 0;
 }
 
 int hj_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex, THREADID tid) {
     DEBUG(cerr << "pthread_cond_wait called: " << cond << ", " << mutex << std::endl);
+
+    ACTION action = {
+        tid,
+        ACTION_COND_WAIT,
+        {(void *) cond, (void*) mutex},
+    };
+    sync(&action);
+
     return 0;
 }
 

@@ -21,6 +21,8 @@ struct _THREAD_INFO {
     INT64 ins_count;                // Number of instructions executed on current
 
     void *holder;                   // Saves parameters from being dirty between before_* and after_* calls
+                                    // *holder is also used to save mutex used on condition variables.
+
     PIN_SEMAPHORE active;           // Semaphore used to wake/wait
 
     THREADID pin_tid;               // It's own pin tid. It's needed when on a list

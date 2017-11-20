@@ -31,6 +31,16 @@ struct _SEMAPHORE_ENTRY {
     THREAD_INFO *locked;            // Waiting to go
 };
 
+// Condition Variable hash
+typedef struct _COND_ENTRY COND_ENTRY;
+struct _COND_ENTRY {
+    void *key;
+
+    UT_hash_handle hh;
+
+    THREAD_INFO *locked;            // Waiting to go
+};
+
 // Join Hash
 typedef struct _JOIN_ENTRY JOIN_ENTRY;
 struct _JOIN_ENTRY {
@@ -45,6 +55,7 @@ struct _JOIN_ENTRY {
 // Since there is only one hash for each type, keeping a global value seems cheaper.
 MUTEX_ENTRY *mutex_hash = NULL;
 SEMAPHORE_ENTRY *semaphore_hash = NULL;
+COND_ENTRY *cond_hash = NULL;
 JOIN_ENTRY *join_hash = NULL;
 
 // get_mutex_entry will find a given entry or, if doesn't exist, create one.
@@ -157,7 +168,7 @@ void handle_lock(void *key, THREADID tid)
     s = handle_no_mutex(s, key);
 
     if (s->status == M_UNLOCKED) {
-        // If unlocked, first to come, just start locking.
+        // If unlocked, first to come, just lock.
         s->status = M_LOCKED;
         return;
     }
@@ -332,6 +343,131 @@ void handle_semaphore_wait(void *key, THREADID tid)
     thread_lock(&all_threads[tid]); 
 
     insert_semaphore_locked(s, t);
+    return;
+}
+
+static COND_ENTRY *get_cond_entry(void *key)
+{
+    COND_ENTRY *c;
+
+    HASH_FIND_PTR(cond_hash, &key, c);
+    if(c) {
+        return c;
+    }
+
+    return NULL;
+}
+
+static void delete_cond_entry(COND_ENTRY *entry)
+{
+    HASH_DEL(cond_hash, entry);
+}
+
+static void initialize_cond(COND_ENTRY *c, void *key)
+{
+    c->key = key;
+    c->locked = NULL;
+}
+
+static COND_ENTRY * add_cond_entry(void * key)
+{
+    COND_ENTRY *c;
+
+    c = (COND_ENTRY *) malloc(sizeof(COND_ENTRY));
+    initialize_cond(c, key);
+
+    HASH_ADD_PTR(cond_hash, key, c);
+    return c;
+}
+
+static void insert_cond_locked(COND_ENTRY *c, THREAD_INFO *entry)
+{
+    c->locked = insert(c->locked, entry);
+}
+
+static void fail_on_no_cond(COND_ENTRY *s, void * key)
+{
+    if(s == NULL) {
+        cerr << "Non-existent condition variable acessed: " << key << "." << std::endl;
+        fail();
+    }
+}
+
+void handle_cond_broadcast(void *key, THREADID tid)
+{
+    COND_ENTRY *c = get_cond_entry(key);
+    fail_on_no_cond(c, key);
+
+    // Unlock from condition variable but lock on the mutex.
+    for(THREAD_INFO * t = c->locked; t != NULL; t = t->next_lock) {
+        thread_unlock(t, &all_threads[tid]);
+        handle_lock(t->holder, tid);
+    }
+    c->locked = NULL;
+}
+
+void handle_cond_destroy(void *key)
+{
+    COND_ENTRY *c = get_cond_entry(key);
+
+    // Condition variable doesn't even exist. Just return.
+    if(c == NULL) {
+        cerr << "Warning: Destroy on already unexistent condition." << std::endl;
+        return;
+    }
+
+    // Destroying a condition variable with other threads waiting.
+    if(c->locked != NULL) {
+        cerr << "Semaphore destroyed when other threads are waiting." << std::endl;
+        fail();
+    }
+
+    delete_cond_entry(c);
+}
+
+void handle_cond_init(void *key)
+{
+    COND_ENTRY *c = get_cond_entry(key);
+
+    if(c == NULL) {
+        add_cond_entry(key);
+        return;
+    }
+    if(c->locked != NULL) {
+        cerr << "Condition variable destroyed (by init) when other threads are waiting." << std::endl;
+        fail();
+    }
+
+    // Exists but no one is waiting. Just initialize it.
+    initialize_cond(c, key);
+}
+
+void handle_cond_signal(void *key, THREADID tid) {
+    COND_ENTRY *c = get_cond_entry(key);
+    fail_on_no_cond(c, key);
+
+    // Unlock up to one, if exist. Unlock from conditional variable,
+    // but lock on mutex. It could be awake or not, depending on the mutex.
+    if (c->locked != NULL) {
+        THREAD_INFO * t = c->locked;
+        thread_unlock(t, &all_threads[tid]);
+        handle_lock(t->holder, tid);
+
+        c->locked = c->locked->next_lock;
+    }
+}
+
+void handle_cond_wait(void *key, void *mutex, THREADID tid) {
+    COND_ENTRY *c = get_cond_entry(key);
+    fail_on_no_cond(c, key);
+
+    // Save mutex for later use and lock thread.
+    THREAD_INFO *t = &all_threads[tid];
+    t->holder = mutex;
+    thread_lock(&all_threads[tid]);
+
+    // Insert as locked for the request condition variable.
+    insert_cond_locked(c, t);
     return;
 }
 

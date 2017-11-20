@@ -27,11 +27,17 @@ typedef enum {
     ACTION_SEM_POST = 14,
     ACTION_SEM_TRYWAIT = 15,
     ACTION_SEM_WAIT = 16,
+    ACTION_COND_BROADCAST = 17,
+    ACTION_COND_DESTROY = 18,
+    ACTION_COND_INIT = 19,
+    ACTION_COND_SIGNAL = 20,
+    ACTION_COND_WAIT = 21,
 } ACTION_TYPE;
 
 // Arguments are used to pass data to/from sync.
 struct ACTION_ARG {
-    void *p;
+    void *p_1;
+    void *p_2;
     int i;
 };
 

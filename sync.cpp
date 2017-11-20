@@ -86,7 +86,7 @@ void sync(ACTION *action)
     case ACTION_AFTER_CREATE:
         // Save pthread tid and check if ACTION_REGISTER already arrived,
         // if yes, mark pthread_tid and release create_lock
-        pthread_tid = ((pthread_t)action->arg.p);
+        pthread_tid = ((pthread_t)action->arg.p_1);
 
         if(create_done > 0) {
             all_threads[pin_tid].create_value = pthread_tid;
@@ -123,7 +123,7 @@ void sync(ACTION *action)
 
     case ACTION_BEFORE_JOIN:
         int allowed;
-        allowed = handle_before_join((pthread_t)action->arg.p, action->tid);
+        allowed = handle_before_join((pthread_t)action->arg.p_1, action->tid);
 
         // If not allowed, should await.
         if (allowed == 0) {
@@ -135,49 +135,69 @@ void sync(ACTION *action)
 
         // Mutex events should be treated by lock_hash, unlock thread once done.
     case ACTION_LOCK_DESTROY:
-        handle_lock_init(action->arg.p); 
+        handle_lock_init(action->arg.p_1); 
         break;
 
     case ACTION_LOCK_INIT:
-        handle_lock_init(action->arg.p);
+        handle_lock_init(action->arg.p_1);
         break;
 
     case ACTION_LOCK:
-        handle_lock(action->arg.p, action->tid);
+        handle_lock(action->arg.p_1, action->tid);
         break;
 
     case ACTION_TRY_LOCK:
         // Pass the value back to try_lock function.
-        action->arg.i = handle_try_lock(action->arg.p);
+        action->arg.i = handle_try_lock(action->arg.p_1);
         break;
 
     case ACTION_UNLOCK:
-        handle_unlock(action->arg.p, action->tid);
+        handle_unlock(action->arg.p_1, action->tid);
         break;
 
     case ACTION_SEM_DESTROY:
-        handle_semaphore_destroy(action->arg.p);
+        handle_semaphore_destroy(action->arg.p_1);
         break;
 
     case ACTION_SEM_GETVALUE:
-        action->arg.i = handle_semaphore_getvalue(action->arg.p);
+        action->arg.i = handle_semaphore_getvalue(action->arg.p_1);
         break;
 
     case ACTION_SEM_INIT:
-        handle_semaphore_init(action->arg.p, action->arg.i);
+        handle_semaphore_init(action->arg.p_1, action->arg.i);
         break;
 
     case ACTION_SEM_POST:
-        handle_semaphore_post(action->arg.p, action->tid);
+        handle_semaphore_post(action->arg.p_1, action->tid);
         break;
 
     case ACTION_SEM_TRYWAIT:
         // Pass the value back to sem_trywait function.
-        action->arg.i = handle_semaphore_trywait(action->arg.p);
+        action->arg.i = handle_semaphore_trywait(action->arg.p_1);
         break;
 
     case ACTION_SEM_WAIT:
-        handle_semaphore_wait(action->arg.p, action->tid);
+        handle_semaphore_wait(action->arg.p_1, action->tid);
+        break;
+
+    case ACTION_COND_BROADCAST:
+        handle_cond_broadcast(action->arg.p_1, action->tid);
+        break;
+
+    case ACTION_COND_DESTROY:
+        handle_cond_destroy(action->arg.p_1);
+        break;
+
+    case ACTION_COND_INIT:
+        handle_cond_init(action->arg.p_1);
+        break;
+
+    case ACTION_COND_SIGNAL:
+        handle_cond_signal(action->arg.p_1, action->tid);
+        break;
+
+    case ACTION_COND_WAIT:
+        handle_cond_wait(action->arg.p_1, action->arg.p_2, action->tid);
         break;
     }
 
