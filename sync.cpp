@@ -123,16 +123,8 @@ void sync(ACTION *action)
         break;
 
     case ACTION_BEFORE_JOIN:
-        int allowed;
-        allowed = handle_before_join((pthread_t)action->arg.p_1, action->tid);
-
-        // If not allowed, should await.
-        if (allowed == 0) {
-            PIN_SemaphoreClear(&all_threads[action->tid].active);
-            thread_try_release_all();
-        }
+        handle_before_join((pthread_t)action->arg.p_1, action->tid);
         break;
-
 
         // Mutex events should be treated by lock_hash, unlock thread once done.
     case ACTION_LOCK_DESTROY:

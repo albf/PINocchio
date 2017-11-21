@@ -39,9 +39,11 @@ int hj_pthread_mutex_destroy(pthread_mutex_t *mutex, THREADID tid) {
     return 0;
 }
 
-int hj_pthread_mutex_init(pthread_mutex_t *mutex, pthread_mutexattr_t attr, THREADID tid)
+// hj_pthread_mutex_init is not accepting to receive THREADID tid. Avoiding it for now.
+int hj_pthread_mutex_init(pthread_mutex_t *mutex, pthread_mutexattr_t attr)
 {
     DEBUG(cerr << "mutex_init called: " << mutex << std::endl);
+    THREADID tid = PIN_ThreadId();
 
     ACTION action = {
         tid,
@@ -205,8 +207,10 @@ int hj_pthread_cond_destroy(pthread_cond_t *cond, THREADID tid) {
     return 0;
 }
 
-int hj_pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr, THREADID tid) {
+// hj_pthread_cond_init is not accepting to receive THREADID tid. Avoiding it for now.
+int hj_pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr) {
     DEBUG(cerr << "pthread_cond_init called: " << cond << std::endl);
+    THREADID tid = PIN_ThreadId();
     if (attr != NULL) {
         cerr << "[PINocchio] Error: pthread_cond_init attr should be NULL on tid: " << tid << std::endl;
         fail();
@@ -303,9 +307,7 @@ VOID module_load_handler(IMG img, void *v)
     rtn = RTN_FindByName(img, "pthread_mutex_init");
     if(RTN_Valid(rtn)) {
         DEBUG(cerr << "Found pthread_mutex_init on image" << std::endl);
-        RTN_ReplaceSignature(rtn, (AFUNPTR)hj_pthread_mutex_init,
-                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
-                       IARG_THREAD_ID, IARG_END);
+        RTN_Replace(rtn, (AFUNPTR)hj_pthread_mutex_init);
         DEBUG(cerr << "pthread_mutex_init hijacked" << std::endl);
     }
 
@@ -431,9 +433,7 @@ VOID module_load_handler(IMG img, void *v)
     rtn = RTN_FindByName(img, "pthread_cond_init");
     if(RTN_Valid(rtn)) {
         DEBUG(cerr << "Found pthread_cond_init on image" << std::endl);
-        RTN_ReplaceSignature(rtn, (AFUNPTR)hj_pthread_cond_init,
-                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
-                       IARG_THREAD_ID, IARG_END);
+        RTN_Replace(rtn, (AFUNPTR)hj_pthread_cond_init);
         DEBUG(cerr << "pthread_cond_init hijacked" << std::endl);
     }
 
@@ -522,13 +522,20 @@ VOID Fini(INT32 code, VOID *v)
 
 VOID ins_handler()
 {
-    // Instruction callback, update instruction counter
-    THREADID thread_id = PIN_ThreadId();
-    all_threads[(int)thread_id].ins_count++;
+    THREADID tid = PIN_ThreadId();
+    // Instruction callback, ONLY update instruction counter
+    all_threads[(int)tid].ins_count++;
+}
+
+VOID mem_ins_handler()
+{
+    THREADID tid = PIN_ThreadId();
+    // Memory Instruction callback, update instruction counter
+    all_threads[(int)tid].ins_count++;
 
     // Sync, which could make it sleep
     ACTION action = {
-        .tid = thread_id,
+        .tid = tid,
         .action_type = ACTION_DONE,
     };
     sync(&action);
@@ -537,7 +544,14 @@ VOID ins_handler()
 
 VOID instruction(INS ins, VOID *v)
 {
-    INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)ins_handler, IARG_END);
+    if (INS_IsMemoryRead(ins) || INS_IsMemoryWrite(ins)) {
+        INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)mem_ins_handler,
+                        IARG_END);
+    } else {
+        INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)ins_handler,
+                        IARG_END);
+
+    }
 }
 
 int main(int argc, char *argv[])

@@ -48,16 +48,16 @@ void exec_tracker_insert(THREAD_INFO *t)
     for(THREAD_INFO *c = waiting_list.end; c != NULL; c = c->waiting_previous) {
         // Found it's position, insert there.
         if(t->ins_count > c->ins_count) {
-            t->waiting_next = c;
-            t->waiting_previous = c->waiting_previous;
+            t->waiting_previous = c;
+            t->waiting_next = c->waiting_next;
 
-            // Update, if any, the previous guy. If not, guess who is the new end element.
-            if (c->waiting_previous!= NULL) {
-                c->waiting_previous->waiting_next = t;
+            // Update, if any, the next guy. If not, guess who is the new end element.
+            if (c->waiting_next != NULL) {
+                c->waiting_next -> waiting_previous = t;
             } else {
                 waiting_list.end = t;
             }
-            c->waiting_previous = t;
+            c->waiting_next = t;
             return;
         }
     }
@@ -65,6 +65,8 @@ void exec_tracker_insert(THREAD_INFO *t)
     // If passed by the whole list, it's still the first. Not cool.
     t->waiting_next = waiting_list.start;
     t->waiting_previous = NULL;
+
+    waiting_list.start->waiting_previous = t;
     waiting_list.start = t;
 } 
 
@@ -88,6 +90,9 @@ THREAD_INFO *exec_tracker_awake()
 
         waiting_list.ins_max = t->ins_count;
         waiting_list.start = t->waiting_next;
+        if (waiting_list.start != NULL) {
+            waiting_list.start->waiting_previous = NULL;
+        }
 
         waiting_list.running++;
         return t;
@@ -98,6 +103,9 @@ THREAD_INFO *exec_tracker_awake()
         THREAD_INFO *t = waiting_list.start;
 
         waiting_list.start = t->waiting_next;
+        if (waiting_list.start != NULL) {
+            waiting_list.start->waiting_previous = NULL;
+        }
 
         waiting_list.running++;
         return t;
