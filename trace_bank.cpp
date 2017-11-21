@@ -20,57 +20,97 @@ void trace_bank_filter(THREADID tid) {
 
     for (int i = 0; i < REDUCTION_SIZE; i++) {
         index[i] = -1;
-        value[i] = -1;
+        value[i] = 0;
     }
 
-    for (int i = 0; i < (MAX_BANK_SIZE-1); i++) {
-        UINT64 diff = traces[tid]->changes[i+1].time - traces[tid]->changes[i].time;
+    // Need to remove two
+    for (int i = 0; i < (MAX_BANK_SIZE-4); i++) {
+        if (traces[tid]->changes[i].status == traces[tid]->changes[i+3].status) {
+            continue;
+        }
 
-        if (i == 0 && diff < value[0]) {
-            value[0] = diff;
-            index[0] = tid;
+        // Warning: It could still break in some nasty cases.
+        UINT64 diff = traces[tid]->changes[i+3].time - traces[tid]->changes[i].time;
+        UINT64 next = traces[tid]->changes[i+4].time - traces[tid]->changes[i+1].time;
+
+        // If worst then the next one, just take it.
+        if (diff > next) {
+            continue;
         }
 
         // Insert in a insertion-sort style.
-        for (int j = 1; j < REDUCTION_SIZE; j++) {
-            if (value[j-1] < value[j]) {
+        for (int j = 0; j < REDUCTION_SIZE; j++) {
+            if ((value[j] == 0) || (value[j] < diff)) {
                 UINT64 r = value[j];
-                value[j] = value[j-1];
-                value[j-1] = r;
-
                 int s = index[j];
-                index[j] = index[j-1];
-                index[j-1] = s;
+
+                value[j] = diff;
+                index[j] = i;
+
+                if(j > 0) {
+                    value[j-1] = r;
+                    index[j-1] = s;
+                }
             } else {
                 break;
             }
         }
+
+        // If taking it, can't take the next one.
+        i = i + 1;
     }
 
     // Elements to be removed were selected. Mark them.
     for (int i = 0; i < REDUCTION_SIZE; i++) {
-        traces[tid]->changes[index[i]].status = UNREGISTERED;
+        traces[tid]->changes[index[i]+1].status = UNREGISTERED;
+        traces[tid]->changes[index[i]+2].status = UNREGISTERED;
     }
 
     // Remove the not used values. Notice it's not pretty but shouldn't happen often.
     int jump = 0;
-    for (int i = 1; i < MAX_BANK_SIZE; i++) {
+    for (int i = 0; i < MAX_BANK_SIZE; i++) {
         if (traces[tid]->changes[i].status == UNREGISTERED) {
             jump++;
         } else {
             traces[tid]->changes[i-jump].status = traces[tid]->changes[i].status;
-            traces[tid]->changes[i-jump].time = traces[tid]->changes[i].time;
+            traces[tid]->changes[i-jump].time   = traces[tid]->changes[i].time;
         }
     }
 
     // Total_changes should also be updated, and here the reduction/filter is completed.
-    traces[tid]->total_changes = traces[tid]->total_changes - REDUCTION_SIZE;
+    traces[tid]->total_changes = traces[tid]->total_changes - (2*REDUCTION_SIZE);
+}
+
+void trace_bank_validate() {
+    for(int i = 0; i < MAX_THREADS; i++) {
+        P_TRACE *tr = traces[i];
+        if (tr != NULL) {
+            THREAD_STATUS s = tr->changes[0].status;
+            UINT64 t = tr->changes[0].time;
+            for(int j = 1; j < tr->total_changes; j++) {
+                if (s == tr->changes[j].status) {
+                    cerr << "[Trace Bank] Status Error on time: " << tr->changes[j].time << std::endl;
+                    trace_bank_print();
+                }
+                if (t > tr->changes[j].time) {
+                    cerr << "[Trace Bank] Time Error on time: " << tr->changes[j].time << std::endl;
+                    trace_bank_print();
+                }
+
+                s = tr->changes[j].status;
+                t = tr->changes[j].time;
+            }
+        }
+    }
 }
 
 void trace_bank_update(THREADID tid, UINT64 time, THREAD_STATUS status) {
+
     int n = traces[tid]->total_changes;
     if (n >= MAX_BANK_SIZE) {
+        // Warning: Size will change after bank filter.
         trace_bank_filter(tid);
+        n = traces[tid]->total_changes;
     }
 
     traces[tid]->changes[n].time = time;
@@ -90,6 +130,7 @@ void trace_bank_register(THREADID tid, UINT64 time) {
     traces[tid]->start = time;
     traces[tid]->end = 0;
     traces[tid]->total_changes = 0;
+    traces[tid]->changes = (CHANGE *) malloc (MAX_BANK_SIZE*sizeof(CHANGE));
 
     trace_bank_update(tid, time, UNLOCKED);
 }

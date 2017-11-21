@@ -1,10 +1,10 @@
 #ifndef __TRACE_H__
 #define __TRACE_H__
 
-#define MAX_BANK_SIZE 2048          // Max number of changes per threads.
+#define MAX_BANK_SIZE 4096          // Max number of changes per threads.
                                     // Once it's reached, some smaller ones will be lost.
 
-#define REDUCTION_SIZE 256          // Number of traces to be removed once limit is reached.
+#define REDUCTION_SIZE 128          // Number of traces pair to be removed once limit is reached.
 
 #define OUTPUTFILE "trace.json"     // TODO: Change how name is defined
 
@@ -21,7 +21,7 @@ typedef struct {
     UINT64 end;
 
     int total_changes;
-    CHANGE changes[MAX_BANK_SIZE];
+    CHANGE *changes;
 } P_TRACE;
 
 // Init trace bank, allocating memory and initializing required fields.
@@ -44,5 +44,8 @@ void trace_bank_free();
 
 // Debug function to print trace_bank current state.
 void trace_bank_print();
+
+// Debug function to validate if the trace is healthy.
+void trace_bank_validate();
 
 #endif

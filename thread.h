@@ -1,7 +1,7 @@
 #ifndef THREAD_H_
 #define THREAD_H_
 
-#define MAX_THREADS 64               // Max number of spawned threads by application
+#define MAX_THREADS 256               // Max number of spawned threads by application
 
 #include <pthread.h>
 #include "pin.H"
@@ -18,7 +18,7 @@ typedef enum {
 // Holds information of a given thread
 typedef struct _THREAD_INFO THREAD_INFO;
 struct _THREAD_INFO {
-    INT64 ins_count;                // Number of instructions executed on current
+    UINT64 ins_count;               // Number of instructions executed on current
 
     void *holder;                   // Saves parameters from being dirty between before_* and after_* calls
                                     // *holder is also used to save mutex used on condition variables.

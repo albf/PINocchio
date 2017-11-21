@@ -9,7 +9,7 @@ struct ORDERED_LIST {
     THREAD_INFO * end;
 
     int running;
-    INT64 ins_max;
+    UINT64 ins_max;
 };
 
 ORDERED_LIST waiting_list;

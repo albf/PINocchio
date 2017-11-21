@@ -74,7 +74,9 @@ def validate(_data):
     ''' Common validations on a corrected parsed json '''
 
     _threads = _data["threads"]
+    i = -1
     for _t in _threads:
+        i = i + 1
         if _t["start"] < 0:
             print "Warning, thread with negative start"
 
@@ -82,9 +84,9 @@ def validate(_data):
         p_state = -1
         for _d in _t["samples"]:
             if p_counter > _d[0]:
-                print "Warning: Bad sample counters order: " + p_counter
+                print "Warning: Bad sample counters order for " + str(i) + " on: " + str(p_counter)
             if p_state == _d[1]:
-                print "Warning: Bad sample states order, counter: " + p_counter
+                print "Warning: Bad sample states order for " + str(i) + "on: " + str(p_counter)
 
             p_counter = _d[0]
             p_state = _d[1]
