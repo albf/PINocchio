@@ -120,6 +120,12 @@ void exec_tracker_minus()
     waiting_list.running--;
 }
 
+// It's empty if there is no one running or waiting.
+int exec_track_is_empty()
+{
+    return ((waiting_list.running == 0) && (waiting_list.start == NULL)) ? 1 : 0;
+}
+
 void exec_tracker_print() {
     cerr << "[Exec Tracker] Waiting-List:" << std::endl; 
     cerr << "  -- running: " << waiting_list.running << std::endl; 

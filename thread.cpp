@@ -31,15 +31,25 @@ void thread_init()
     cerr << "[Thread] Threads structure initialized" << std::endl;
 }
 
-// Returns 1 if all threads have finished, 0 otherwise.
+// Returns:  1 if all threads have finished,
+//           0 otherwise.
 int thread_all_finished()
 {
-    for(UINT32 i = 0; i <= max_tid; i++) {
-        if(all_threads[i].status != FINISHED &&
-                all_threads[i].status != UNREGISTERED) {
-            return 0;
+    if (exec_track_is_empty() == 0) {
+        return 0;
+    }
+
+    // It's finished, check if it's deadlocked.
+    for(int i = 0; i < MAX_THREADS; i++) {
+        if(all_threads[i].status == UNLOCKED) {
+            cerr << "[Thread] Internal Error: exec_track says it's empty but a thread is running: ";
+            cerr << "i" << std::endl;
+        } else if (all_threads[i].status == LOCKED) {
+            cerr << "[Thread] Deadlock: Thread locked: ";
+            cerr << "i" << std::endl;
         }
     }
+
     return 1;
 }
 
