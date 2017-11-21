@@ -1,5 +1,5 @@
-#ifndef CONTROLLER_H_
-#define CONTROLLER_H_
+#ifndef SYNC_H_
+#define SYNC_H_
 
 #include "pin.H"
 
@@ -54,4 +54,4 @@ void sync_init();
 // Perform a sync based on a valid action
 void sync(ACTION *action);
 
-#endif // CONTROLLER_H_
+#endif // SYNC_H_

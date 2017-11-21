@@ -101,4 +101,7 @@ void handle_reentrant_exit(REENTRANT_LOCK *rl, THREADID tid);
 // Debug function, print lock hash on stderr
 void lock_hash_print_lock_hash();
 
+// Debug function, print condition variable hash on stderr
+void lock_hash_print_cond_hash();
+
 #endif

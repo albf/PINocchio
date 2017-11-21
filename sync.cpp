@@ -119,7 +119,6 @@ void sync(ACTION *action)
             return;
         }
 
-        thread_try_release_all();
         break;
 
     case ACTION_BEFORE_JOIN:

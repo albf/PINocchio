@@ -463,8 +463,8 @@ void handle_cond_signal(void *key, THREADID tid) {
     // but lock on mutex. It could be awake or not, depending on the mutex.
     if (c->locked != NULL) {
         THREAD_INFO * t = c->locked;
-        cond_to_mutex(t, tid);
         c->locked = c->locked->next_lock;
+        cond_to_mutex(t, tid);
     }
 }
 
@@ -494,6 +494,25 @@ void lock_hash_print_lock_hash()
         cerr << "Key: " << s->key << " - status: " << status[s->status];
         if (s != NULL) {
             cerr << " - locked: ";
+            for (THREAD_INFO *t = s->locked; t != NULL; t = t->next_lock) {
+                cerr << t->pin_tid << " | ";
+            }
+        }
+        cerr << std::endl;
+    }
+    cerr << "--------- ----------- ---------" << std::endl;
+}
+
+// Used to debug lock hash states
+void lock_hash_print_cond_hash()
+{
+    COND_ENTRY *s;
+
+    cerr << "--------- condition variable table ---------" << std::endl;
+    for(s = cond_hash; s != NULL; s = (COND_ENTRY *) s->hh.next) {
+        cerr << "  - Key: " << s->key << std::endl;
+        if (s != NULL) {
+            cerr << "  - locked: ";
             for (THREAD_INFO *t = s->locked; t != NULL; t = t->next_lock) {
                 cerr << t->pin_tid << " | ";
             }
