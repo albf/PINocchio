@@ -22,29 +22,13 @@ def test_examples_must_finish(_examples):
         print ex.must_finish(5)
 
 def test_examples_must_finish_pin(_examples):
-    ''' all tests must finish under 10 seconds with different number
+    ''' all tests must finish under 100 seconds with different number
     of threads using PINocchio '''
 
     print header("Test: Examples must finish with pin")
     for ex in _examples:
         if ex.finishes:
-            print ex.must_finish_pin(10)
-
-def test_examples_perf(_examples):
-    ''' execute all tests, that havent failed yet, with perf stat '''
-
-    print header("Test: Examples with perf")
-    for ex in _examples:
-        if ex.finishes:
-            print ex.perf(10)
-
-def test_examples_perf_with_pin(_examples):
-    ''' execute all tests, that havent failed yet, with perf stat and pin '''
-
-    print header("Test: Examples with perf, pin and PINocchio")
-    for ex in _examples:
-        if ex.finishes_with_perf and ex.finishes_with_pin:
-            print ex.pin_with_perf(20)
+            print ex.must_finish_pin(100)
 
 def print_result(_examples):
     ''' Print the result table, using information from all threads '''
@@ -92,20 +76,6 @@ if __name__ == "__main__":
         print "Cant run test 2, missing dependencies: " + " ".join(missing)
     else:
         test_examples_must_finish_pin(examples)
-
-    # Test 3
-    missing = Shell.check_dependencies(programs, ["perf"])
-    if len(missing) > 0:
-        print "Cant run test 3, missing dependencies: " + " ".join(missing)
-    else:
-        test_examples_perf(examples)
-
-    # Test 4
-    missing = Shell.check_dependencies(programs, ["perf", "pin", PINOCCHIO_BINARY])
-    if len(missing) > 0:
-        print "Cant run test 4, missing dependencies: " + " ".join(missing)
-    else:
-        test_examples_perf_with_pin(examples)
 
     # Print results collected
     print_result(examples)

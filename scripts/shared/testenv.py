@@ -14,6 +14,7 @@ PINOCCHIO_DIR = os.path.dirname(TOOLS_DIR)
 PINOCCHIO_BINARY = os.path.join(PINOCCHIO_DIR, "obj-intel64", "PINocchio.so")
 
 NUM_TESTS = 6
+VERBOSE = True
 
 class Shell(object):
     ''' Extra helpful layer for shell related functions '''
@@ -35,7 +36,10 @@ class Shell(object):
     @staticmethod
     def execute(command, timeout):
         ''' execute a given command but kill if it doesn't finish in time '''
-        p = subprocess.Popen(command.split(), cwd=TOOLS_DIR)
+        if VERBOSE:
+            print "  $ " + command
+
+        p = subprocess.Popen(command.split(), cwd=TOOLS_DIR, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         delay = 0.1
 
         passed = 0
@@ -44,9 +48,10 @@ class Shell(object):
             passed += delay
             if passed > timeout:
                 p.kill()
-                return None
+                return None, None, None
 
-        return p.returncode
+        out, err = p.communicate()
+        return p.returncode, out, err
 
     @staticmethod
     def create_examples():
@@ -82,6 +87,13 @@ class Shell(object):
                 continue
 
         return missing
+
+
+def _threads_str(t):
+    if t > 1:
+        return " threads"
+    return " thread"
+
 
 class Example(object):
     ''' Represents a example, which should have a *_app.c file under dir
@@ -141,13 +153,13 @@ class Example(object):
         ''' attempt to run the example using different thread numbers '''
         for t in self.threads:
             command = self.path + " " + str(t)
-            r = Shell.execute(command, timeout)
+            r, _, _ = Shell.execute(command, timeout)
 
             if r == None:
-                return self.name + ": Failed/timeout to finish with " + str(t) + " threads"
+                return self.name + ": Failed/timeout to finish with " + str(t) + _threads_str(t)
 
             if r != 0:
-                return self.name + ": Returned non-zero (" + str(r) + ") with " + str(r) + " threads"
+                return self.name + ": Returned non-zero (" + str(r) + ") with " + str(t) + _threads_str(t)
 
         self.finishes = True
         return self.name + ": Ok"
@@ -156,16 +168,15 @@ class Example(object):
         ''' same as must_finish, but using pin and PINocchio, also calculates work '''
         for t in self.threads:
             command = "pin -t " + PINOCCHIO_BINARY + " -- " + self.path + " " + str(t)
-            r = Shell.execute(command, timeout)
+            r, _, _ = Shell.execute(command, timeout)
 
             if r == None:
-                return self.name + ": Failed/timeout to finish with " + str(t) + " threads"
+                return self.name + ": Failed/timeout to finish with " + str(t) + _threads_str(t)
 
             if r != 0:
-                return self.name + ": Returned non-zero (" + str(r) + ") with " + str(r) + " threads"
+                return self.name + ": Returned non-zero (" + str(r) + ") with " + str(t) + _threads_str(t)
 
             self.work.append(all_work_from_file(os.path.join(TOOLS_DIR, "trace.json")))
-            print self.work
 
         self.finishes_with_pin = True
         return self.name + ": Ok"
@@ -199,13 +210,13 @@ class Example(object):
             command = "perf stat -o " + os.path.join(TOOLS_DIR, "perf.out")
             command += " -x - -e cycles -e instructions -e cpu-clock "
             command += self.path + " " + str(t)
-            r = Shell.execute(command, timeout)
+            r, _, _ = Shell.execute(command, timeout)
 
             if r == None:
-                return self.name + ": Failed/timeout to finish with " + str(t) + " threads"
+                return self.name + ": Failed/timeout to finish with " + str(t) + _threads_str(t)
 
             if r != 0:
-                return self.name + ": Returned non-zero (" + str(r) + ") with " + str(r) + " threads"
+                return self.name + ": Returned non-zero (" + str(r) + ") with " + str(t) + _threads_str(t)
 
             self.parse_perf(False)
 
@@ -219,13 +230,13 @@ class Example(object):
             command += " -x - -e cycles -e instructions -e cpu-clock "
             command += " pin -t " + PINOCCHIO_BINARY + " -- "
             command += self.path + " " + str(t)
-            r = Shell.execute(command, timeout)
+            r, _, _ = Shell.execute(command, timeout)
 
             if r == None:
-                return self.name + ": Failed/timeout to finish with " + str(t) + " threads"
+                return self.name + ": Failed/timeout to finish with " + str(t) + _threads_str(t)
 
             if r != 0:
-                return self.name + ": Returned non-zero (" + str(r) + ") with " + str(r) + " threads"
+                return self.name + ": Returned non-zero (" + str(r) + ") with " + str(t) + _threads_str(t)
 
             self.parse_perf(True)
 
