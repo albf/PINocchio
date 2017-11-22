@@ -6,8 +6,6 @@
 
 #define REDUCTION_SIZE 128          // Number of traces to be removed once limit is reached.
 
-#define OUTPUTFILE "trace.json"     // TODO: Change how name is defined
-
 #include "thread.h"
 #include "pin.H"
 

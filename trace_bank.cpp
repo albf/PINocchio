@@ -1,5 +1,6 @@
 #include "trace_bank.h"
 #include "error.h"
+#include "knob.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
@@ -193,8 +194,8 @@ void trace_bank_dump()
     char str[32*MAX_BANK_SIZE];
     ofstream f;
 
-    DEBUG(cerr << "[Trace Bank] Dumping report to trace.json" << std::endl);
-    f.open(OUTPUTFILE);
+    DEBUG(cerr << "[Trace Bank] Dumping report to " << knob_output_file.Value() << std::endl);
+    f.open(knob_output_file.Value().c_str());
 
     f << "{\n" <<
       "  \"end\":" << find_end() << ",\n";

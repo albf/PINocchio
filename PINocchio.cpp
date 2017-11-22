@@ -8,14 +8,10 @@
 #include <pthread.h>
 #include <semaphore.h>
 #include "error.h"
+#include "knob.h"
 #include "pin.H"
 
-INT32 Usage()
-{
-    cerr << "PINocchio helps (or not) to find if a multithread application scales" << std::endl;
-    cerr << KNOB_BASE::StringKnobSummary() << std::endl;
-    return -1;
-}
+
 
 /*
 pthread_mutex_lock, pthread_mutex_trylock, pthread_mutex_unlock
@@ -556,18 +552,11 @@ VOID instruction(INS ins, VOID *v)
 
 int main(int argc, char *argv[])
 {
-    cerr <<  "===============================================" << std::endl;
-    cerr << " _ __ (_)_ __   ___   ___ ___| |__ (_) ___\n\
-| \'_ \\| | \'_ \\ / _ \\ / __/ __| \'_ \\| |/ _ \\ \n\
-| |_) | | | | | (_) | (_| (__| | | | | (_) | \n\
-| .__/|_|_| |_|\\___/ \\___\\___|_| |_|_|\\___/ \n\
-|_|\n";
-    cerr <<  "    Application instrumented by PINocchio" << std::endl;
-    cerr <<  "===============================================" << std::endl;
+    knob_welcome();
 
     // Print usage if help was called.
     if(PIN_Init(argc, argv)) {
-        return Usage();
+        return knob_usage();
     }
 
     // Initialize sync structure 
