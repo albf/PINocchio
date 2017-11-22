@@ -88,10 +88,11 @@ int main(int argc , char **argv)
 
     if(argc > 1) {
         num_threads = atoi(argv[1]);
-        if(num_threads < 2) {
+        if(num_threads < 1) {
             fprintf(stderr, "num_threads must be at least 2 for this example");
         }
     }
+    num_threads++;
 
     pthread_t *threads = (pthread_t *) malloc(num_threads * sizeof(pthread_t));;
     pthread_cond_init(&sig_consumer, NULL);
