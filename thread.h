@@ -64,6 +64,8 @@ void thread_unlock(THREAD_INFO *target, THREAD_INFO *unlocker);
 
 void thread_sleep(THREAD_INFO *target);
 
+int thread_has_advanced();
+
 // Debug funtion, print thread table on stderr
 void print_threads();
 

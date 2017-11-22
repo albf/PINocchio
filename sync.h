@@ -3,6 +3,8 @@
 
 #include "pin.H"
 
+#define WATCHER_SLEEP 2     // Seconds between each watchers check.
+
 // --- Communication related ---
 
 // Used to lock controller and msg

@@ -24,6 +24,9 @@ void exec_tracker_plus();
 //  Return 1 if there is no one running or waiting, 0 otherwise.
 int exec_track_is_empty();
 
+// Returns 1 if there is any change since previous call and 0 otherwise.
+int exec_tracker_changed();
+
 // Debug function, print what heaps currently hold.
 void exec_tracker_print();
 

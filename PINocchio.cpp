@@ -546,7 +546,6 @@ VOID instruction(INS ins, VOID *v)
     } else {
         INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)ins_handler,
                         IARG_END);
-
     }
 }
 

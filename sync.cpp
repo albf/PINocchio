@@ -16,7 +16,20 @@ THREADID creator_pin_tid;
 
 REENTRANT_LOCK create_lock;
 
+// are moving. Basically, after a few seconds, something
+// should happen, or it's locked due unsupported functions.
+VOID static watcher(VOID * arg) {
+    while(1) {
+        PIN_Sleep(WATCHER_SLEEP*1000);
 
+        PIN_MutexLock(&sync_mutex);
+        if (thread_has_advanced() <= 0) {
+            cerr << "[Pinocchio] Execution is stopped, likely due unsupported locking function" << std::endl;
+            fail();
+        }
+        PIN_MutexUnlock(&sync_mutex);
+    }
+}
 
 void sync_init()
 {
@@ -31,8 +44,10 @@ void sync_init()
     create_lock.busy = 0;
     create_lock.locked = NULL;
 
-    // Lastly, init thread, trace bank and exec tracker structures.
+    // Lastly, init thread, trace bank and exec tracker structures and start watcher.
     thread_init();
+
+    PIN_SpawnInternalThread(watcher, 0, 0, NULL);
 }
 
 void sync(ACTION *action)

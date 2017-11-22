@@ -121,6 +121,11 @@ void thread_sleep(THREAD_INFO *target)
     exec_tracker_sleep(target);
 }
 
+// It has advanced if exec_tracker ins_max has changed
+int thread_has_advanced() {
+    return exec_tracker_changed();
+}
+
 void print_threads()
 {
     const char *status[] = {"UNLOCKED", "LOCKED", "UNREGISTERED", "FINISHED"};

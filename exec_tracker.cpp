@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
-#include "thread.h"
 #include "exec_tracker.h"
 
 struct ORDERED_LIST {
@@ -10,13 +9,13 @@ struct ORDERED_LIST {
 
     int running;
     UINT64 ins_max;
+    UINT64 previous_max;
 };
 
 ORDERED_LIST waiting_list;
 
 // Init list (static initialized). Compare function should
 // be used to define what thread should be awaked first.
-
 void exec_tracker_init()
 {
     waiting_list.start = NULL;
@@ -24,13 +23,12 @@ void exec_tracker_init()
 
     waiting_list.running = 0;
     waiting_list.ins_max = 0;
+    waiting_list.previous_max = 0;
 }
-
 
 // Exposed API, used by sync. They are just simple operations using
 // the list. Tracker shouldn't unlock or do anything but keep track on
 // what threads should (if any) be awake next or are waiting.
-
 void exec_tracker_insert(THREAD_INFO *t)
 {
     // Empty list.
@@ -129,6 +127,18 @@ void exec_tracker_plus()
 int exec_track_is_empty()
 {
     return ((waiting_list.running == 0) && (waiting_list.start == NULL)) ? 1 : 0;
+}
+
+int exec_tracker_changed() {
+    UINT64 previous;
+
+    previous = waiting_list.previous_max;
+    waiting_list.previous_max = waiting_list.ins_max;
+
+    if (waiting_list.ins_max == previous) {
+        return 0;
+    }
+    return 1;
 }
 
 void exec_tracker_print() {
