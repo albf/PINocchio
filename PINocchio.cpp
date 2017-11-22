@@ -277,7 +277,7 @@ VOID after_create(THREADID tid)
     sync(&action);
 }
 
-VOID before_join(pthread_t thread, THREADID tid)
+int hj_before_join(pthread_t thread, THREADID tid)
 {
     DEBUG(cerr << "before_join" << std::endl);
 
@@ -287,6 +287,7 @@ VOID before_join(pthread_t thread, THREADID tid)
         {(void *) thread},
     };
     sync(&action);
+    return 0;
 }
 
 VOID module_load_handler(IMG img, void *v)
@@ -465,15 +466,13 @@ VOID module_load_handler(IMG img, void *v)
         DEBUG(cerr << "pthread_create registered" << std::endl);
     }
 
-    // Look for pthread_join and insert callbacks
+    // Look for pthread_join and hijack it
     rtn = RTN_FindByName(img, "pthread_join");
     if(RTN_Valid(rtn)) {
         DEBUG(cerr << "Found pthread_join on image" << std::endl);
-        RTN_Open(rtn);
-        RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)before_join,
-                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+        RTN_ReplaceSignature(rtn, (AFUNPTR)hj_before_join,
+                        IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
                        IARG_THREAD_ID, IARG_END);
-        RTN_Close(rtn);
         DEBUG(cerr << "pthread_join registered" << std::endl);
     }
 }
@@ -558,7 +557,7 @@ int main(int argc, char *argv[])
         return knob_usage();
     }
 
-    // Initialize sync structure 
+    // Initialize sync structure
     sync_init();
 
     // Hadler for instructions
