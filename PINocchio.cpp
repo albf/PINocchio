@@ -212,7 +212,7 @@ int hj_pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr) {
     DEBUG(cerr << "pthread_cond_init called: " << cond << std::endl);
     THREADID tid = PIN_ThreadId();
     if (attr != NULL) {
-        cerr << "[PINocchio] Error: pthread_cond_init attr should be NULL on tid: " << tid << std::endl;
+        cerr << "Error: pthread_cond_init attr should be NULL on tid: " << tid << std::endl;
         fail();
     }
 
@@ -297,7 +297,7 @@ VOID module_load_handler(IMG img, void *v)
 {
     DEBUG(cerr << "module_load_handler" << std::endl);
     if(img == IMG_Invalid()) {
-        cerr << "ModuleLoadallback received invalid IMG" << std::endl;
+        cerr << "[PINocchio] Internal Error: ModuleLoadallback received invalid IMG" << std::endl;
         return;
     }
 
@@ -488,7 +488,7 @@ VOID thread_start(THREADID thread_id, CONTEXT *ctxt, INT32 flags, VOID *v)
 
     // Check if thread id is under limit
     if(thread_id >= MAX_THREADS) {
-        cerr << "[PINocchio] Internal error: thread_id not allowed: " << thread_id << std::endl;
+        cerr << "[PINocchio] Internal error: Too many threads, can't create thread " << thread_id << std::endl;
         fail();
     }
 
@@ -557,7 +557,12 @@ VOID instruction(INS ins, VOID *v)
 int main(int argc, char *argv[])
 {
     cerr <<  "===============================================" << std::endl;
-    cerr <<  "Application instrumented by PINocchio" << std::endl;
+    cerr << " _ __ (_)_ __   ___   ___ ___| |__ (_) ___\n\
+| \'_ \\| | \'_ \\ / _ \\ / __/ __| \'_ \\| |/ _ \\ \n\
+| |_) | | | | | (_) | (_| (__| | | | | (_) | \n\
+| .__/|_|_| |_|\\___/ \\___\\___|_| |_|_|\\___/ \n\
+|_|\n";
+    cerr <<  "    Application instrumented by PINocchio" << std::endl;
     cerr <<  "===============================================" << std::endl;
 
     // Print usage if help was called.

@@ -121,7 +121,7 @@ static MUTEX_ENTRY * handle_no_mutex(MUTEX_ENTRY *s, void * key)
 {
     if(s == NULL) {
         s = add_mutex_entry(key);
-        cerr << "Warning: Non-existent mutex acessed: " << key << ". Implicit entry created." << std::endl;
+        cerr << "[PINocchio] Warning: Non-existent mutex acessed: " << key << ". Implicit entry created." << std::endl;
     }
     return s;
 }
@@ -132,13 +132,13 @@ void handle_mutex_destroy(void *key)
 
     // Mutex doesn't even exist. Just return.
     if(s == NULL) {
-        cerr << "Warning: Destroy on already unexistent mutex." << std::endl;
+        cerr << "[PINocchio] Warning: Destroy on already unexistent mutex." << std::endl;
         return;
     }
 
     // Destroying a mutex with other threads waiting.
     if(s->locked != NULL) {
-        cerr << "Mutex destroyed when other threads are waiting." << std::endl;
+        cerr << "Error: Mutex destroyed when other threads are waiting." << std::endl;
         fail();
     }
 
@@ -209,7 +209,7 @@ void handle_unlock(void *key, THREADID tid)
         s->status = M_UNLOCKED;
     } else {
         // Odd case, won't change anything.
-        cerr << "Warning: Unlock on already unlocked mutex." << std::endl;
+        cerr << "[PINocchio] Warning: Unlock on already unlocked mutex." << std::endl;
     }
 
     return; 
@@ -254,7 +254,7 @@ static void add_semaphore_entry(void *key, int value)
 
 static void fail_on_no_semaphore(SEMAPHORE_ENTRY *s, void * key) {
     if(s == NULL) {
-        cerr << "Non-existent semaphore acessed: " << key << "." << std::endl;
+        cerr << "Error: Non-existent semaphore acessed: " << key << "." << std::endl;
         fail();
     }
 }
@@ -265,13 +265,13 @@ void handle_semaphore_destroy(void *key)
 
     // Semaphore doesn't even exist. Just return.
     if(s == NULL) {
-        cerr << "Warning: Destroy on already unexistent semaphore." << std::endl;
+        cerr << "[PINocchio] Warning: Destroy on already unexistent semaphore." << std::endl;
         return;
     }
 
     // Destroying a semaphore with other threads waiting.
     if(s->locked != NULL) {
-        cerr << "Semaphore destroyed when other threads are waiting." << std::endl;
+        cerr << "Error: Semaphore destroyed when other threads are waiting." << std::endl;
         fail();
     }
 
@@ -295,7 +295,7 @@ void handle_semaphore_init(void *key, int value)
         return;
     }
     if(s->locked != NULL) {
-        cerr << "Semaphore destroyed (by init) when other threads are waiting." << std::endl;
+        cerr << "Error: Semaphore destroyed (by init) when other threads are waiting." << std::endl;
         fail();
     }
 
@@ -388,7 +388,7 @@ static void insert_cond_locked(COND_ENTRY *c, THREAD_INFO *entry)
 static void fail_on_no_cond(COND_ENTRY *s, void * key)
 {
     if(s == NULL) {
-        cerr << "Non-existent condition variable acessed: " << key << "." << std::endl;
+        cerr << "Error: Non-existent condition variable acessed: " << key << "." << std::endl;
         fail();
     }
 }
@@ -425,13 +425,13 @@ void handle_cond_destroy(void *key)
 
     // Condition variable doesn't even exist. Just return.
     if(c == NULL) {
-        cerr << "Warning: Destroy on already unexistent condition." << std::endl;
+        cerr << "[PINocchio] Warning: Destroy on already unexistent condition." << std::endl;
         return;
     }
 
     // Destroying a condition variable with other threads waiting.
     if(c->locked != NULL) {
-        cerr << "Semaphore destroyed when other threads are waiting." << std::endl;
+        cerr << "Error: Semaphore destroyed when other threads are waiting." << std::endl;
         fail();
     }
 
@@ -447,7 +447,7 @@ void handle_cond_init(void *key)
         return;
     }
     if(c->locked != NULL) {
-        cerr << "Condition variable destroyed (by init) when other threads are waiting." << std::endl;
+        cerr << "Error: Condition variable destroyed (by init) when other threads are waiting." << std::endl;
         fail();
     }
 
@@ -547,7 +547,6 @@ JOIN_ENTRY *get_join_entry(pthread_t key)
 // Return the list of locked threads on join.
 THREAD_INFO * handle_thread_exit(pthread_t key)
 {
-    cerr << "[Lock Hash] handle_thread_exit! - key: " << key << std::endl;
     JOIN_ENTRY *s = get_join_entry(key);
     s->allow = 1;
 

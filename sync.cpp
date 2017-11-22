@@ -3,6 +3,7 @@
 #include "sync.h"
 #include "lock_hash.h"
 #include "thread.h"
+#include "error.h"
 
 // Used to only allow one thread to sync
 PIN_MUTEX sync_mutex;
@@ -53,8 +54,6 @@ void sync(ACTION *action)
         // could change on function. But pointer should be
         // found on start, as it also might be changed.
     case ACTION_REGISTER:
-        cerr << "[Sync] Received register from: " << action->tid << std::endl;
-
         // Thread 0 ins't created by pthread_create, but always existed.
         // Don't wait or do any black magic on that regard.
         if (action->tid > 0) {
@@ -100,8 +99,6 @@ void sync(ACTION *action)
         break;
 
     case ACTION_FINI:
-        cerr << "[Sync] Received fini from: " << action->tid << std::endl;
-
         // Mark as finished
         thread_finish(&all_threads[action->tid]);
 
@@ -115,7 +112,7 @@ void sync(ACTION *action)
 
         // Check if all threads have finished
         if(thread_all_finished() == 1) {
-            cerr << "[Sync] Program finished." << std::endl;
+            DEBUG(cerr << "[Sync] Program finished." << std::endl);
             return;
         }
 

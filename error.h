@@ -2,7 +2,7 @@
 #define ERROR_H_
 
 // Turn on several logs outputs
-#define DEBUG_MODE
+// #define DEBUG_MODE
 
 #ifdef DEBUG_MODE
 #define DEBUG(WHAT) WHAT

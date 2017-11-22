@@ -78,19 +78,19 @@ SANITY_SUBSET := $(TEST_TOOL_ROOTS) $(TEST_ROOTS)
 $(OBJDIR)error$(OBJ_SUFFIX): error.cpp error.h
 	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
 
-$(OBJDIR)thread$(OBJ_SUFFIX): thread.cpp thread.h
+$(OBJDIR)thread$(OBJ_SUFFIX): thread.cpp thread.h error.h
 	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
 
-$(OBJDIR)trace_bank$(OBJ_SUFFIX): trace_bank.cpp trace_bank.h thread.h
+$(OBJDIR)trace_bank$(OBJ_SUFFIX): trace_bank.cpp trace_bank.h thread.h error.h
 	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
 
-$(OBJDIR)lock_hash$(OBJ_SUFFIX): lock_hash.cpp lock_hash.h thread.h uthash.h
+$(OBJDIR)lock_hash$(OBJ_SUFFIX): lock_hash.cpp lock_hash.h thread.h error.h uthash.h
 	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
 
 $(OBJDIR)exec_tracker$(OBJ_SUFFIX): exec_tracker.cpp exec_tracker.h thread.h
 	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
 
-$(OBJDIR)sync$(OBJ_SUFFIX): sync.cpp sync.h lock_hash.h trace_bank.h
+$(OBJDIR)sync$(OBJ_SUFFIX): sync.cpp sync.h lock_hash.h trace_bank.h error.h
 	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
 
 $(OBJDIR)PINocchio$(OBJ_SUFFIX): PINocchio.cpp sync.h trace_bank.h error.h 

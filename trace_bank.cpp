@@ -158,7 +158,7 @@ static UINT64 find_end() {
     for(int i = 0; i < MAX_THREADS; i++) {
         if (traces[i] != NULL) {
             if (traces[i]->end < 1) {
-                cerr << "Warning: Trace dump before thread exit: " << i << std::endl;
+                cerr << "[PINocchio] Warning: Trace dump before thread exit: " << i << std::endl;
             } else if (traces[i]->end > max) {
                 max = traces[i]->end;
             }

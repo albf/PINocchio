@@ -2,6 +2,7 @@
 #include <iostream>
 #include "thread.h"
 #include "trace_bank.h"
+#include "error.h"
 #include "exec_tracker.h"
 
 // Current thread status
@@ -28,7 +29,7 @@ void thread_init()
 
     trace_bank_init();
     exec_tracker_init();
-    cerr << "[Thread] Threads structure initialized" << std::endl;
+    DEBUG(cerr << "[Thread] Threads structure initialized" << std::endl);
 }
 
 // Returns:  1 if all threads have finished,
@@ -42,10 +43,10 @@ int thread_all_finished()
     // It's finished, check if it's deadlocked.
     for(int i = 0; i < MAX_THREADS; i++) {
         if(all_threads[i].status == UNLOCKED) {
-            cerr << "[Thread] Internal Error: exec_track says it's empty but a thread is running: ";
+            cerr << "[PINocchio] Internal Error: exec_track says it's empty but a thread is running: ";
             cerr << "i" << std::endl;
         } else if (all_threads[i].status == LOCKED) {
-            cerr << "[Thread] Deadlock: Thread locked: ";
+            cerr << "[PINocchio] Error: Deadlock on thread ";
             cerr << "i" << std::endl;
         }
     }
