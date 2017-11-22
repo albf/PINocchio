@@ -77,7 +77,11 @@ void thread_start(THREAD_INFO *target, THREAD_INFO *creator)
     target->status = UNLOCKED;
     trace_bank_register(target->pin_tid, target->ins_count);
 
-    exec_tracker_insert(target);
+    // Thread start running or a deadlock might happen.
+    // If, for some reason, there is someone really advanced, next sync
+    // will stop anything important.
+    exec_tracker_plus();
+    PIN_SemaphoreSet(&target->active);
 }
 
 void thread_finish(THREAD_INFO *target)

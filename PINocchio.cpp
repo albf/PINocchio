@@ -482,7 +482,7 @@ VOID module_load_handler(IMG img, void *v)
     }
 }
 
-VOID thread_start(THREADID thread_id, CONTEXT *ctxt, INT32 flags, VOID *v)
+VOID thread_start_callback(THREADID thread_id, CONTEXT *ctxt, INT32 flags, VOID *v)
 {
     cerr << "[PINocchio] Thread Initialized: " << thread_id << std::endl;
 
@@ -500,7 +500,7 @@ VOID thread_start(THREADID thread_id, CONTEXT *ctxt, INT32 flags, VOID *v)
     sync(&action);
 }
 
-VOID thread_fini(THREADID thread_id, CONTEXT const *ctxt, INT32 flags, VOID *v)
+VOID thread_fini_callback(THREADID thread_id, CONTEXT const *ctxt, INT32 flags, VOID *v)
 {
     cerr << "[PINocchio] Thread Finished: " << thread_id << std::endl;
 
@@ -577,10 +577,10 @@ int main(int argc, char *argv[])
     INS_AddInstrumentFunction(instruction, 0);
 
     // Handler for thread creation
-    PIN_AddThreadStartFunction(thread_start, 0);
+    PIN_AddThreadStartFunction(thread_start_callback, 0);
 
     // Handler for thread Fini
-    PIN_AddThreadFiniFunction(thread_fini, 0);
+    PIN_AddThreadFiniFunction(thread_fini_callback, 0);
 
     // Handler for mutex functions
     PIN_InitSymbols();

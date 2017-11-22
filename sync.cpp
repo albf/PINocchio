@@ -59,6 +59,7 @@ void sync(ACTION *action)
         if (action->tid > 0) {
             thread_start(&all_threads[action->tid], &all_threads[creator_pin_tid]);
             pin_tid = action->tid;
+
             // If done > 0, ACTION_AFTER_CREATE already done, must release it,
             // update my own create_value and go on. If not, save pin_tid
             // for later use and mark myself as locked.

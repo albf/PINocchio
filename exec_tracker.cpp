@@ -120,6 +120,11 @@ void exec_tracker_minus()
     waiting_list.running--;
 }
 
+void exec_tracker_plus()
+{
+    waiting_list.running++;
+}
+
 // It's empty if there is no one running or waiting.
 int exec_track_is_empty()
 {

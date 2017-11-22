@@ -18,6 +18,9 @@ THREAD_INFO *exec_tracker_awake();
 // Inform one thread is not running anymore.
 void exec_tracker_minus();
 
+// Inform one extra thread running.
+void exec_tracker_plus();
+
 //  Return 1 if there is no one running or waiting, 0 otherwise.
 int exec_track_is_empty();
 
