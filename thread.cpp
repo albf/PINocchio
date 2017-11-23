@@ -119,8 +119,10 @@ void thread_unlock(THREAD_INFO *target, THREAD_INFO *unlocker)
 
 void thread_sleep(THREAD_INFO *target)
 {
-    PIN_SemaphoreClear(&target->active);
-    exec_tracker_sleep(target);
+    // Should only wait on semaphore if it was actually added to exec tracker
+    if(exec_tracker_sleep(target) > 0) {
+        PIN_SemaphoreClear(&target->active);
+    }
 }
 
 // It has advanced if exec_tracker ins_max has changed

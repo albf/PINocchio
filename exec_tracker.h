@@ -9,8 +9,8 @@ void exec_tracker_init();
 // Insert a newly added thread, should be waiting.
 void exec_tracker_insert(THREAD_INFO *t);
 
-// Mark a thread as sleeping, add it to the list.
-void exec_tracker_sleep(THREAD_INFO *t);
+// Try to add a thread to the list. Returns 0 if should stay awake, 1 otherwise.
+int exec_tracker_sleep(THREAD_INFO *t);
 
 // Mark a thread as running, move frome one heap to another.
 THREAD_INFO *exec_tracker_awake();

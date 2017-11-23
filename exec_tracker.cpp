@@ -38,11 +38,11 @@ void exec_tracker_insert(THREAD_INFO *t)
 
         waiting_list.start = t;
         waiting_list.end = t;
-        
+
         return;
     }
 
-    // At least someone there. Begin searching from the back.    
+    // At least someone there. Begin searching from the back.
     for(THREAD_INFO *c = waiting_list.end; c != NULL; c = c->waiting_previous) {
         // Found it's position, insert there.
         if(t->ins_count > c->ins_count) {
@@ -66,13 +66,23 @@ void exec_tracker_insert(THREAD_INFO *t)
 
     waiting_list.start->waiting_previous = t;
     waiting_list.start = t;
-} 
+}
 
 // Sleeping is basically an insert, but should update running counter.
-void exec_tracker_sleep(THREAD_INFO *t)
+// Returns 1 if it was added and is sleeping, 0 if should stay awake.
+int exec_tracker_sleep(THREAD_INFO *t)
 {
+    // Reasoning: If there is no one running but me and it will be the next first.
+    if (waiting_list.running == 1 &&
+        (waiting_list.start == NULL || t->ins_count <= waiting_list.start->ins_count)) {
+
+        waiting_list.ins_max = t->ins_count;
+        return 0;
+    }
+
     waiting_list.running--;
     exec_tracker_insert(t);
+    return 1;
 }
 
 THREAD_INFO *exec_tracker_awake()
@@ -142,13 +152,13 @@ int exec_tracker_changed() {
 }
 
 void exec_tracker_print() {
-    cerr << "[Exec Tracker] Waiting-List:" << std::endl; 
-    cerr << "  -- running: " << waiting_list.running << std::endl; 
-    cerr << "  -- ins_max: " << waiting_list.ins_max << std::endl; 
-    cerr << "  --    list:"; 
+    cerr << "[Exec Tracker] Waiting-List:" << std::endl;
+    cerr << "  -- running: " << waiting_list.running << std::endl;
+    cerr << "  -- ins_max: " << waiting_list.ins_max << std::endl;
+    cerr << "  --    list:";
     for (THREAD_INFO *t = waiting_list.start; t != NULL; t = t->waiting_next) {
         cerr << " [tid: " << t->pin_tid;
-        cerr << ", ins_count: " << t->ins_count << "]"; 
+        cerr << ", ins_count: " << t->ins_count << "]";
     }
     cerr << std::endl;
 }
