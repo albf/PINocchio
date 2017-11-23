@@ -44,10 +44,12 @@ int thread_all_finished()
     for(int i = 0; i < MAX_THREADS; i++) {
         if(all_threads[i].status == UNLOCKED) {
             cerr << "[PINocchio] Internal Error: exec_track says it's empty but a thread is running: ";
-            cerr << "i" << std::endl;
+            cerr << i << std::endl;
+            fail();
         } else if (all_threads[i].status == LOCKED) {
             cerr << "[PINocchio] Error: Deadlock on thread ";
-            cerr << "i" << std::endl;
+            cerr << i << std::endl;
+            fail();
         }
     }
 
@@ -57,7 +59,7 @@ int thread_all_finished()
 // Check what are the threads that can be released.
 void thread_try_release_all()
 {
-    // In other words: keep trying to start threads until it's not possible. 
+    // In other words: keep trying to start threads until it's not possible.
     for (THREAD_INFO *t = exec_tracker_awake(); t != NULL; t = exec_tracker_awake()) {
         // Release thread semaphore, that's all required to let thread continue.
         PIN_SemaphoreSet(&t->active);
@@ -95,7 +97,7 @@ void thread_finish(THREAD_INFO *target)
 // Should:
 // - Lock the semaphore. It will be awake, so it requires to be locked.
 // - Update trace bank, it's a change on thread state.
-// - Update exec_tracker running counter. 
+// - Update exec_tracker running counter.
 void thread_lock(THREAD_INFO *target)
 {
     PIN_SemaphoreClear(&target->active);
@@ -111,7 +113,7 @@ void thread_unlock(THREAD_INFO *target, THREAD_INFO *unlocker)
     target->status = UNLOCKED;
     target->ins_count = unlocker->ins_count;
     trace_bank_update(target->pin_tid, target->ins_count, UNLOCKED);
-    
+
     exec_tracker_insert(target);
 }
 
