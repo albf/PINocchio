@@ -8,12 +8,14 @@
 // Current thread status
 THREAD_INFO *all_threads;
 THREADID max_tid;
+static int pram;
 
-void thread_init(int pram)
+void thread_init(int _pram)
 {
     // Initialize thread information, including mutex and initial states
     all_threads = (THREAD_INFO *) malloc(MAX_THREADS * sizeof(THREAD_INFO));
     max_tid = 0;
+    pram = _pram;
 
     for(int i = 0; i < MAX_THREADS; i++) {
         all_threads[i].ins_count = 0;
@@ -36,6 +38,18 @@ void thread_init(int pram)
 //           0 otherwise.
 int thread_all_finished()
 {
+    // Not a pram can't rely on exec_track
+    if (pram == 0) {
+        for(int i = 0; i < MAX_THREADS; i++) {
+            if(all_threads[i].status != UNREGISTERED &&
+                all_threads[i].status != FINISHED) {
+
+                return 0;
+            }
+        }
+        return 1;
+    }
+
     if (exec_track_is_empty() == 0) {
         return 0;
     }
