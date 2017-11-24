@@ -19,6 +19,7 @@ if __name__ == "__main__":
 
     trace.validate(data)
     print "json parsed correctly, processing..."
+    unit = data["unit"]
     end = data["end"]
     threads = data["threads"]
 
@@ -53,14 +54,14 @@ if __name__ == "__main__":
     efficiency = work/float(max_duration*len(threads))
 
     print "------"
-    print "Total Work: " + str(work) + " cycles"
-    print "Duration:   " + str(max_duration) + " cycles"
+    print "Total Work: " + str(work) + " " + unit
+    print "Duration:   " + str(max_duration) + " " unit
     print "Efficiency: " + str(efficiency)
     print "------"
 
     print "processing done, plotting graph"
     plt.barh(ypos, duration, left=left, align='center', alpha=0.4, color=color)
-    plt.xlabel('Cycles')
+    plt.xlabel(unit)
     plt.yticks(range(len(threads)), actors)
     plt.title('Threads Events')
     plt.show()
