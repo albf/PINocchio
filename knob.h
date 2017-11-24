@@ -5,6 +5,7 @@
 
 #define DEFAULT_OUTPUT_FILE "trace.json"
 #define DEFAULT_TIME_BASED "0"
+#define DEFAULT_SYNC_PERIOD "1"
 
 void knob_welcome();
 INT32 knob_usage();
@@ -13,5 +14,6 @@ INT32 knob_usage();
 
 extern KNOB<string> knob_output_file;
 extern KNOB<bool> knob_time_based;
+extern KNOB<int> knob_sync_frenquency;
 
 #endif // KNOB_H_

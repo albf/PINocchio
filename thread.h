@@ -19,6 +19,7 @@ typedef enum {
 typedef struct _THREAD_INFO THREAD_INFO;
 struct _THREAD_INFO {
     UINT64 ins_count;               // Number of instructions executed on current
+    UINT64 sync_holder;             // Last synced moment, only used when sync_period > 1
 
     void *holder;                   // Saves parameters from being dirty between before_* and after_* calls
                                     // *holder is also used to save mutex used on condition variables.

@@ -11,6 +11,8 @@
 #include "knob.h"
 #include "pin.H"
 
+static int sync_period;
+
 /*
 pthread_mutex_lock, pthread_mutex_trylock, pthread_mutex_unlock
 sem_destroy, sem_getvalue, sem_init, sem_post, sem_trywait and sem_wait
@@ -540,13 +542,44 @@ VOID mem_ins_handler(THREADID tid)
         .action_type = ACTION_DONE,
     };
     sync(&action);
-
 }
 
 VOID instruction(INS ins, VOID *v)
 {
     if (INS_IsMemoryRead(ins) || INS_IsMemoryWrite(ins)) {
         INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)mem_ins_handler,
+                        IARG_THREAD_ID, IARG_END);
+    } else {
+        INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)ins_handler,
+                        IARG_THREAD_ID, IARG_END);
+    }
+}
+
+
+
+// Slightly different version when period is not 0 and results are approximate.
+
+VOID mem_ins_handler_approximate(THREADID tid)
+{
+    // Memory Instruction callback, update instruction counter
+    all_threads[(int)tid].ins_count++;
+
+    if (((all_threads[(int)tid].ins_count - all_threads[(int)tid].sync_holder)/sync_period)>0) {
+        all_threads[(int)tid].sync_holder = all_threads[(int)tid].ins_count;
+
+        // For approximate measure, some sync will be ignored.
+        ACTION action = {
+            .tid = tid,
+            .action_type = ACTION_DONE,
+        };
+        sync(&action);
+    }
+}
+
+VOID instruction_approximate(INS ins, VOID *v)
+{
+    if (INS_IsMemoryRead(ins) || INS_IsMemoryWrite(ins)) {
+        INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)mem_ins_handler_approximate,
                         IARG_THREAD_ID, IARG_END);
     } else {
         INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)ins_handler,
@@ -564,13 +597,19 @@ int main(int argc, char *argv[])
     }
 
     bool pram = !knob_time_based.Value();
+    sync_period = knob_sync_frenquency.Value();
+    cerr << "whats the period: " << sync_period << std::endl;
 
     // Initialize sync structure
     sync_init(pram);
 
     // Hadler for instructions
     if (pram > 0) {
-        INS_AddInstrumentFunction(instruction, 0);
+        if (sync_period == 1) {
+            INS_AddInstrumentFunction(instruction, 0);
+        } else {
+            INS_AddInstrumentFunction(instruction_approximate, 0);
+        }
     }
 
     // Handler for thread creation

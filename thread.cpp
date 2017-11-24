@@ -19,6 +19,7 @@ void thread_init(int _pram)
 
     for(int i = 0; i < MAX_THREADS; i++) {
         all_threads[i].ins_count = 0;
+        all_threads[i].sync_holder = 0;
         all_threads[i].pin_tid = i;
 
         all_threads[i].status = UNREGISTERED;
