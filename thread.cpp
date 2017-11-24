@@ -90,7 +90,7 @@ void thread_start(THREAD_INFO *target, THREAD_INFO *creator)
 
     // Thread 0 is special, will pass NULL and starts with 0.
     // Other threads should start running and should be awake at first round.
-    target->ins_count = creator != NULL ? (creator->ins_count-1) : 0;
+    target->ins_count = creator != NULL ? creator->ins_count : 0;
     target->status = UNLOCKED;
     trace_bank_register(target->pin_tid, target->ins_count);
 
@@ -126,7 +126,12 @@ void thread_lock(THREAD_INFO *target)
 void thread_unlock(THREAD_INFO *target, THREAD_INFO *unlocker)
 {
     target->status = UNLOCKED;
-    target->ins_count = unlocker->ins_count;
+
+    // Why check it? Because with the period option, a thread could be awaken
+    // by a thread in the past. Avoid time travel, please.
+    if (unlocker->ins_count > target->ins_count) {
+        target->ins_count = unlocker->ins_count;
+    }
     trace_bank_update(target->pin_tid, target->ins_count, UNLOCKED);
 
     exec_tracker_insert(target);
