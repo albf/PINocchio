@@ -105,8 +105,8 @@ class Example(object):
 
         self.finishes = False
         self.finishes_with_pin = False
-        self.finishes_with_perf_time = False
-        self.finishes_with_perf_period = False
+        self.finishes_with_time = False
+        self.finishes_with_period = False
         self.finishes_with_pin_and_perf = False
 
         # List of results following the order of self.threads
@@ -118,7 +118,7 @@ class Example(object):
 
     def result(self):
         ''' generate string used as result table entry '''
-        return [self.name, self.finishes, self.finishes_with_pin, self.finishes_with_perf_time, self.finishes_with_perf_period]
+        return [self.name, self.finishes, self.finishes_with_pin, self.finishes_with_time, self.finishes_with_period]
 
     def work_result(self):
         ''' generate string used as work result table entry '''
@@ -195,7 +195,7 @@ class Example(object):
             if r != 0:
                 return self.name + ": Returned non-zero (" + str(r) + ") with " + str(t) + _threads_str(t)
 
-        self.finishes_with_perf_time = True
+        self.finishes_with_time = True
         return self.name + ": Ok"
 
     def must_finish_pin_with_period(self, timeout):
