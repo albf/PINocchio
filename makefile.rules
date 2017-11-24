@@ -22,7 +22,7 @@ ident:
 TEST_TOOL_ROOTS := PINocchio
 
 # This defines the tests to be run that were not already defined in TEST_TOOL_ROOTS.
-TEST_ROOTS := 
+TEST_ROOTS :=
 
 # This defines the tools which will be run during the the tests, and were not already defined in
 # TEST_TOOL_ROOTS.
@@ -49,7 +49,7 @@ OBJECT_ROOTS :=
 DLL_ROOTS :=
 
 # This defines any static libraries (archives), that need to be built.
-LIB_ROOTS := 
+LIB_ROOTS :=
 
 ###### Define the sanity subset ######
 
@@ -75,32 +75,32 @@ SANITY_SUBSET := $(TEST_TOOL_ROOTS) $(TEST_ROOTS)
 ##############################################################
 
 # Build the intermediate object file.
-$(OBJDIR)error$(OBJ_SUFFIX): error.cpp error.h
+$(OBJDIR)log$(OBJ_SUFFIX): log.cpp log.h
 	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
 
 $(OBJDIR)knob$(OBJ_SUFFIX): knob.cpp knob.h
 	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
 
-$(OBJDIR)thread$(OBJ_SUFFIX): thread.cpp thread.h error.h
+$(OBJDIR)thread$(OBJ_SUFFIX): thread.cpp thread.h log.h
 	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
 
-$(OBJDIR)trace_bank$(OBJ_SUFFIX): trace_bank.cpp trace_bank.h thread.h error.h knob.h
+$(OBJDIR)trace_bank$(OBJ_SUFFIX): trace_bank.cpp trace_bank.h thread.h log.h knob.h
 	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
 
-$(OBJDIR)lock_hash$(OBJ_SUFFIX): lock_hash.cpp lock_hash.h thread.h error.h uthash.h
+$(OBJDIR)lock_hash$(OBJ_SUFFIX): lock_hash.cpp lock_hash.h thread.h log.h uthash.h
 	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
 
 $(OBJDIR)exec_tracker$(OBJ_SUFFIX): exec_tracker.cpp exec_tracker.h
 	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
 
-$(OBJDIR)sync$(OBJ_SUFFIX): sync.cpp sync.h lock_hash.h trace_bank.h error.h
+$(OBJDIR)sync$(OBJ_SUFFIX): sync.cpp sync.h lock_hash.h trace_bank.h log.h
 	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
 
-$(OBJDIR)PINocchio$(OBJ_SUFFIX): PINocchio.cpp sync.h trace_bank.h error.h knob.h
+$(OBJDIR)PINocchio$(OBJ_SUFFIX): PINocchio.cpp sync.h trace_bank.h log.h knob.h
 	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
 
 # Build the tool as a dll (shared object).
-$(OBJDIR)PINocchio$(PINTOOL_SUFFIX): $(OBJDIR)error$(OBJ_SUFFIX) $(OBJDIR)knob$(OBJ_SUFFIX) $(OBJDIR)thread$(OBJ_SUFFIX) $(OBJDIR)sync$(OBJ_SUFFIX) $(OBJDIR)lock_hash$(OBJ_SUFFIX) $(OBJDIR)exec_tracker$(OBJ_SUFFIX) $(OBJDIR)trace_bank$(OBJ_SUFFIX) $(OBJDIR)PINocchio$(OBJ_SUFFIX)
+$(OBJDIR)PINocchio$(PINTOOL_SUFFIX): $(OBJDIR)log$(OBJ_SUFFIX) $(OBJDIR)knob$(OBJ_SUFFIX) $(OBJDIR)thread$(OBJ_SUFFIX) $(OBJDIR)sync$(OBJ_SUFFIX) $(OBJDIR)lock_hash$(OBJ_SUFFIX) $(OBJDIR)exec_tracker$(OBJ_SUFFIX) $(OBJDIR)trace_bank$(OBJ_SUFFIX) $(OBJDIR)PINocchio$(OBJ_SUFFIX)
 	$(LINKER) $(TOOL_LDFLAGS_NOOPT) $(LINK_EXE)$@ $(^:%.h=) $(TOOL_LPATHS) $(TOOL_LIBS)
 
 # This section contains the build rules for all binaries that have special build rules.
@@ -108,4 +108,4 @@ $(OBJDIR)PINocchio$(PINTOOL_SUFFIX): $(OBJDIR)error$(OBJ_SUFFIX) $(OBJDIR)knob$(
 
 EXAMPLES_CFLAGS = -lpthread
 $(OBJDIR)%_app$(EXE_SUFFIX): examples/%_app.c
-	$(CC) -o $@ $< $(EXAMPLES_CFLAGS) 	
+	$(CC) -o $@ $< $(EXAMPLES_CFLAGS)

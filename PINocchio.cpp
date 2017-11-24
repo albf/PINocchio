@@ -7,7 +7,7 @@
 #include <iostream>
 #include <pthread.h>
 #include <semaphore.h>
-#include "error.h"
+#include "log.h"
 #include "knob.h"
 #include "pin.H"
 
@@ -206,7 +206,7 @@ int hj_pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr, T
     DEBUG(cerr << "pthread_cond_init called: " << cond << std::endl);
 
     if (attr != NULL) {
-        cerr << "Error: pthread_cond_init attr should be NULL on tid: " << tid << std::endl;
+        cerr << "Error: pthread_cond_init attr should be NULL on tid: " << print_id(tid) << std::endl;
         fail();
     }
 
@@ -489,11 +489,11 @@ VOID module_load_handler(IMG img, void *v)
 
 VOID thread_start_callback(THREADID thread_id, CONTEXT *ctxt, INT32 flags, VOID *v)
 {
-    cerr << "[PINocchio] Thread Initialized: " << thread_id << std::endl;
+    cerr << "[PINocchio] Thread Initialized: " << print_id(thread_id) << std::endl;
 
     // Check if thread id is under limit
     if(thread_id >= MAX_THREADS) {
-        cerr << "[PINocchio] Internal error: Too many threads, can't create thread " << thread_id << std::endl;
+        cerr << "[PINocchio] Internal error: Too many threads, can't create thread " << print_id(thread_id) << std::endl;
         fail();
     }
 
@@ -507,7 +507,7 @@ VOID thread_start_callback(THREADID thread_id, CONTEXT *ctxt, INT32 flags, VOID 
 
 VOID thread_fini_callback(THREADID thread_id, CONTEXT const *ctxt, INT32 flags, VOID *v)
 {
-    cerr << "[PINocchio] Thread Finished: " << thread_id << std::endl;
+    cerr << "[PINocchio] Thread Finished: " << print_id(thread_id) << std::endl;
 
     ACTION action = {
         thread_id,

@@ -1,6 +1,6 @@
 #include <iostream>
 #include "lock_hash.h"
-#include "error.h"
+#include "log.h"
 #include "pin.H"
 
 // Current lock status
@@ -212,7 +212,7 @@ void handle_unlock(void *key, THREADID tid)
         cerr << "[PINocchio] Warning: Unlock on already unlocked mutex." << std::endl;
     }
 
-    return; 
+    return;
 }
 
 static void insert_semaphore_locked(SEMAPHORE_ENTRY *sem, THREAD_INFO *entry)
@@ -220,7 +220,7 @@ static void insert_semaphore_locked(SEMAPHORE_ENTRY *sem, THREAD_INFO *entry)
     sem->locked = insert(sem->locked, entry);
 }
 
-// get_semaphore_entry will find a given entry or return null. 
+// get_semaphore_entry will find a given entry or return null.
 static SEMAPHORE_ENTRY *get_semaphore_entry(void *key)
 {
     SEMAPHORE_ENTRY *s;
@@ -336,11 +336,11 @@ void handle_semaphore_wait(void *key, THREADID tid)
 
     if(s->value > 0) {
         s->value = s->value - 1;
-        return; 
+        return;
     }
 
     THREAD_INFO *t = &all_threads[tid];
-    thread_lock(&all_threads[tid]); 
+    thread_lock(&all_threads[tid]);
 
     insert_semaphore_locked(s, t);
     return;
@@ -554,7 +554,7 @@ THREAD_INFO * handle_thread_exit(pthread_t key)
 }
 
 // handle_before_join deals with join request. If
-// allow, just release thread as usual - do nothing. 
+// allow, just release thread as usual - do nothing.
 // If not, lock on thread exitence and check if others
 // running threads could continue.
 int handle_before_join(pthread_t key, THREADID tid)
@@ -601,5 +601,5 @@ void handle_reentrant_exit(REENTRANT_LOCK *rl, THREADID tid)
     thread_unlock(rl->locked, &all_threads[tid]);
 
     rl->locked = rl->locked->next_lock;
-    return; 
+    return;
 }

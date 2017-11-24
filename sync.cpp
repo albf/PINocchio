@@ -3,7 +3,7 @@
 #include "sync.h"
 #include "lock_hash.h"
 #include "thread.h"
-#include "error.h"
+#include "log.h"
 
 // Used to only allow one thread to sync
 PIN_MUTEX sync_mutex;
@@ -16,7 +16,7 @@ THREADID creator_pin_tid;
 
 REENTRANT_LOCK create_lock;
 
-// are moving. Basically, after a few seconds, something
+// Basically, after a few seconds, something
 // should happen, or it's locked due unsupported functions.
 VOID static watcher(VOID * arg) {
     while(1) {
@@ -45,9 +45,10 @@ void sync_init()
     create_lock.locked = NULL;
 
     // Lastly, init thread, trace bank and exec tracker structures and start watcher.
-    thread_init();
+    THREADID watcher_tid = PIN_SpawnInternalThread(watcher, 0, 0, NULL);
 
-    PIN_SpawnInternalThread(watcher, 0, 0, NULL);
+    log_init(watcher_tid);
+    thread_init();
 }
 
 void sync(ACTION *action)
@@ -140,7 +141,7 @@ void sync(ACTION *action)
 
         // Mutex events should be treated by lock_hash, unlock thread once done.
     case ACTION_LOCK_DESTROY:
-        handle_lock_init(action->arg.p_1); 
+        handle_lock_init(action->arg.p_1);
         break;
 
     case ACTION_LOCK_INIT:

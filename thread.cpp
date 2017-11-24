@@ -2,7 +2,7 @@
 #include <iostream>
 #include "thread.h"
 #include "trace_bank.h"
-#include "error.h"
+#include "log.h"
 #include "exec_tracker.h"
 
 // Current thread status
@@ -44,11 +44,11 @@ int thread_all_finished()
     for(int i = 0; i < MAX_THREADS; i++) {
         if(all_threads[i].status == UNLOCKED) {
             cerr << "[PINocchio] Internal Error: exec_track says it's empty but a thread is running: ";
-            cerr << i << std::endl;
+            cerr << print_id(i) << std::endl;
             fail();
         } else if (all_threads[i].status == LOCKED) {
             cerr << "[PINocchio] Error: Deadlock on thread ";
-            cerr << i << std::endl;
+            cerr << print_id(i) << std::endl;
             fail();
         }
     }

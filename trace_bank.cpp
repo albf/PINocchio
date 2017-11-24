@@ -1,5 +1,5 @@
 #include "trace_bank.h"
-#include "error.h"
+#include "log.h"
 #include "knob.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -137,7 +137,7 @@ void trace_bank_register(THREADID tid, UINT64 time)
     if (traces[tid] != NULL) {
         free(traces[tid]);
     }
-    
+
     traces[tid] = (P_TRACE *) malloc (sizeof(P_TRACE));
 
     traces[tid]->start = time;
@@ -159,7 +159,7 @@ static UINT64 find_end() {
     for(int i = 0; i < MAX_THREADS; i++) {
         if (traces[i] != NULL) {
             if (traces[i]->end < 1) {
-                cerr << "[PINocchio] Warning: Trace dump before thread exit: " << i << std::endl;
+                cerr << "[PINocchio] Warning: Trace dump before thread exit: " << print_id(i) << std::endl;
             } else if (traces[i]->end > max) {
                 max = traces[i]->end;
             }
@@ -213,7 +213,7 @@ void trace_bank_dump()
             }
 
             f << "    {\n" <<
-              "      \"pin-tid\":" << i << ",\n" <<
+              "      \"pin-tid\":" << print_id(i) << ",\n" <<
               "      \"start\":" << traces[i]->start << ",\n" <<
               "      \"samples\":" << str << "\n" <<
               "    }";
@@ -246,11 +246,11 @@ void trace_bank_print()
 
             cerr << "Changes: " << std::endl;
             for(int j = 0; j < tr->total_changes; j++) {
-                cerr << "  time:" << traces[i]->changes[j].time << std::endl; 
-                cerr << "  status:" << traces[i]->changes[j].status << std::endl; 
-                cerr << "-----"<< std::endl; 
+                cerr << "  time:" << traces[i]->changes[j].time << std::endl;
+                cerr << "  status:" << traces[i]->changes[j].status << std::endl;
+                cerr << "-----"<< std::endl;
             }
-            cerr << "--------------------" << std::endl; 
+            cerr << "--------------------" << std::endl;
         }
     }
 }
