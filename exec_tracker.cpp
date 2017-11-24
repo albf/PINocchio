@@ -12,7 +12,7 @@ struct ORDERED_LIST {
     UINT64 previous_max;
 };
 
-ORDERED_LIST waiting_list;
+static ORDERED_LIST waiting_list;
 
 // Init list (static initialized). Compare function should
 // be used to define what thread should be awaked first.

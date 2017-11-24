@@ -1,6 +1,6 @@
 #include "log.h"
 
-THREADID watcher_tid;
+static THREADID watcher_tid;
 
 void log_init(THREADID watcher) {
     watcher_tid = watcher;

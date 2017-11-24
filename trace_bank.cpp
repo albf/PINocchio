@@ -9,12 +9,12 @@
 
 #define FILTER_SIZE (REDUCTION_SIZE+1)/2
 
-P_TRACE * traces [MAX_THREADS];
+static P_TRACE * traces [MAX_THREADS];
 
 // For the timed-version
 // struct timespec start;
-struct timeval start;
-int pram;
+static struct timeval start;
+static int pram;
 
 void trace_bank_init(int pram_)
 {

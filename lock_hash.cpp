@@ -53,10 +53,10 @@ struct _JOIN_ENTRY {
 };
 
 // Since there is only one hash for each type, keeping a global value seems cheaper.
-MUTEX_ENTRY *mutex_hash = NULL;
-SEMAPHORE_ENTRY *semaphore_hash = NULL;
-COND_ENTRY *cond_hash = NULL;
-JOIN_ENTRY *join_hash = NULL;
+static MUTEX_ENTRY *mutex_hash = NULL;
+static SEMAPHORE_ENTRY *semaphore_hash = NULL;
+static COND_ENTRY *cond_hash = NULL;
+static JOIN_ENTRY *join_hash = NULL;
 
 // get_mutex_entry will find a given entry or, if doesn't exist, create one.
 static MUTEX_ENTRY *get_mutex_entry(void *key)

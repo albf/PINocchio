@@ -7,10 +7,6 @@
 
 // --- Communication related ---
 
-// Used to lock controller and msg
-extern PIN_MUTEX msg_mutex;
-extern PIN_MUTEX controller_mutex;
-
 typedef enum {
     ACTION_DONE = 0,
     ACTION_REGISTER = 1,
