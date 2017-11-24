@@ -55,7 +55,7 @@ if __name__ == "__main__":
 
     print "------"
     print "Total Work: " + str(work) + " " + unit
-    print "Duration:   " + str(max_duration) + " " unit
+    print "Duration:   " + str(max_duration) + " " + unit
     print "Efficiency: " + str(efficiency)
     print "------"
 

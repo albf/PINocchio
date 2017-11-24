@@ -598,7 +598,6 @@ int main(int argc, char *argv[])
 
     bool pram = !knob_time_based.Value();
     sync_period = knob_sync_frenquency.Value();
-    cerr << "whats the period: " << sync_period << std::endl;
 
     // Initialize sync structure
     sync_init(pram);
