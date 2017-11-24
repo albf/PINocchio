@@ -30,6 +30,24 @@ def test_examples_must_finish_pin(_examples):
         if ex.finishes:
             print ex.must_finish_pin(100)
 
+def test_examples_must_finish_pin_with_time(_examples):
+    ''' all tests must finish under 100 seconds with different number
+    of threads using PINocchio with time option '''
+
+    print header("Test: Examples must finish with pin using time option")
+    for ex in _examples:
+        if ex.finishes:
+            print ex.must_finish_pin_with_time(100)
+
+def test_examples_must_finish_pin_with_period(_examples):
+    ''' all tests must finish under 100 seconds with different number
+    of threads using PINocchio with period option '''
+
+    print header("Test: Examples must finish with pin using period")
+    for ex in _examples:
+        if ex.finishes:
+            print ex.must_finish_pin_with_period(100)
+
 def print_result(_examples):
     ''' Print the result table, using information from all threads '''
 
@@ -77,7 +95,23 @@ if __name__ == "__main__":
     else:
         test_examples_must_finish_pin(examples)
 
+    # Test 3
+    missing = Shell.check_dependencies(programs, ["pin", PINOCCHIO_BINARY])
+    if len(missing) > 0:
+        print "Cant run test 3, missing dependencies: " + " ".join(missing)
+    else:
+        test_examples_must_finish_pin_with_time(examples)
+
+   # Test 4
+    missing = Shell.check_dependencies(programs, ["pin", PINOCCHIO_BINARY])
+    if len(missing) > 0:
+        print "Cant run test 4, missing dependencies: " + " ".join(missing)
+    else:
+        test_examples_must_finish_pin_with_period(examples)
+
     # Print results collected
     print_result(examples)
-    print_work_result(examples)
-    print_overhead_result(examples)
+
+    # FIXME: work and overhead is not working
+    #print_work_result(examples)
+    #print_overhead_result(examples)

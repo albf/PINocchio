@@ -105,7 +105,8 @@ class Example(object):
 
         self.finishes = False
         self.finishes_with_pin = False
-        self.finishes_with_perf = False
+        self.finishes_with_perf_time = False
+        self.finishes_with_perf_period = False
         self.finishes_with_pin_and_perf = False
 
         # List of results following the order of self.threads
@@ -117,7 +118,7 @@ class Example(object):
 
     def result(self):
         ''' generate string used as result table entry '''
-        return [self.name, self.finishes, self.finishes_with_pin, self.finishes_with_perf, self.finishes_with_pin_and_perf]
+        return [self.name, self.finishes, self.finishes_with_pin, self.finishes_with_perf_time, self.finishes_with_perf_period]
 
     def work_result(self):
         ''' generate string used as work result table entry '''
@@ -179,6 +180,38 @@ class Example(object):
             self.work.append(all_work_from_file(os.path.join(TOOLS_DIR, "trace.json")))
 
         self.finishes_with_pin = True
+        return self.name + ": Ok"
+
+    def must_finish_pin_with_time(self, timeout):
+        ''' same as must_finish, but using pin and PINocchio with timed based (non-PRAM) option'''
+        for t in self.threads:
+            command = " pin -t " + PINOCCHIO_BINARY + " -t -- "
+            command += self.path + " " + str(t)
+            r, _, _ = Shell.execute(command, timeout)
+
+            if r == None:
+                return self.name + ": Failed/timeout to finish with " + str(t) + _threads_str(t)
+
+            if r != 0:
+                return self.name + ": Returned non-zero (" + str(r) + ") with " + str(t) + _threads_str(t)
+
+        self.finishes_with_perf_time = True
+        return self.name + ": Ok"
+
+    def must_finish_pin_with_period(self, timeout):
+        ''' same as must_finish, but using pin and PINocchio with a 1000-period (approximate) option'''
+        for t in self.threads:
+            command = " pin -t " + PINOCCHIO_BINARY + " -p 1000 -- "
+            command += self.path + " " + str(t)
+            r, _, _ = Shell.execute(command, timeout)
+
+            if r == None:
+                return self.name + ": Failed/timeout to finish with " + str(t) + _threads_str(t)
+
+            if r != 0:
+                return self.name + ": Returned non-zero (" + str(r) + ") with " + str(t) + _threads_str(t)
+
+        self.finishes_with_period = True
         return self.name + ": Ok"
 
     def parse_perf(self, isPin):
@@ -268,7 +301,7 @@ class Example(object):
     @staticmethod
     def create_table_names():
         ''' current result values, what values it generates '''
-        return ["Name", "Finishes", "Finishes With Pin", "Finishes With Perf", "Finishes with Perf and Pin"]
+        return ["Name", "Normal", "Pin", "Time", "Period"]
 
     @staticmethod
     def quadratic_range(total):
