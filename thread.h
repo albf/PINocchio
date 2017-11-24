@@ -42,8 +42,8 @@ struct _THREAD_INFO {
 extern THREAD_INFO *all_threads;
 extern THREADID max_tid;
 
-// Init threads control structures 
-void thread_init();
+// Init threads control structures
+void thread_init(int pram);
 
 // Try, based on the heaps and internal states, to release threads.
 void thread_try_release_all();

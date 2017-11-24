@@ -23,7 +23,7 @@ typedef struct {
 } P_TRACE;
 
 // Init trace bank, allocating memory and initializing required fields.
-void trace_bank_init();
+void trace_bank_init(int pram);
 
 // Register a newly created thread. Will consider it active during start.
 void trace_bank_register(THREADID tid, UINT64 time);

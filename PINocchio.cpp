@@ -11,8 +11,6 @@
 #include "knob.h"
 #include "pin.H"
 
-
-
 /*
 pthread_mutex_lock, pthread_mutex_trylock, pthread_mutex_unlock
 sem_destroy, sem_getvalue, sem_init, sem_post, sem_trywait and sem_wait
@@ -565,11 +563,15 @@ int main(int argc, char *argv[])
         return knob_usage();
     }
 
+    bool pram = !knob_time_based.Value();
+
     // Initialize sync structure
-    sync_init();
+    sync_init(pram);
 
     // Hadler for instructions
-    INS_AddInstrumentFunction(instruction, 0);
+    if (pram > 0) {
+        INS_AddInstrumentFunction(instruction, 0);
+    }
 
     // Handler for thread creation
     PIN_AddThreadStartFunction(thread_start_callback, 0);

@@ -50,8 +50,8 @@ struct _ACTION {
     ACTION_ARG arg;
 };
 
-// Init sync structure 
-void sync_init();
+// Init sync structure
+void sync_init(int pram);
 
 // Perform a sync based on a valid action
 void sync(ACTION *action);

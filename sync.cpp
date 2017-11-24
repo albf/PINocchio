@@ -31,7 +31,7 @@ VOID static watcher(VOID * arg) {
     }
 }
 
-void sync_init()
+void sync_init(int pram)
 {
     PIN_MutexInit(&sync_mutex);
 
@@ -45,10 +45,15 @@ void sync_init()
     create_lock.locked = NULL;
 
     // Lastly, init thread, trace bank and exec tracker structures and start watcher.
-    THREADID watcher_tid = PIN_SpawnInternalThread(watcher, 0, 0, NULL);
+    if (pram > 0) {
+        THREADID watcher_tid = PIN_SpawnInternalThread(watcher, 0, 0, NULL);
+        log_init(watcher_tid);
+    } else {
+        // If using time based, there is no watcher, just give log_init an invalid value.
+        log_init(MAX_THREADS + 1);
+    }
 
-    log_init(watcher_tid);
-    thread_init();
+    thread_init(pram);
 }
 
 void sync(ACTION *action)
@@ -59,6 +64,7 @@ void sync(ACTION *action)
     switch(action->action_type) {
     case ACTION_DONE:
         // Thread has finished one step, just mark as waiting.
+        // Note: time-based won't even reach here.
         thread_sleep(&all_threads[action->tid]);
         break;
 

@@ -9,7 +9,7 @@
 THREAD_INFO *all_threads;
 THREADID max_tid;
 
-void thread_init()
+void thread_init(int pram)
 {
     // Initialize thread information, including mutex and initial states
     all_threads = (THREAD_INFO *) malloc(MAX_THREADS * sizeof(THREAD_INFO));
@@ -27,7 +27,7 @@ void thread_init()
         PIN_SemaphoreClear(&all_threads[i].active);
     }
 
-    trace_bank_init();
+    trace_bank_init(pram);
     exec_tracker_init();
     DEBUG(cerr << "[Thread] Threads structure initialized" << std::endl);
 }

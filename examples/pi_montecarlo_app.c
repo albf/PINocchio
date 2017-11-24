@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <sys/time.h>
 
-#define COUNT_MAX 10
 #define NEXEC 10000
 
 typedef struct {

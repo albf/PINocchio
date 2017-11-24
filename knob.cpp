@@ -3,6 +3,7 @@
 #include <iostream>
 
 KNOB<string> knob_output_file(KNOB_MODE_WRITEONCE, "pintool", "o", DEFAULT_OUTPUT_FILE, "specify output filename");
+KNOB<BOOL> knob_time_based(KNOB_MODE_WRITEONCE, "pintool", "t", DEFAULT_TIME_BASED, "perform time-based evaluation (no-pram)");
 
 void knob_welcome() {
     cerr <<  "===============================================" << std::endl;
@@ -13,7 +14,7 @@ void knob_welcome() {
 |_|\n";
     cerr <<  "    Application instrumented by PINocchio" << std::endl;
     cerr <<  "===============================================" << std::endl;
-} 
+}
 
 INT32 knob_usage()
 {

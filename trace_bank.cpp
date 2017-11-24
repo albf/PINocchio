@@ -5,13 +5,24 @@
 #include <stdlib.h>
 #include <iostream>
 #include <fstream>
+#include <sys/time.h>
 
 #define FILTER_SIZE (REDUCTION_SIZE+1)/2
 
 P_TRACE * traces [MAX_THREADS];
 
-void trace_bank_init()
+// For the timed-version
+// struct timespec start;
+struct timeval start;
+int pram;
+
+void trace_bank_init(int pram_)
 {
+    if (pram_ == 0) {
+        gettimeofday(&start, NULL);
+    }
+    pram = pram_;
+
     for(int i = 0; i < MAX_THREADS; i++) {
         traces[i] = NULL;
     }
@@ -116,6 +127,14 @@ void trace_bank_validate()
     }
 }
 
+static UINT64 diff_msec()
+{
+    struct timeval stop;
+    gettimeofday(&stop, NULL);
+
+    return UINT64((stop.tv_sec - start.tv_sec) * 1000 + (stop.tv_usec - start.tv_usec) / 1000);
+}
+
 void trace_bank_update(THREADID tid, UINT64 time, THREAD_STATUS status)
 {
     int n = traces[tid]->total_changes;
@@ -125,7 +144,12 @@ void trace_bank_update(THREADID tid, UINT64 time, THREAD_STATUS status)
         n = traces[tid]->total_changes;
     }
 
-    traces[tid]->changes[n].time = time;
+    if (pram > 0) {
+        traces[tid]->changes[n].time = time;
+    } else {
+        // Only used for time-based, no PRAM mode.
+        traces[tid]->changes[n].time = (UINT64) diff_msec();
+    }
     traces[tid]->changes[n].status = status;
 
     traces[tid]->total_changes++;
@@ -140,7 +164,11 @@ void trace_bank_register(THREADID tid, UINT64 time)
 
     traces[tid] = (P_TRACE *) malloc (sizeof(P_TRACE));
 
-    traces[tid]->start = time;
+    if (pram > 0) {
+        traces[tid]->start = time;
+    } else {
+        traces[tid]->start = diff_msec();
+    }
     traces[tid]->end = 0;
     traces[tid]->total_changes = 0;
     traces[tid]->changes = (CHANGE *) malloc (MAX_BANK_SIZE*sizeof(CHANGE));
@@ -151,7 +179,11 @@ void trace_bank_register(THREADID tid, UINT64 time)
 void trace_bank_finish(THREADID tid, UINT64 time)
 {
     trace_bank_update(tid, time, FINISHED);
-    traces[tid]->end = time;
+    if (pram > 0) {
+        traces[tid]->end = time;
+    } else {
+        traces[tid]->end = diff_msec();
+    }
 }
 
 static UINT64 find_end() {
@@ -199,6 +231,11 @@ void trace_bank_dump()
 
     f << "{\n" <<
       "  \"end\":" << find_end() << ",\n";
+      if (pram > 0) {
+        f << "  \"unit\": \"Cycles\",\n";
+      } else {
+        f << "  \"unit\": \"ms\",\n";
+      }
 
     f << "  \"threads\": [\n";
     int first = 1;
