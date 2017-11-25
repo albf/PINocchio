@@ -17,7 +17,7 @@ It's meant to be used only by sync, since its functions changes thread status.
 void handle_mutex_destroy(void *key);
 
 // Initialize the mutex. Will fail if rewriting a mutex with waiting threads.
-void handle_lock_init(void *key); 
+void handle_lock_init(void *key);
 
 // Will mark thread as locked and insert itself the waiting list or mark the mutex as locked.
 void handle_lock(void *key, THREADID tid);
@@ -25,7 +25,7 @@ void handle_lock(void *key, THREADID tid);
 // Returns 0 if lock was successfull, 1 otherwise. Will fail if doesn't exist.
 int handle_try_lock(void *key);
 
-// Oposite of handle_lock, could awake someone or mark the mutex as unlocked. 
+// Oposite of handle_lock, could awake someone or mark the mutex as unlocked.
 void handle_unlock(void *key, THREADID tid);
 
 
@@ -52,6 +52,31 @@ void handle_semaphore_wait(void *key, THREADID tid);
 
 
 
+/* rwlock Handlers */
+
+// Just destroy the rwlock. Will fail if doesn't exist.
+void handle_rwlock_destroy(void *key);
+
+// Initialize rwlock. Will fail if rewriting a rwlock with waiting threads.
+void handle_rwlock_init(void *key);
+
+// Wait on the rwlock for reading. Will fail if doesn't exist.
+void handle_rwlock_rdlock(void *key, THREADID tid);
+
+// Wait on the rwlock for writing. Will fail if doesn't exist.
+void handle_rwlock_wrlock(void *key, THREADID tid);
+
+// Try to get rwlock for reading. Will fail if doesn't exist.
+int handle_rwlock_tryrdlock(void *key, THREADID tid);
+
+// Try to get rwlock for writing. Will fail if doesn't exist.
+int handle_rwlock_trywrlock(void *key, THREADID tid);
+
+// Unlock the rwlock. It takes into account the states of calling threads. Will fail if doesn't exist.
+void handle_rwlock_unlock(void *key, THREADID tid);
+
+
+
 /* Condition Variables Handlers */
 
 // Wake all threads waiting on the condition variables.
@@ -71,7 +96,7 @@ void handle_cond_wait(void *key, void *mutex, THREADID tid);
 
 
 
-/* Thread create/exit Handlers */ 
+/* Thread create/exit Handlers */
 
 // Returns a list with threads waiting to join.
 THREAD_INFO * handle_thread_exit(pthread_t key);
@@ -93,7 +118,7 @@ struct _REENTRANT_LOCK {
 // handle_reentrant_start should be called at the start of a exclusive function.
 void handle_reentrant_start(REENTRANT_LOCK *rl, THREADID tid);
 
-// handle_reentrant_exit oposite of start. Might unlock someone. 
+// handle_reentrant_exit oposite of start. Might unlock someone.
 void handle_reentrant_exit(REENTRANT_LOCK *rl, THREADID tid);
 
 

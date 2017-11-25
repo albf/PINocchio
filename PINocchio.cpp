@@ -173,7 +173,104 @@ int hj_sem_wait(sem_t *sem, THREADID tid) {
     return 0;
 }
 
-/* Conditional Variables Hijackers  */
+
+
+/* Rwlock Hijackers */
+
+int hj_pthread_rwlock_destroy(pthread_rwlock_t *rwlock, THREADID tid) {
+    DEBUG(cerr << "pthread_rwlock_destroy called." << std::endl);
+
+    ACTION action = {
+        tid,
+        ACTION_RWLOCK_DESTROY,
+        {(void *) rwlock},
+    };
+    sync(&action);
+
+    return 0;
+}
+
+int hj_pthread_rwlock_init(pthread_rwlock_t *rwlock, const pthread_rwlockattr_t *attr, THREADID tid) {
+    DEBUG(cerr << "pthread_rwlock_init called." << std::endl);
+
+    ACTION action = {
+        tid,
+        ACTION_RWLOCK_INIT,
+        {(void *) rwlock},
+    };
+    sync(&action);
+
+    return 0;
+}
+
+int hj_pthread_rwlock_rdlock(pthread_rwlock_t *rwlock, THREADID tid) {
+    DEBUG(cerr << "pthread_rwlock_rdlock called." << std::endl);
+
+    ACTION action = {
+        tid,
+        ACTION_RWLOCK_RDLOCK,
+        {(void *) rwlock},
+    };
+    sync(&action);
+
+    return 0;
+}
+
+int hj_pthread_rwlock_tryrdlock(pthread_rwlock_t *rwlock, THREADID tid) {
+    DEBUG(cerr << "pthread_rwlock_tryrdlock called." << std::endl);
+
+    ACTION action = {
+        tid,
+        ACTION_RWLOCK_TRYRDLOCK,
+        {(void *) rwlock},
+    };
+    sync(&action);
+
+    return action.arg.i;
+}
+
+int hj_pthread_rwlock_wrlock(pthread_rwlock_t *rwlock, THREADID tid) {
+    DEBUG(cerr << "pthread_rwlock_wrlock called." << std::endl);
+
+    ACTION action = {
+        tid,
+        ACTION_RWLOCK_WRLOCK,
+        {(void *) rwlock},
+    };
+    sync(&action);
+
+    return 0;
+}
+
+int hj_pthread_rwlock_trywrlock(pthread_rwlock_t *rwlock, THREADID tid) {
+    DEBUG(cerr << "pthread_rwlock_trywrlock called." << std::endl);
+
+    ACTION action = {
+        tid,
+        ACTION_RWLOCK_TRYWRLOCK,
+        {(void *) rwlock},
+    };
+    sync(&action);
+
+    return action.arg.i;
+}
+
+int hj_pthread_rwlock_unlock(pthread_rwlock_t *rwlock, THREADID tid) {
+    DEBUG(cerr << "pthread_rwlock_unlock called." << std::endl);
+
+    ACTION action = {
+        tid,
+        ACTION_RWLOCK_UNLOCK,
+        {(void *) rwlock},
+    };
+    sync(&action);
+
+    return 0;
+}
+
+
+
+/* Conditional Hijackers  */
 
 int hj_pthread_cond_broadcast(pthread_cond_t *cond, THREADID tid) {
     DEBUG(cerr << "pthread_cond_broadcast called: " << cond << std::endl);
@@ -408,6 +505,77 @@ VOID module_load_handler(IMG img, void *v)
                        IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
                        IARG_THREAD_ID, IARG_END);
         DEBUG(cerr << "sem_wait hijacked" << std::endl);
+    }
+
+    // Look for pthread_rwlock_destroy and hijack it
+    rtn = RTN_FindByName(img, "pthread_rwlock_destroy");
+    if(RTN_Valid(rtn)) {
+        DEBUG(cerr << "Found pthread_rwlock_destroy on image" << std::endl);
+        RTN_ReplaceSignature(rtn, (AFUNPTR)hj_pthread_rwlock_destroy,
+                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                       IARG_THREAD_ID, IARG_END);
+        DEBUG(cerr << "pthread_rwlock_destroy hijacked" << std::endl);
+    }
+
+    // Look for pthread_rwlock_init and hijack it
+    rtn = RTN_FindByName(img, "pthread_rwlock_init");
+    if(RTN_Valid(rtn)) {
+        DEBUG(cerr << "Found pthread_rwlock_init on image" << std::endl);
+        RTN_ReplaceSignature(rtn, (AFUNPTR)hj_pthread_rwlock_init,
+                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                       IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
+                       IARG_THREAD_ID, IARG_END);
+        DEBUG(cerr << "pthread_rwlock_init hijacked" << std::endl);
+    }
+
+    // Look for pthread_rwlock_rdlock and hijack it
+    rtn = RTN_FindByName(img, "pthread_rwlock_rdlock");
+    if(RTN_Valid(rtn)) {
+        DEBUG(cerr << "Found pthread_rwlock_rdlock on image" << std::endl);
+        RTN_ReplaceSignature(rtn, (AFUNPTR)hj_pthread_rwlock_rdlock,
+                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                       IARG_THREAD_ID, IARG_END);
+        DEBUG(cerr << "pthread_rwlock_rdlock hijacked" << std::endl);
+    }
+
+    // Look for pthread_rwlock_tryrdlock and hijack it
+    rtn = RTN_FindByName(img, "pthread_rwlock_tryrdlock");
+    if(RTN_Valid(rtn)) {
+        DEBUG(cerr << "Found pthread_rwlock_tryrdlock on image" << std::endl);
+        RTN_ReplaceSignature(rtn, (AFUNPTR)hj_pthread_rwlock_tryrdlock,
+                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                       IARG_THREAD_ID, IARG_END);
+        DEBUG(cerr << "pthread_rwlock_tryrdlock hijacked" << std::endl);
+    }
+
+    // Look for pthread_rwlock_wrlock and hijack it
+    rtn = RTN_FindByName(img, "pthread_rwlock_wrlock");
+    if(RTN_Valid(rtn)) {
+        DEBUG(cerr << "Found pthread_rwlock_wrlock on image" << std::endl);
+        RTN_ReplaceSignature(rtn, (AFUNPTR)hj_pthread_rwlock_wrlock,
+                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                       IARG_THREAD_ID, IARG_END);
+        DEBUG(cerr << "pthread_rwlock_wrlock hijacked" << std::endl);
+    }
+
+    // Look for pthread_rwlock_trywrlock and hijack it
+    rtn = RTN_FindByName(img, "pthread_rwlock_trywrlock");
+    if(RTN_Valid(rtn)) {
+        DEBUG(cerr << "Found pthread_rwlock_trywrlock on image" << std::endl);
+        RTN_ReplaceSignature(rtn, (AFUNPTR)hj_pthread_rwlock_trywrlock,
+                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                       IARG_THREAD_ID, IARG_END);
+        DEBUG(cerr << "pthread_rwlock_trywrlock hijacked" << std::endl);
+    }
+
+    // Look for pthread_rwlock_unlock and hijack it
+    rtn = RTN_FindByName(img, "pthread_rwlock_unlock");
+    if(RTN_Valid(rtn)) {
+        DEBUG(cerr << "Found pthread_rwlock_unlock on image" << std::endl);
+        RTN_ReplaceSignature(rtn, (AFUNPTR)hj_pthread_rwlock_unlock,
+                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                       IARG_THREAD_ID, IARG_END);
+        DEBUG(cerr << "pthread_rwlock_unlock hijacked" << std::endl);
     }
 
     // Look for pthread_cond_broadcast and hijack it

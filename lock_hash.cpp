@@ -31,6 +31,25 @@ struct _SEMAPHORE_ENTRY {
     THREAD_INFO *locked;            // Waiting to go
 };
 
+// Current read write lock status
+typedef enum {
+    RW_READING = 0,     // Currently locked reading, at least by one thread.
+    RW_WRITING = 1,     // Currently locked writing: by one and only one thread.
+    RW_UNLOCKED = 2,    // Currenty unlocked and could be unlocked freely.
+}   RWLOCK_STATUS;
+
+// Read Write hash
+typedef struct _RWLOCK_ENTRY RWLOCK_ENTRY;
+struct _RWLOCK_ENTRY{
+    void *key;
+    RWLOCK_STATUS status;
+
+    UT_hash_handle hh;
+
+    THREAD_INFO *users;             // Current users of the lock
+    THREAD_INFO *locked;            // Waiting to go
+};
+
 // Condition Variable hash
 typedef struct _COND_ENTRY COND_ENTRY;
 struct _COND_ENTRY {
@@ -55,6 +74,7 @@ struct _JOIN_ENTRY {
 // Since there is only one hash for each type, keeping a global value seems cheaper.
 static MUTEX_ENTRY *mutex_hash = NULL;
 static SEMAPHORE_ENTRY *semaphore_hash = NULL;
+static RWLOCK_ENTRY *rwlock_hash = NULL;
 static COND_ENTRY *cond_hash = NULL;
 static JOIN_ENTRY *join_hash = NULL;
 
@@ -346,6 +366,291 @@ void handle_semaphore_wait(void *key, THREADID tid)
     return;
 }
 
+
+
+
+static void insert_rwlock_locked(RWLOCK_ENTRY *rw, THREAD_INFO *entry)
+{
+    rw->locked = insert(rw->locked, entry);
+}
+
+static void insert_rwlock_users(RWLOCK_ENTRY *rw, THREAD_INFO *entry)
+{
+    rw->users = insert(rw->users, entry);
+}
+
+// get_rwlock_entry will find a given entry or return null.
+static RWLOCK_ENTRY *get_rwlock_entry(void *key)
+{
+    RWLOCK_ENTRY *rw;
+
+    HASH_FIND_PTR(rwlock_hash, &key, rw);
+    if(rw) {
+        return rw;
+    }
+
+    return NULL;
+}
+
+static void delete_rwlock_entry(RWLOCK_ENTRY *entry) {
+    HASH_DEL(rwlock_hash, entry);
+}
+
+static void initialize_rwlock(RWLOCK_ENTRY *rw, void *key) {
+    rw->key = key;
+    rw->locked = NULL;
+    rw->users = NULL;
+    rw->status = RW_UNLOCKED;
+}
+
+static void add_rwlock_entry(void *key)
+{
+    RWLOCK_ENTRY *rw;
+
+    rw = (RWLOCK_ENTRY *) malloc(sizeof(RWLOCK_ENTRY));
+    initialize_rwlock(rw, key);
+    HASH_ADD_PTR(rwlock_hash, key, rw);
+}
+
+static void fail_on_no_rwlock(RWLOCK_ENTRY *rw, void * key) {
+    if(rw == NULL) {
+        cerr << "Error: Non-existent read write lock acessed: " << key << "." << std::endl;
+        fail();
+    }
+}
+
+void handle_rwlock_init(void *key)
+{
+    RWLOCK_ENTRY *rw = get_rwlock_entry(key);
+
+    if(rw == NULL) {
+        add_rwlock_entry(key);
+        return;
+    }
+    if(rw->locked != NULL) {
+        cerr << "Error: Read write lock destroyed (by init) when other threads are waiting." << std::endl;
+        fail();
+    }
+
+    // Exists but no one is waiting. Just initialize it.
+    initialize_rwlock(rw, key);
+}
+
+void handle_rwlock_destroy(void *key)
+{
+    RWLOCK_ENTRY *rw = get_rwlock_entry(key);
+
+    // Read write lock doesn't even exist. Just return.
+    if(rw == NULL) {
+        cerr << "[PINocchio] Warning: Destroy on already unexistent read write lock." << std::endl;
+        return;
+    }
+
+    // Destroying a read write lock :with other threads waiting.
+    if(rw->locked != NULL) {
+        cerr << "Error: Read write lock destroyed when other threads are waiting." << std::endl;
+        fail();
+    }
+
+    delete_rwlock_entry(rw);
+}
+
+void handle_rwlock_rdlock(void *key, THREADID tid)
+{
+    RWLOCK_ENTRY *rw = get_rwlock_entry(key);
+    all_threads[tid].holder = (pthread_t) RW_READING;
+    fail_on_no_rwlock(rw, key);
+
+    switch (rw->status) {
+    case RW_UNLOCKED:
+        rw->status = RW_READING;
+        // Don't break, should add to users
+    case RW_READING:
+        insert_rwlock_users(rw, &all_threads[tid]);
+        break;
+    case RW_WRITING:
+        // Can't take it. Make it as waiting for a read.
+        insert_rwlock_locked(rw, &all_threads[tid]);
+        thread_lock(&all_threads[tid]);
+        break;
+    }
+
+    return;
+}
+
+int handle_rwlock_tryrdlock(void *key, THREADID tid)
+{
+    RWLOCK_ENTRY *rw = get_rwlock_entry(key);
+    int response = 1;
+
+    fail_on_no_rwlock(rw, key);
+
+    switch (rw->status) {
+    case RW_UNLOCKED:
+        rw->status = RW_READING;
+        // Don't break, should add to users
+    case RW_READING:
+        insert_rwlock_users(rw, &all_threads[tid]);
+        all_threads[tid].holder = (pthread_t) RW_READING;
+        response = 0;
+
+        break;
+    case RW_WRITING:
+        // Can't take it but won't wait for it.
+        break;
+    }
+
+    return response;
+}
+
+void handle_rwlock_wrlock(void *key, THREADID tid)
+{
+    RWLOCK_ENTRY *rw = get_rwlock_entry(key);
+    all_threads[tid].holder = (void *) RW_WRITING;
+    fail_on_no_rwlock(rw, key);
+
+    switch (rw->status) {
+    case RW_UNLOCKED:
+        rw->status = RW_WRITING;
+        insert_rwlock_users(rw, &all_threads[tid]);
+        break;
+
+    // Can't take it. Make it as waiting for a read.
+    case RW_READING:
+    case RW_WRITING:
+        insert_rwlock_locked(rw, &all_threads[tid]);
+        thread_lock(&all_threads[tid]);
+        break;
+    }
+
+    return;
+}
+
+int handle_rwlock_trywrlock(void *key, THREADID tid)
+{
+    RWLOCK_ENTRY *rw = get_rwlock_entry(key);
+    int response = 1;
+
+    fail_on_no_rwlock(rw, key);
+
+    switch (rw->status) {
+    case RW_UNLOCKED:
+        rw->status = RW_WRITING;
+        all_threads[tid].holder = (void *) RW_WRITING;
+        insert_rwlock_users(rw, &all_threads[tid]);
+        response = 0;
+        break;
+
+    // Can't take it. Just return failure.
+    case RW_READING:
+    case RW_WRITING:
+        break;
+    }
+
+    return response;
+}
+
+static void rwlock_remove_user(RWLOCK_ENTRY *rw, THREAD_INFO *t) {
+    if (rw->users == t) {
+        rw->users = rw->users->next_lock;
+        return;
+    }
+    THREAD_INFO *w;
+    for (w = rw->users; w->next_lock != t; w = w->next_lock);
+    w->next_lock = w->next_lock->next_lock;
+}
+
+static void fail_rwlock_wrong_type_unlock(void *key) {
+        cerr << "[PINocchio] Error: unlocking a rwlock from a wrong thread/type: " << key << "." << std::endl;
+        fail();
+}
+
+void handle_rwlock_unlock(void *key, THREADID tid)
+{
+    RWLOCK_ENTRY *rw = get_rwlock_entry(key);
+    THREAD_INFO *t = &all_threads[tid];
+    RWLOCK_STATUS unlock_type;
+    fail_on_no_rwlock(rw, key);
+
+    switch (rw->status) {
+    case RW_UNLOCKED:
+        cerr << "[PINocchio] Warning: unlocking a rwlock already unlocked: " << key << "." << std::endl;
+        break;
+
+    // Can't take it. Make it as waiting for a read.
+    case RW_READING:
+        unlock_type = (RWLOCK_STATUS)((int64_t)t->holder);
+        if (unlock_type == RW_WRITING) {
+            fail_rwlock_wrong_type_unlock(key);
+        }
+        // Remove from user and check what situation we are facing
+        rwlock_remove_user(rw, t);
+
+        if (rw->users == NULL) {
+            // No one else is reading anymore. Very nice, check if there is someone to wake.
+            rw->status = RW_UNLOCKED;
+
+            // It was in reading mode, if someone is waiting it is a writing one.
+            if (rw->locked != NULL) {
+                THREAD_INFO *awake = rw->locked;
+                rw->locked = rw->locked->next_lock;
+                insert_rwlock_users(rw, awake);
+                thread_unlock(awake, t);
+                rw->status = RW_WRITING;
+            }
+        }
+        // Else: If it was locked for read and there still people reading, status remain the same.
+        break;
+
+    case RW_WRITING:
+        unlock_type = (RWLOCK_STATUS)((int64_t)t->holder);
+        if (unlock_type == RW_READING) {
+            fail_rwlock_wrong_type_unlock(key);
+        }
+        // Remove from user and check what situation we are facing
+        rwlock_remove_user(rw, t);
+
+        // rw->users is always NULL, it's in writing mode and is getting removed.
+        if (rw->locked != NULL) {
+            // Find who should be awaken type.
+            if ((RWLOCK_STATUS) ((int64_t)rw->locked->holder) == RW_WRITING) {
+                THREAD_INFO *awake = rw->locked;
+                rw->locked = rw->locked->next_lock;
+                insert_rwlock_users(rw, awake);
+                thread_unlock(awake, &all_threads[tid]);
+            } else {
+                // More complicated case, it's a reading request. Awake everyone.
+                for(THREAD_INFO *awake = rw->locked; awake != NULL; awake = awake->next_lock) {
+                    if (awake->next_lock != NULL && ((RWLOCK_STATUS) ((int64_t)awake->next_lock->holder) == RW_READING)) {
+                        insert_rwlock_users(rw, awake);
+                        thread_unlock(awake->next_lock, t);
+                        awake->next_lock = awake->next_lock->next_lock;
+                    }
+                }
+                // Remove the first one.
+                insert_rwlock_users(rw, rw->locked);
+                thread_unlock(rw->locked, t);
+                rw->locked = rw->locked->next_lock;
+
+                // Finally mark status
+                rw->status = RW_READING;
+            }
+
+        } else {
+            // Guess no one is waiting. Be cool.
+            rw->status = RW_UNLOCKED;
+        }
+        break;
+    }
+    return;
+}
+
+
+
+
+
+
+
 static COND_ENTRY *get_cond_entry(void *key)
 {
     COND_ENTRY *c;
@@ -388,7 +693,7 @@ static void insert_cond_locked(COND_ENTRY *c, THREAD_INFO *entry)
 static void fail_on_no_cond(COND_ENTRY *s, void * key)
 {
     if(s == NULL) {
-        cerr << "Error: Non-existent condition variable acessed: " << key << "." << std::endl;
+        cerr << "[PINocchio] Error: Non-existent condition variable acessed: " << key << "." << std::endl;
         fail();
     }
 }

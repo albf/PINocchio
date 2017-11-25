@@ -192,6 +192,34 @@ void sync(ACTION *action)
         handle_semaphore_wait(action->arg.p_1, action->tid);
         break;
 
+    case ACTION_RWLOCK_INIT:
+        handle_rwlock_init(action->arg.p_1);
+        break;
+
+    case ACTION_RWLOCK_DESTROY:
+        handle_rwlock_destroy(action->arg.p_1);
+        break;
+
+    case ACTION_RWLOCK_RDLOCK:
+        handle_rwlock_rdlock(action->arg.p_1, action->tid);
+        break;
+
+    case ACTION_RWLOCK_TRYRDLOCK:
+        action->arg.i = handle_rwlock_tryrdlock(action->arg.p_1, action->tid);
+        break;
+
+    case ACTION_RWLOCK_WRLOCK:
+        handle_rwlock_wrlock(action->arg.p_1, action->tid);
+        break;
+
+    case ACTION_RWLOCK_TRYWRLOCK:
+        action->arg.i = handle_rwlock_trywrlock(action->arg.p_1, action->tid);
+        break;
+
+    case ACTION_RWLOCK_UNLOCK:
+        handle_rwlock_unlock(action->arg.p_1, action->tid);
+        break;
+
     case ACTION_COND_BROADCAST:
         handle_cond_broadcast(action->arg.p_1, action->tid);
         break;
