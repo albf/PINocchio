@@ -9,11 +9,10 @@
 #include <stdlib.h>
 #include <sys/time.h>
 #include <pthread.h>
+#include "stopwatch.h"
 
 /************************************************/
 #define NUM_QUEEN 12
-#define NAME "qn24b pthreads"
-#define VER  "version 1.0.0.1 2013-03-13"
 #define MAX 29 /** 32 is a real max! **/
 #define MIN 2
 #define MAX_TASK 100000
@@ -75,18 +74,9 @@ long long qn(int n, int h, int r, array *a){
    return answers;
 }
 
-/** function to return the time                **/
-/************************************************/
-long long get_time(){
-   struct timeval  tp;
-   gettimeofday(&tp, NULL);
-   return tp.tv_sec * 1000000ull + tp.tv_usec;
-}
-
 /** print the answer                           **/
 /************************************************/
-void print_result(int n, long long usec,
-      long long solution){
+void print_result(int n, long long solution){
    int i;
    static long long answer[30] = {
       0, 1, 0, 0, 2, 10, 4, 40, 92, 352, 724,
@@ -99,16 +89,8 @@ void print_result(int n, long long usec,
    };
 
    for(i=0;i<45;i++) printf("="); printf("\n");
-   printf("%s %s\n", NAME, VER);
-   printf("problem size n        : %d\n", n);
    printf("total   solutions     : %lld\n",
          solution);
-   printf("correct solutions     : %lld\n",
-         answer[n]);
-   printf("million solutions/sec : %.3f\n",
-         (double)solution/usec);
-   printf("elapsed time (sec)    : %.3f\n",
-         usec/1000000.0);
    if(solution!=answer[n])
       printf(" ### Wrong answer\n");
    for(i=0;i<45;i++) printf("="); printf("\n");
@@ -214,10 +196,10 @@ void* worker_body(void* thread_v){
 /** main function                              **/
 /************************************************/
 int main(int argc, char *argv[]){
+   stopwatch_start();
    int i;
    n    = NUM_QUEEN;
    jobs = get_sub_problem_num(n, prob);
-   long long usec    = get_time();
    long long answers = 0;
    unsigned int nthreads = 1;
 
@@ -231,7 +213,6 @@ int main(int argc, char *argv[]){
     }
 
    // Distribute work in a dynamic fashion, as in OMP_SCHEDULE=dynamic.
-   printf("Starting %d worker threads.\n", nthreads);
    pthread_t *workers = malloc(sizeof(pthread_t) * nthreads);
    for(int thread=0; thread < nthreads; thread++){
       pthread_create(workers+thread, NULL, &worker_body, NULL);
@@ -244,7 +225,8 @@ int main(int argc, char *argv[]){
    printf("All work finished.\n");
 
    for(i=1; i<=jobs; i++) answers += rets[i];
-   print_result(n, get_time()-usec, answers);
+   print_result(n, answers);
+   stopwatch_stop();
    return 0;
 }
 /************************************************/

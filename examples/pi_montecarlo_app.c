@@ -1,9 +1,9 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/time.h>
+#include "stopwatch.h"
 
-#define NEXEC 10000
+#define NEXEC 100000
 
 typedef struct {
     long long unsigned int n;   //Number of executions
@@ -37,6 +37,7 @@ void *parallel_pi(void *v)
 
 int main(int argc , char **argv)
 {
+    stopwatch_start();
     int i, num_threads = 2;
 
     if(argc > 1) {
@@ -76,9 +77,9 @@ int main(int argc , char **argv)
 
     double pi = 4 * in / ((double)NEXEC);
     printf("Pi result: %lf\n", pi);
-    printf("All threads exit\n");
 
     free(tp);
     free(worker_threads);
+    stopwatch_stop();
     return 0;
 }

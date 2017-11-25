@@ -1,6 +1,7 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "stopwatch.h"
 
 #define COUNT_MAX 10000
 
@@ -26,6 +27,7 @@ void *inc_x(void *x_void_ptr)
 
 int main(int argc , char **argv)
 {
+    stopwatch_start();
     int *x, i;
     int num_threads = 2;
 
@@ -73,5 +75,6 @@ int main(int argc , char **argv)
 
     free(x);
     free(inc_x_thread);
+    stopwatch_stop();
     return 0;
 }

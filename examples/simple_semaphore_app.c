@@ -2,8 +2,9 @@
 #include <semaphore.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "stopwatch.h"
 
-#define LOOP_COUNT 4000000 
+#define LOOP_COUNT 4000000
 #define SEM_VALUE 2
 
 sem_t sem;
@@ -42,6 +43,7 @@ void *dummy_func(void *pn)
 
 int main(int argc , char **argv)
 {
+    stopwatch_start();
     int i, *n;
     int num_threads = 2;
 
@@ -101,5 +103,6 @@ int main(int argc , char **argv)
 
     free(n);
     free(dummy_thread);
+    stopwatch_stop();
     return 0;
 }

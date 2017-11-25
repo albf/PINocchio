@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include "stopwatch.h"
 
 #define MAX 100                 /* production max value */
 #define LOOP_MULTIPLIER 1000    /* loop of each produced task: LOOP_MULTIPLIER * TASK_ID */
@@ -58,6 +59,7 @@ void *consumer(void *thread_data)
 
 void *producer(void *thread_data)
 {
+    stopwatch_start();
     int *num_threads = (int *) thread_data;
     int i, number = 0;
 
@@ -124,5 +126,6 @@ int main(int argc , char **argv)
     printf("All threads exit\n");
 
     free(threads);
+    stopwatch_stop();
     return 0;
 }
