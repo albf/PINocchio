@@ -107,5 +107,8 @@ $(OBJDIR)PINocchio$(PINTOOL_SUFFIX): $(OBJDIR)log$(OBJ_SUFFIX) $(OBJDIR)knob$(OB
 # See makefile.default.rules for the default build rules.
 
 EXAMPLES_CFLAGS = -lpthread
-$(OBJDIR)%_app$(EXE_SUFFIX): examples/%_app.c
-	$(CC) -o $@ $< $(EXAMPLES_CFLAGS)
+$(OBJDIR)%_app$(EXE_SUFFIX): examples/%_app.c $(OBJDIR)stopwatch$(OBJ_SUFFIX)
+	$(CC) -o $@ $< $(EXAMPLES_CFLAGS) $(OBJDIR)stopwatch$(OBJ_SUFFIX)
+
+$(OBJDIR)stopwatch$(OBJ_SUFFIX): examples/stopwatch.c examples/stopwatch.h
+	$(CC) $< -c -o $@
