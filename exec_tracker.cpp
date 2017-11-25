@@ -8,8 +8,8 @@ struct ORDERED_LIST {
     THREAD_INFO * end;
 
     int running;
-    UINT64 ins_max;
-    UINT64 previous_max;
+    UINT64 ins_min;
+    UINT64 previous_min;
 };
 
 static ORDERED_LIST waiting_list;
@@ -22,8 +22,8 @@ void exec_tracker_init()
     waiting_list.end = NULL;
 
     waiting_list.running = 0;
-    waiting_list.ins_max = 0;
-    waiting_list.previous_max = 0;
+    waiting_list.ins_min = 0;
+    waiting_list.previous_min = 0;
 }
 
 // Exposed API, used by sync. They are just simple operations using
@@ -76,7 +76,7 @@ int exec_tracker_sleep(THREAD_INFO *t)
     if (waiting_list.running == 1 &&
         (waiting_list.start == NULL || t->ins_count <= waiting_list.start->ins_count)) {
 
-        waiting_list.ins_max = t->ins_count;
+        waiting_list.ins_min = t->ins_count;
         return 0;
     }
 
@@ -96,7 +96,7 @@ THREAD_INFO *exec_tracker_awake()
     if (waiting_list.running == 0) {
         THREAD_INFO *t = waiting_list.start;
 
-        waiting_list.ins_max = t->ins_count;
+        waiting_list.ins_min = t->ins_count;
         waiting_list.start = t->waiting_next;
         if (waiting_list.start != NULL) {
             waiting_list.start->waiting_previous = NULL;
@@ -107,7 +107,7 @@ THREAD_INFO *exec_tracker_awake()
     }
 
     // Someone is running. Can't go unless they are in sync.
-    if (waiting_list.ins_max >= waiting_list.start->ins_count) {
+    if (waiting_list.ins_min >= waiting_list.start->ins_count) {
         THREAD_INFO *t = waiting_list.start;
 
         waiting_list.start = t->waiting_next;
@@ -142,10 +142,10 @@ int exec_track_is_empty()
 int exec_tracker_changed() {
     UINT64 previous;
 
-    previous = waiting_list.previous_max;
-    waiting_list.previous_max = waiting_list.ins_max;
+    previous = waiting_list.previous_min;
+    waiting_list.previous_min = waiting_list.ins_min;
 
-    if (waiting_list.ins_max == previous) {
+    if (waiting_list.ins_min == previous) {
         return 0;
     }
     return 1;
@@ -154,7 +154,7 @@ int exec_tracker_changed() {
 void exec_tracker_print() {
     cerr << "[Exec Tracker] Waiting-List:" << std::endl;
     cerr << "  -- running: " << waiting_list.running << std::endl;
-    cerr << "  -- ins_max: " << waiting_list.ins_max << std::endl;
+    cerr << "  -- ins_min: " << waiting_list.ins_min << std::endl;
     cerr << "  --    list:";
     for (THREAD_INFO *t = waiting_list.start; t != NULL; t = t->waiting_next) {
         cerr << " [tid: " << t->pin_tid;
