@@ -2,9 +2,9 @@
 #define LOG_H_
 
 // Turn on several logs outputs
-// #define DEBUG_MODE
+// #define PINOCCHIO_DEBUG_MODE
 
-#ifdef DEBUG_MODE
+#ifdef PINOCCHIO_DEBUG_MODE
 #define DEBUG(WHAT) WHAT
 #else
 #define DEBUG(WHAT) do { } while(0)
