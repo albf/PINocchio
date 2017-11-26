@@ -18,12 +18,13 @@ REENTRANT_LOCK create_lock;
 
 // Basically, after a few seconds, something
 // should happen, or it's locked due unsupported functions.
-VOID static watcher(VOID * arg) {
+VOID static watcher(VOID *arg)
+{
     while(1) {
-        PIN_Sleep(WATCHER_SLEEP*1000);
+        PIN_Sleep(WATCHER_SLEEP * 1000);
 
         PIN_MutexLock(&sync_mutex);
-        if (thread_has_advanced() <= 0) {
+        if(thread_has_advanced() <= 0) {
             cerr << "[Pinocchio] Execution is stopped, likely due unsupported locking function" << std::endl;
             fail();
         }
@@ -45,7 +46,7 @@ void sync_init(int pram)
     create_lock.locked = NULL;
 
     // Lastly, init thread, trace bank and exec tracker structures and start watcher.
-    if (pram > 0) {
+    if(pram > 0) {
         THREADID watcher_tid = PIN_SpawnInternalThread(watcher, 0, 0, NULL);
         log_init(watcher_tid);
     } else {
@@ -68,17 +69,17 @@ void sync(ACTION *action)
         thread_sleep(&all_threads[action->tid]);
         break;
 
-        // Thread creation works with the following rules:
-        // - One thread creating at a time
-        // - Create end should wait for starting thread to
-        // actually start (pin_create -> ACTION_REGISTER)
-        // - thread_tid should come from create_end, as value
-        // could change on function. But pointer should be
-        // found on start, as it also might be changed.
+    // Thread creation works with the following rules:
+    // - One thread creating at a time
+    // - Create end should wait for starting thread to
+    // actually start (pin_create -> ACTION_REGISTER)
+    // - thread_tid should come from create_end, as value
+    // could change on function. But pointer should be
+    // found on start, as it also might be changed.
     case ACTION_REGISTER:
         // Thread 0 ins't created by pthread_create, but always existed.
         // Don't wait or do any black magic on that regard.
-        if (action->tid > 0) {
+        if(action->tid > 0) {
             thread_start(&all_threads[action->tid], &all_threads[creator_pin_tid]);
             pin_tid = action->tid;
 
@@ -145,7 +146,7 @@ void sync(ACTION *action)
         handle_before_join((pthread_t)action->arg.p_1, action->tid);
         break;
 
-        // Mutex events should be treated by lock_hash, unlock thread once done.
+    // Mutex events should be treated by lock_hash, unlock thread once done.
     case ACTION_LOCK_DESTROY:
         handle_lock_init(action->arg.p_1);
         break;

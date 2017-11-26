@@ -40,7 +40,7 @@ typedef enum {
 
 // Read Write hash
 typedef struct _RWLOCK_ENTRY RWLOCK_ENTRY;
-struct _RWLOCK_ENTRY{
+struct _RWLOCK_ENTRY {
     void *key;
     RWLOCK_STATUS status;
 
@@ -91,7 +91,7 @@ static MUTEX_ENTRY *get_mutex_entry(void *key)
     return NULL;
 }
 
-static void delete_mutex_entry(MUTEX_ENTRY * entry)
+static void delete_mutex_entry(MUTEX_ENTRY *entry)
 {
     HASH_DEL(mutex_hash, entry);
 }
@@ -103,7 +103,8 @@ static void initialize_mutex(MUTEX_ENTRY *s, void *key)
     s->locked = NULL;
 }
 
-static MUTEX_ENTRY * add_mutex_entry(void * key) {
+static MUTEX_ENTRY *add_mutex_entry(void *key)
+{
     MUTEX_ENTRY *s;
 
     s = (MUTEX_ENTRY *) malloc(sizeof(MUTEX_ENTRY));
@@ -137,7 +138,7 @@ static void insert_locked(MUTEX_ENTRY *mutex, THREAD_INFO *entry)
 }
 
 // Can't fail on no_mutex it's used by system during runtime Assume a new one.
-static MUTEX_ENTRY * handle_no_mutex(MUTEX_ENTRY *s, void * key)
+static MUTEX_ENTRY *handle_no_mutex(MUTEX_ENTRY *s, void *key)
 {
     if(s == NULL) {
         s = add_mutex_entry(key);
@@ -148,7 +149,7 @@ static MUTEX_ENTRY * handle_no_mutex(MUTEX_ENTRY *s, void * key)
 
 void handle_mutex_destroy(void *key)
 {
-    MUTEX_ENTRY * s = get_mutex_entry(key);
+    MUTEX_ENTRY *s = get_mutex_entry(key);
 
     // Mutex doesn't even exist. Just return.
     if(s == NULL) {
@@ -167,7 +168,7 @@ void handle_mutex_destroy(void *key)
 
 void handle_lock_init(void *key)
 {
-    MUTEX_ENTRY * s = get_mutex_entry(key);
+    MUTEX_ENTRY *s = get_mutex_entry(key);
 
     if(s == NULL) {
         add_mutex_entry(key);
@@ -187,7 +188,7 @@ void handle_lock(void *key, THREADID tid)
     MUTEX_ENTRY *s = get_mutex_entry(key);
     s = handle_no_mutex(s, key);
 
-    if (s->status == M_UNLOCKED) {
+    if(s->status == M_UNLOCKED) {
         // If unlocked, first to come, just lock.
         s->status = M_LOCKED;
         return;
@@ -205,7 +206,7 @@ int handle_try_lock(void *key)
     MUTEX_ENTRY *s = get_mutex_entry(key);
     handle_no_mutex(s, key);
 
-    if (s->status == M_UNLOCKED) {
+    if(s->status == M_UNLOCKED) {
         s->status = M_LOCKED;
         return 0;
     }
@@ -225,7 +226,7 @@ void handle_unlock(void *key, THREADID tid)
         return;
     }
 
-    if (s->status == M_LOCKED) {
+    if(s->status == M_LOCKED) {
         s->status = M_UNLOCKED;
     } else {
         // Odd case, won't change anything.
@@ -253,11 +254,13 @@ static SEMAPHORE_ENTRY *get_semaphore_entry(void *key)
     return NULL;
 }
 
-static void delete_semaphore_entry(SEMAPHORE_ENTRY * entry) {
+static void delete_semaphore_entry(SEMAPHORE_ENTRY *entry)
+{
     HASH_DEL(semaphore_hash, entry);
 }
 
-static void initialize_semaphore(SEMAPHORE_ENTRY *s, void *key, int value) {
+static void initialize_semaphore(SEMAPHORE_ENTRY *s, void *key, int value)
+{
     s->key = key;
     s->value = value;
     s->locked = NULL;
@@ -272,7 +275,8 @@ static void add_semaphore_entry(void *key, int value)
     HASH_ADD_PTR(semaphore_hash, key, s);
 }
 
-static void fail_on_no_semaphore(SEMAPHORE_ENTRY *s, void * key) {
+static void fail_on_no_semaphore(SEMAPHORE_ENTRY *s, void *key)
+{
     if(s == NULL) {
         cerr << "Error: Non-existent semaphore acessed: " << key << "." << std::endl;
         fail();
@@ -281,7 +285,7 @@ static void fail_on_no_semaphore(SEMAPHORE_ENTRY *s, void * key) {
 
 void handle_semaphore_destroy(void *key)
 {
-    SEMAPHORE_ENTRY * s = get_semaphore_entry(key);
+    SEMAPHORE_ENTRY *s = get_semaphore_entry(key);
 
     // Semaphore doesn't even exist. Just return.
     if(s == NULL) {
@@ -300,7 +304,7 @@ void handle_semaphore_destroy(void *key)
 
 int handle_semaphore_getvalue(void *key)
 {
-    SEMAPHORE_ENTRY * s = get_semaphore_entry(key);
+    SEMAPHORE_ENTRY *s = get_semaphore_entry(key);
     fail_on_no_semaphore(s, key);
 
     return s->value;
@@ -308,7 +312,7 @@ int handle_semaphore_getvalue(void *key)
 
 void handle_semaphore_init(void *key, int value)
 {
-    SEMAPHORE_ENTRY * s = get_semaphore_entry(key);
+    SEMAPHORE_ENTRY *s = get_semaphore_entry(key);
 
     if(s == NULL) {
         add_semaphore_entry(key, value);
@@ -325,7 +329,7 @@ void handle_semaphore_init(void *key, int value)
 
 void handle_semaphore_post(void *key, THREADID tid)
 {
-    SEMAPHORE_ENTRY * s = get_semaphore_entry(key);
+    SEMAPHORE_ENTRY *s = get_semaphore_entry(key);
     fail_on_no_semaphore(s, key);
 
     if(s->locked != NULL) {
@@ -339,11 +343,11 @@ void handle_semaphore_post(void *key, THREADID tid)
 
 int handle_semaphore_trywait(void *key)
 {
-    SEMAPHORE_ENTRY * s = get_semaphore_entry(key);
+    SEMAPHORE_ENTRY *s = get_semaphore_entry(key);
     fail_on_no_semaphore(s, key);
 
     if(s->value > 0) {
-        s->value = s->value -1;
+        s->value = s->value - 1;
         return 0;
     }
     return -1;
@@ -351,7 +355,7 @@ int handle_semaphore_trywait(void *key)
 
 void handle_semaphore_wait(void *key, THREADID tid)
 {
-    SEMAPHORE_ENTRY * s = get_semaphore_entry(key);
+    SEMAPHORE_ENTRY *s = get_semaphore_entry(key);
     fail_on_no_semaphore(s, key);
 
     if(s->value > 0) {
@@ -392,11 +396,13 @@ static RWLOCK_ENTRY *get_rwlock_entry(void *key)
     return NULL;
 }
 
-static void delete_rwlock_entry(RWLOCK_ENTRY *entry) {
+static void delete_rwlock_entry(RWLOCK_ENTRY *entry)
+{
     HASH_DEL(rwlock_hash, entry);
 }
 
-static void initialize_rwlock(RWLOCK_ENTRY *rw, void *key) {
+static void initialize_rwlock(RWLOCK_ENTRY *rw, void *key)
+{
     rw->key = key;
     rw->locked = NULL;
     rw->users = NULL;
@@ -412,7 +418,8 @@ static void add_rwlock_entry(void *key)
     HASH_ADD_PTR(rwlock_hash, key, rw);
 }
 
-static void fail_on_no_rwlock(RWLOCK_ENTRY *rw, void * key) {
+static void fail_on_no_rwlock(RWLOCK_ENTRY *rw, void *key)
+{
     if(rw == NULL) {
         cerr << "Error: Non-existent read write lock acessed: " << key << "." << std::endl;
         fail();
@@ -461,10 +468,10 @@ void handle_rwlock_rdlock(void *key, THREADID tid)
     all_threads[tid].holder = (pthread_t) RW_READING;
     fail_on_no_rwlock(rw, key);
 
-    switch (rw->status) {
+    switch(rw->status) {
     case RW_UNLOCKED:
         rw->status = RW_READING;
-        // Don't break, should add to users
+    // Don't break, should add to users
     case RW_READING:
         insert_rwlock_users(rw, &all_threads[tid]);
         break;
@@ -485,10 +492,10 @@ int handle_rwlock_tryrdlock(void *key, THREADID tid)
 
     fail_on_no_rwlock(rw, key);
 
-    switch (rw->status) {
+    switch(rw->status) {
     case RW_UNLOCKED:
         rw->status = RW_READING;
-        // Don't break, should add to users
+    // Don't break, should add to users
     case RW_READING:
         insert_rwlock_users(rw, &all_threads[tid]);
         all_threads[tid].holder = (pthread_t) RW_READING;
@@ -509,7 +516,7 @@ void handle_rwlock_wrlock(void *key, THREADID tid)
     all_threads[tid].holder = (void *) RW_WRITING;
     fail_on_no_rwlock(rw, key);
 
-    switch (rw->status) {
+    switch(rw->status) {
     case RW_UNLOCKED:
         rw->status = RW_WRITING;
         insert_rwlock_users(rw, &all_threads[tid]);
@@ -533,7 +540,7 @@ int handle_rwlock_trywrlock(void *key, THREADID tid)
 
     fail_on_no_rwlock(rw, key);
 
-    switch (rw->status) {
+    switch(rw->status) {
     case RW_UNLOCKED:
         rw->status = RW_WRITING;
         all_threads[tid].holder = (void *) RW_WRITING;
@@ -550,19 +557,21 @@ int handle_rwlock_trywrlock(void *key, THREADID tid)
     return response;
 }
 
-static void rwlock_remove_user(RWLOCK_ENTRY *rw, THREAD_INFO *t) {
-    if (rw->users == t) {
+static void rwlock_remove_user(RWLOCK_ENTRY *rw, THREAD_INFO *t)
+{
+    if(rw->users == t) {
         rw->users = rw->users->next_lock;
         return;
     }
     THREAD_INFO *w;
-    for (w = rw->users; w->next_lock != t; w = w->next_lock);
+    for(w = rw->users; w->next_lock != t; w = w->next_lock);
     w->next_lock = w->next_lock->next_lock;
 }
 
-static void fail_rwlock_wrong_type_unlock(void *key) {
-        cerr << "[PINocchio] Error: unlocking a rwlock from a wrong thread/type: " << key << "." << std::endl;
-        fail();
+static void fail_rwlock_wrong_type_unlock(void *key)
+{
+    cerr << "[PINocchio] Error: unlocking a rwlock from a wrong thread/type: " << key << "." << std::endl;
+    fail();
 }
 
 void handle_rwlock_unlock(void *key, THREADID tid)
@@ -572,7 +581,7 @@ void handle_rwlock_unlock(void *key, THREADID tid)
     RWLOCK_STATUS unlock_type;
     fail_on_no_rwlock(rw, key);
 
-    switch (rw->status) {
+    switch(rw->status) {
     case RW_UNLOCKED:
         cerr << "[PINocchio] Warning: unlocking a rwlock already unlocked: " << key << "." << std::endl;
         break;
@@ -580,18 +589,18 @@ void handle_rwlock_unlock(void *key, THREADID tid)
     // Can't take it. Make it as waiting for a read.
     case RW_READING:
         unlock_type = (RWLOCK_STATUS)((int64_t)t->holder);
-        if (unlock_type == RW_WRITING) {
+        if(unlock_type == RW_WRITING) {
             fail_rwlock_wrong_type_unlock(key);
         }
         // Remove from user and check what situation we are facing
         rwlock_remove_user(rw, t);
 
-        if (rw->users == NULL) {
+        if(rw->users == NULL) {
             // No one else is reading anymore. Very nice, check if there is someone to wake.
             rw->status = RW_UNLOCKED;
 
             // It was in reading mode, if someone is waiting it is a writing one.
-            if (rw->locked != NULL) {
+            if(rw->locked != NULL) {
                 THREAD_INFO *awake = rw->locked;
                 rw->locked = rw->locked->next_lock;
                 insert_rwlock_users(rw, awake);
@@ -604,16 +613,16 @@ void handle_rwlock_unlock(void *key, THREADID tid)
 
     case RW_WRITING:
         unlock_type = (RWLOCK_STATUS)((int64_t)t->holder);
-        if (unlock_type == RW_READING) {
+        if(unlock_type == RW_READING) {
             fail_rwlock_wrong_type_unlock(key);
         }
         // Remove from user and check what situation we are facing
         rwlock_remove_user(rw, t);
 
         // rw->users is always NULL, it's in writing mode and is getting removed.
-        if (rw->locked != NULL) {
+        if(rw->locked != NULL) {
             // Find who should be awaken type.
-            if ((RWLOCK_STATUS) ((int64_t)rw->locked->holder) == RW_WRITING) {
+            if((RWLOCK_STATUS)((int64_t)rw->locked->holder) == RW_WRITING) {
                 THREAD_INFO *awake = rw->locked;
                 rw->locked = rw->locked->next_lock;
                 insert_rwlock_users(rw, awake);
@@ -621,7 +630,7 @@ void handle_rwlock_unlock(void *key, THREADID tid)
             } else {
                 // More complicated case, it's a reading request. Awake everyone.
                 for(THREAD_INFO *awake = rw->locked; awake != NULL; awake = awake->next_lock) {
-                    if (awake->next_lock != NULL && ((RWLOCK_STATUS) ((int64_t)awake->next_lock->holder) == RW_READING)) {
+                    if(awake->next_lock != NULL && ((RWLOCK_STATUS)((int64_t)awake->next_lock->holder) == RW_READING)) {
                         insert_rwlock_users(rw, awake);
                         thread_unlock(awake->next_lock, t);
                         awake->next_lock = awake->next_lock->next_lock;
@@ -674,7 +683,7 @@ static void initialize_cond(COND_ENTRY *c, void *key)
     c->locked = NULL;
 }
 
-static COND_ENTRY * add_cond_entry(void * key)
+static COND_ENTRY *add_cond_entry(void *key)
 {
     COND_ENTRY *c;
 
@@ -690,7 +699,7 @@ static void insert_cond_locked(COND_ENTRY *c, THREAD_INFO *entry)
     c->locked = insert(c->locked, entry);
 }
 
-static void fail_on_no_cond(COND_ENTRY *s, void * key)
+static void fail_on_no_cond(COND_ENTRY *s, void *key)
 {
     if(s == NULL) {
         cerr << "[PINocchio] Error: Non-existent condition variable acessed: " << key << "." << std::endl;
@@ -698,11 +707,12 @@ static void fail_on_no_cond(COND_ENTRY *s, void * key)
     }
 }
 
-static void cond_to_mutex(THREAD_INFO *t, THREADID tid) {
+static void cond_to_mutex(THREAD_INFO *t, THREADID tid)
+{
     MUTEX_ENTRY *s = get_mutex_entry(t->holder);
     s = handle_no_mutex(s, t->holder);
 
-    if (s->status == M_UNLOCKED) {
+    if(s->status == M_UNLOCKED) {
         // If unlocked, first to come, just lock.
         s->status = M_LOCKED;
         thread_unlock(t, &all_threads[tid]);
@@ -718,7 +728,7 @@ void handle_cond_broadcast(void *key, THREADID tid)
     fail_on_no_cond(c, key);
 
     // Unlock from condition variable but lock on the mutex.
-    for(THREAD_INFO * t = c->locked; t != NULL; t = t->next_lock) {
+    for(THREAD_INFO *t = c->locked; t != NULL; t = t->next_lock) {
         cond_to_mutex(t, tid);
     }
     c->locked = NULL;
@@ -760,20 +770,22 @@ void handle_cond_init(void *key)
     initialize_cond(c, key);
 }
 
-void handle_cond_signal(void *key, THREADID tid) {
+void handle_cond_signal(void *key, THREADID tid)
+{
     COND_ENTRY *c = get_cond_entry(key);
     fail_on_no_cond(c, key);
 
     // Unlock up to one, if exist. Unlock from conditional variable,
     // but lock on mutex. It could be awake or not, depending on the mutex.
-    if (c->locked != NULL) {
-        THREAD_INFO * t = c->locked;
+    if(c->locked != NULL) {
+        THREAD_INFO *t = c->locked;
         c->locked = c->locked->next_lock;
         cond_to_mutex(t, tid);
     }
 }
 
-void handle_cond_wait(void *key, void *mutex, THREADID tid) {
+void handle_cond_wait(void *key, void *mutex, THREADID tid)
+{
     COND_ENTRY *c = get_cond_entry(key);
     fail_on_no_cond(c, key);
 
@@ -797,9 +809,9 @@ void lock_hash_print_lock_hash()
     cerr << "--------- mutex table ---------" << std::endl;
     for(s = mutex_hash; s != NULL; s = (MUTEX_ENTRY *) s->hh.next) {
         cerr << "Key: " << s->key << " - status: " << status[s->status];
-        if (s != NULL) {
+        if(s != NULL) {
             cerr << " - locked: ";
-            for (THREAD_INFO *t = s->locked; t != NULL; t = t->next_lock) {
+            for(THREAD_INFO *t = s->locked; t != NULL; t = t->next_lock) {
                 cerr << t->pin_tid << " | ";
             }
         }
@@ -816,9 +828,9 @@ void lock_hash_print_cond_hash()
     cerr << "--------- condition variable table ---------" << std::endl;
     for(s = cond_hash; s != NULL; s = (COND_ENTRY *) s->hh.next) {
         cerr << "  - Key: " << s->key << std::endl;
-        if (s != NULL) {
+        if(s != NULL) {
             cerr << "  - locked: ";
-            for (THREAD_INFO *t = s->locked; t != NULL; t = t->next_lock) {
+            for(THREAD_INFO *t = s->locked; t != NULL; t = t->next_lock) {
                 cerr << t->pin_tid << " | ";
             }
         }
@@ -850,7 +862,7 @@ JOIN_ENTRY *get_join_entry(pthread_t key)
 // Handle a thread exit request in terms of join.
 // Mark allow as 1, not stopping any other join.
 // Return the list of locked threads on join.
-THREAD_INFO * handle_thread_exit(pthread_t key)
+THREAD_INFO *handle_thread_exit(pthread_t key)
 {
     JOIN_ENTRY *s = get_join_entry(key);
     s->allow = 1;

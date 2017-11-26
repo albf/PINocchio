@@ -84,7 +84,7 @@ void *producer(void *thread_data)
     }
 }
 
-int main(int argc , char **argv)
+int main(int argc, char **argv)
 {
     int i, num_threads = 2;
 

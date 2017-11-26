@@ -12,7 +12,8 @@ sem_t mutex;
 
 int y;
 
-int mat(int a, int b) {
+int mat(int a, int b)
+{
     int sign = (b % 2 == 0) ? 1 : -1;
     return a * sign;
 }
@@ -22,13 +23,13 @@ void *dummy_func(void *pn)
     int r = 0;
     int n = *((int *) pn);
 
-    int OUTER_LOOP = n/1000;
+    int OUTER_LOOP = n / 1000;
     int INNER_LOOP = 1000;
 
     sem_wait(&sem);
     for(int i = 0; i < OUTER_LOOP; i++) {
         for(int j = 0; j < INNER_LOOP; j++) {
-            r = r + mat(i,j);
+            r = r + mat(i, j);
         }
     }
     sem_post(&sem);
@@ -41,7 +42,7 @@ void *dummy_func(void *pn)
     return NULL;
 }
 
-int main(int argc , char **argv)
+int main(int argc, char **argv)
 {
     stopwatch_start();
     int i, *n;
@@ -63,14 +64,14 @@ int main(int argc , char **argv)
         num_threads = atoi(argv[1]);
     }
 
-    n = (int *) malloc(num_threads*sizeof(int));
+    n = (int *) malloc(num_threads * sizeof(int));
 
     pthread_t *dummy_thread;
     dummy_thread = (pthread_t *) malloc(num_threads * sizeof(pthread_t));
 
     for(i = 0; i < num_threads; i++) {
-            n[i] = LOOP_COUNT/(num_threads);
-            if(pthread_create(&dummy_thread[i], NULL, dummy_func, &n[i])) {
+        n[i] = LOOP_COUNT / (num_threads);
+        if(pthread_create(&dummy_thread[i], NULL, dummy_func, &n[i])) {
             fprintf(stderr, "Error creating thread\n");
             return 1;
         }

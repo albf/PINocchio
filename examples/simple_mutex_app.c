@@ -25,7 +25,7 @@ void *inc_x(void *x_void_ptr)
     return NULL;
 }
 
-int main(int argc , char **argv)
+int main(int argc, char **argv)
 {
     stopwatch_start();
     int *x, i;

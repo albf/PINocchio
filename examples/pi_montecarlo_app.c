@@ -35,7 +35,7 @@ void *parallel_pi(void *v)
     return NULL;
 }
 
-int main(int argc , char **argv)
+int main(int argc, char **argv)
 {
     stopwatch_start();
     int i, num_threads = 2;

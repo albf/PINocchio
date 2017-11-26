@@ -6,7 +6,8 @@ KNOB<string> knob_output_file(KNOB_MODE_WRITEONCE, "pintool", "o", DEFAULT_OUTPU
 KNOB<BOOL> knob_time_based(KNOB_MODE_WRITEONCE, "pintool", "t", DEFAULT_TIME_BASED, "perform time-based evaluation (no-pram)");
 KNOB<int> knob_sync_frenquency(KNOB_MODE_WRITEONCE, "pintool", "p", DEFAULT_SYNC_PERIOD, "only sync on a given frenquency");
 
-void knob_welcome() {
+void knob_welcome()
+{
     cerr <<  "===============================================" << std::endl;
     cerr << " _ __ (_)_ __   ___   ___ ___| |__ (_) ___\n\
 | \'_ \\| | \'_ \\ / _ \\ / __/ __| \'_ \\| |/ _ \\ \n\

@@ -40,10 +40,10 @@ void thread_init(int _pram)
 int thread_all_finished()
 {
     // Not a pram can't rely on exec_track
-    if (pram == 0) {
+    if(pram == 0) {
         for(int i = 0; i < MAX_THREADS; i++) {
             if(all_threads[i].status != UNREGISTERED &&
-                all_threads[i].status != FINISHED) {
+                    all_threads[i].status != FINISHED) {
 
                 return 0;
             }
@@ -51,7 +51,7 @@ int thread_all_finished()
         return 1;
     }
 
-    if (exec_track_is_empty() == 0) {
+    if(exec_track_is_empty() == 0) {
         return 0;
     }
 
@@ -61,7 +61,7 @@ int thread_all_finished()
             cerr << "[PINocchio] Internal Error: exec_track says it's empty but a thread is running: ";
             cerr << print_id(i) << std::endl;
             fail();
-        } else if (all_threads[i].status == LOCKED) {
+        } else if(all_threads[i].status == LOCKED) {
             cerr << "[PINocchio] Error: Deadlock on thread ";
             cerr << print_id(i) << std::endl;
             fail();
@@ -75,7 +75,7 @@ int thread_all_finished()
 void thread_try_release_all()
 {
     // In other words: keep trying to start threads until it's not possible.
-    for (THREAD_INFO *t = exec_tracker_awake(); t != NULL; t = exec_tracker_awake()) {
+    for(THREAD_INFO *t = exec_tracker_awake(); t != NULL; t = exec_tracker_awake()) {
         // Release thread semaphore, that's all required to let thread continue.
         PIN_SemaphoreSet(&t->active);
     }
@@ -129,7 +129,7 @@ void thread_unlock(THREAD_INFO *target, THREAD_INFO *unlocker)
 
     // Why check it? Because with the period option, a thread could be awaken
     // by a thread in the past. Avoid time travel, please.
-    if (unlocker->ins_count > target->ins_count) {
+    if(unlocker->ins_count > target->ins_count) {
         target->ins_count = unlocker->ins_count;
     }
     trace_bank_update(target->pin_tid, target->ins_count, UNLOCKED);
@@ -146,7 +146,8 @@ void thread_sleep(THREAD_INFO *target)
 }
 
 // It has advanced if exec_tracker ins_max has changed
-int thread_has_advanced() {
+int thread_has_advanced()
+{
     return exec_tracker_changed();
 }
 

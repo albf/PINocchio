@@ -2,7 +2,7 @@
 #define __TRACE_H__
 
 #define MAX_BANK_SIZE 4096          // Max number of changes per threads.
-                                    // Once it's reached, some smaller ones will be lost.
+// Once it's reached, some smaller ones will be lost.
 
 #define REDUCTION_SIZE 128          // Number of traces to be removed once limit is reached.
 

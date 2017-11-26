@@ -99,7 +99,7 @@ void handle_cond_wait(void *key, void *mutex, THREADID tid);
 /* Thread create/exit Handlers */
 
 // Returns a list with threads waiting to join.
-THREAD_INFO * handle_thread_exit(pthread_t key);
+THREAD_INFO *handle_thread_exit(pthread_t key);
 
 // Returns 1 if allowed, 0 if not allowed.
 int handle_before_join(pthread_t key, THREADID tid);

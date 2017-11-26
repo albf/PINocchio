@@ -22,7 +22,8 @@ rules, create need both before and after callbacks.
 
 /* Mutex hijackers */
 
-int hj_pthread_mutex_destroy(pthread_mutex_t *mutex, THREADID tid) {
+int hj_pthread_mutex_destroy(pthread_mutex_t *mutex, THREADID tid)
+{
     DEBUG(cerr << "mutex_destroy called: " << mutex << std::endl);
 
     ACTION action = {
@@ -93,7 +94,8 @@ int hj_pthread_mutex_unlock(pthread_mutex_t *mutex, THREADID tid)
 
 /* Semaphore Hijackers */
 
-int hj_sem_destroy(sem_t *sem, THREADID tid) {
+int hj_sem_destroy(sem_t *sem, THREADID tid)
+{
     DEBUG(cerr << "sem_destroy called: " << sem << std::endl);
 
     ACTION action = {
@@ -106,7 +108,8 @@ int hj_sem_destroy(sem_t *sem, THREADID tid) {
     return 0;
 }
 
-int hj_sem_getvalue(sem_t *sem, int *value, THREADID tid) {
+int hj_sem_getvalue(sem_t *sem, int *value, THREADID tid)
+{
     DEBUG(cerr << "sem_getvalue called: " << sem << std::endl);
 
     ACTION action = {
@@ -134,7 +137,8 @@ int hj_sem_init(sem_t *sem, int pshared, unsigned int value, THREADID tid)
     return 0;
 }
 
-int hj_sem_post(sem_t *sem, THREADID tid) {
+int hj_sem_post(sem_t *sem, THREADID tid)
+{
     DEBUG(cerr << "sem_post called: " << sem << std::endl);
 
     ACTION action = {
@@ -147,7 +151,8 @@ int hj_sem_post(sem_t *sem, THREADID tid) {
     return 0;
 }
 
-int hj_sem_trywait(sem_t *sem, THREADID tid) {
+int hj_sem_trywait(sem_t *sem, THREADID tid)
+{
     DEBUG(cerr << "sem_trywait called: " << sem << std::endl);
 
     ACTION action = {
@@ -160,7 +165,8 @@ int hj_sem_trywait(sem_t *sem, THREADID tid) {
     return action.arg.i;
 }
 
-int hj_sem_wait(sem_t *sem, THREADID tid) {
+int hj_sem_wait(sem_t *sem, THREADID tid)
+{
     DEBUG(cerr << "sem_wait called: " << sem << std::endl);
 
     ACTION action = {
@@ -177,7 +183,8 @@ int hj_sem_wait(sem_t *sem, THREADID tid) {
 
 /* Rwlock Hijackers */
 
-int hj_pthread_rwlock_destroy(pthread_rwlock_t *rwlock, THREADID tid) {
+int hj_pthread_rwlock_destroy(pthread_rwlock_t *rwlock, THREADID tid)
+{
     DEBUG(cerr << "pthread_rwlock_destroy called." << std::endl);
 
     ACTION action = {
@@ -190,7 +197,8 @@ int hj_pthread_rwlock_destroy(pthread_rwlock_t *rwlock, THREADID tid) {
     return 0;
 }
 
-int hj_pthread_rwlock_init(pthread_rwlock_t *rwlock, const pthread_rwlockattr_t *attr, THREADID tid) {
+int hj_pthread_rwlock_init(pthread_rwlock_t *rwlock, const pthread_rwlockattr_t *attr, THREADID tid)
+{
     DEBUG(cerr << "pthread_rwlock_init called." << std::endl);
 
     ACTION action = {
@@ -203,7 +211,8 @@ int hj_pthread_rwlock_init(pthread_rwlock_t *rwlock, const pthread_rwlockattr_t 
     return 0;
 }
 
-int hj_pthread_rwlock_rdlock(pthread_rwlock_t *rwlock, THREADID tid) {
+int hj_pthread_rwlock_rdlock(pthread_rwlock_t *rwlock, THREADID tid)
+{
     DEBUG(cerr << "pthread_rwlock_rdlock called." << std::endl);
 
     ACTION action = {
@@ -216,7 +225,8 @@ int hj_pthread_rwlock_rdlock(pthread_rwlock_t *rwlock, THREADID tid) {
     return 0;
 }
 
-int hj_pthread_rwlock_tryrdlock(pthread_rwlock_t *rwlock, THREADID tid) {
+int hj_pthread_rwlock_tryrdlock(pthread_rwlock_t *rwlock, THREADID tid)
+{
     DEBUG(cerr << "pthread_rwlock_tryrdlock called." << std::endl);
 
     ACTION action = {
@@ -229,7 +239,8 @@ int hj_pthread_rwlock_tryrdlock(pthread_rwlock_t *rwlock, THREADID tid) {
     return action.arg.i;
 }
 
-int hj_pthread_rwlock_wrlock(pthread_rwlock_t *rwlock, THREADID tid) {
+int hj_pthread_rwlock_wrlock(pthread_rwlock_t *rwlock, THREADID tid)
+{
     DEBUG(cerr << "pthread_rwlock_wrlock called." << std::endl);
 
     ACTION action = {
@@ -242,7 +253,8 @@ int hj_pthread_rwlock_wrlock(pthread_rwlock_t *rwlock, THREADID tid) {
     return 0;
 }
 
-int hj_pthread_rwlock_trywrlock(pthread_rwlock_t *rwlock, THREADID tid) {
+int hj_pthread_rwlock_trywrlock(pthread_rwlock_t *rwlock, THREADID tid)
+{
     DEBUG(cerr << "pthread_rwlock_trywrlock called." << std::endl);
 
     ACTION action = {
@@ -255,7 +267,8 @@ int hj_pthread_rwlock_trywrlock(pthread_rwlock_t *rwlock, THREADID tid) {
     return action.arg.i;
 }
 
-int hj_pthread_rwlock_unlock(pthread_rwlock_t *rwlock, THREADID tid) {
+int hj_pthread_rwlock_unlock(pthread_rwlock_t *rwlock, THREADID tid)
+{
     DEBUG(cerr << "pthread_rwlock_unlock called." << std::endl);
 
     ACTION action = {
@@ -272,7 +285,8 @@ int hj_pthread_rwlock_unlock(pthread_rwlock_t *rwlock, THREADID tid) {
 
 /* Conditional Hijackers  */
 
-int hj_pthread_cond_broadcast(pthread_cond_t *cond, THREADID tid) {
+int hj_pthread_cond_broadcast(pthread_cond_t *cond, THREADID tid)
+{
     DEBUG(cerr << "pthread_cond_broadcast called: " << cond << std::endl);
 
     ACTION action = {
@@ -285,7 +299,8 @@ int hj_pthread_cond_broadcast(pthread_cond_t *cond, THREADID tid) {
     return 0;
 }
 
-int hj_pthread_cond_destroy(pthread_cond_t *cond, THREADID tid) {
+int hj_pthread_cond_destroy(pthread_cond_t *cond, THREADID tid)
+{
     DEBUG(cerr << "pthread_cond_destroy called: " << cond << std::endl);
 
     ACTION action = {
@@ -299,10 +314,11 @@ int hj_pthread_cond_destroy(pthread_cond_t *cond, THREADID tid) {
 }
 
 // hj_pthread_cond_init is not accepting to receive THREADID tid. Avoiding it for now.
-int hj_pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr, THREADID tid) {
+int hj_pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr, THREADID tid)
+{
     DEBUG(cerr << "pthread_cond_init called: " << cond << std::endl);
 
-    if (attr != NULL) {
+    if(attr != NULL) {
         cerr << "Error: pthread_cond_init attr should be NULL on tid: " << print_id(tid) << std::endl;
         fail();
     }
@@ -317,7 +333,8 @@ int hj_pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr, T
     return 0;
 }
 
-int hj_pthread_cond_signal(pthread_cond_t *cond, THREADID tid) {
+int hj_pthread_cond_signal(pthread_cond_t *cond, THREADID tid)
+{
     DEBUG(cerr << "pthread_cond_signal called: " << cond << std::endl);
 
     ACTION action = {
@@ -330,13 +347,14 @@ int hj_pthread_cond_signal(pthread_cond_t *cond, THREADID tid) {
     return 0;
 }
 
-int hj_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex, THREADID tid) {
+int hj_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex, THREADID tid)
+{
     DEBUG(cerr << "pthread_cond_wait called: " << cond << ", " << mutex << std::endl);
 
     ACTION action = {
         tid,
         ACTION_COND_WAIT,
-        {(void *) cond, (void*) mutex},
+        {(void *) cond, (void *) mutex},
     };
     sync(&action);
 
@@ -399,9 +417,9 @@ VOID module_load_handler(IMG img, void *v)
     if(RTN_Valid(rtn)) {
         DEBUG(cerr << "Found pthread_mutex_init on image" << std::endl);
         RTN_ReplaceSignature(rtn, (AFUNPTR)hj_pthread_mutex_init,
-                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
-                       IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
-                       IARG_THREAD_ID, IARG_END);
+                             IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                             IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
+                             IARG_THREAD_ID, IARG_END);
         DEBUG(cerr << "pthread_mutex_init hijacked" << std::endl);
     }
 
@@ -410,8 +428,8 @@ VOID module_load_handler(IMG img, void *v)
     if(RTN_Valid(rtn)) {
         DEBUG(cerr << "Found pthread_mutex_destroy on image" << std::endl);
         RTN_ReplaceSignature(rtn, (AFUNPTR)hj_pthread_mutex_destroy,
-                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
-                       IARG_THREAD_ID, IARG_END);
+                             IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                             IARG_THREAD_ID, IARG_END);
         DEBUG(cerr << "pthread_mutex_destroy hijacked" << std::endl);
     }
 
@@ -420,8 +438,8 @@ VOID module_load_handler(IMG img, void *v)
     if(RTN_Valid(rtn)) {
         DEBUG(cerr << "Found pthread_mutex_lock on image" << std::endl);
         RTN_ReplaceSignature(rtn, (AFUNPTR)hj_pthread_mutex_lock,
-                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
-                       IARG_THREAD_ID, IARG_END);
+                             IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                             IARG_THREAD_ID, IARG_END);
         DEBUG(cerr << "pthread_mutex_lock hijacked" << std::endl);
     }
 
@@ -430,8 +448,8 @@ VOID module_load_handler(IMG img, void *v)
     if(RTN_Valid(rtn)) {
         DEBUG(cerr << "Found pthread_mutex_trylock on image" << std::endl);
         RTN_ReplaceSignature(rtn, (AFUNPTR)hj_pthread_mutex_trylock,
-                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
-                       IARG_THREAD_ID, IARG_END);
+                             IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                             IARG_THREAD_ID, IARG_END);
         DEBUG(cerr << "pthread_mutex_trylock hijacked" << std::endl);
     }
 
@@ -440,8 +458,8 @@ VOID module_load_handler(IMG img, void *v)
     if(RTN_Valid(rtn)) {
         DEBUG(cerr << "Found pthread_mutex_unlock on image" << std::endl);
         RTN_ReplaceSignature(rtn, (AFUNPTR)hj_pthread_mutex_unlock,
-                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
-                       IARG_THREAD_ID, IARG_END);
+                             IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                             IARG_THREAD_ID, IARG_END);
         DEBUG(cerr << "pthread_mutex_unlock hijacked" << std::endl);
     }
 
@@ -450,8 +468,8 @@ VOID module_load_handler(IMG img, void *v)
     if(RTN_Valid(rtn)) {
         DEBUG(cerr << "Found sem_destroy on image" << std::endl);
         RTN_ReplaceSignature(rtn, (AFUNPTR)hj_sem_destroy,
-                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
-                       IARG_THREAD_ID, IARG_END);
+                             IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                             IARG_THREAD_ID, IARG_END);
         DEBUG(cerr << "sem_destroy hijacked" << std::endl);
     }
 
@@ -460,8 +478,8 @@ VOID module_load_handler(IMG img, void *v)
     if(RTN_Valid(rtn)) {
         DEBUG(cerr << "Found sem_getvalue on image" << std::endl);
         RTN_ReplaceSignature(rtn, (AFUNPTR)hj_sem_getvalue,
-                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
-                       IARG_THREAD_ID, IARG_END);
+                             IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                             IARG_THREAD_ID, IARG_END);
         DEBUG(cerr << "sem_getvalue hijacked" << std::endl);
     }
 
@@ -470,10 +488,10 @@ VOID module_load_handler(IMG img, void *v)
     if(RTN_Valid(rtn)) {
         DEBUG(cerr << "Found sem_init on image" << std::endl);
         RTN_ReplaceSignature(rtn, (AFUNPTR)hj_sem_init,
-                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
-                       IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
-                       IARG_FUNCARG_ENTRYPOINT_VALUE, 2,
-                       IARG_THREAD_ID, IARG_END);
+                             IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                             IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
+                             IARG_FUNCARG_ENTRYPOINT_VALUE, 2,
+                             IARG_THREAD_ID, IARG_END);
         DEBUG(cerr << "sem_init hijacked" << std::endl);
     }
 
@@ -482,8 +500,8 @@ VOID module_load_handler(IMG img, void *v)
     if(RTN_Valid(rtn)) {
         DEBUG(cerr << "Found sem_post on image" << std::endl);
         RTN_ReplaceSignature(rtn, (AFUNPTR)hj_sem_post,
-                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
-                       IARG_THREAD_ID, IARG_END);
+                             IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                             IARG_THREAD_ID, IARG_END);
         DEBUG(cerr << "sem_post hijacked" << std::endl);
     }
 
@@ -492,8 +510,8 @@ VOID module_load_handler(IMG img, void *v)
     if(RTN_Valid(rtn)) {
         DEBUG(cerr << "Found sem_trywait on image" << std::endl);
         RTN_ReplaceSignature(rtn, (AFUNPTR)hj_sem_trywait,
-                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
-                       IARG_THREAD_ID, IARG_END);
+                             IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                             IARG_THREAD_ID, IARG_END);
         DEBUG(cerr << "sem_trywait hijacked" << std::endl);
     }
 
@@ -502,8 +520,8 @@ VOID module_load_handler(IMG img, void *v)
     if(RTN_Valid(rtn)) {
         DEBUG(cerr << "Found sem_wait on image" << std::endl);
         RTN_ReplaceSignature(rtn, (AFUNPTR)hj_sem_wait,
-                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
-                       IARG_THREAD_ID, IARG_END);
+                             IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                             IARG_THREAD_ID, IARG_END);
         DEBUG(cerr << "sem_wait hijacked" << std::endl);
     }
 
@@ -512,8 +530,8 @@ VOID module_load_handler(IMG img, void *v)
     if(RTN_Valid(rtn)) {
         DEBUG(cerr << "Found pthread_rwlock_destroy on image" << std::endl);
         RTN_ReplaceSignature(rtn, (AFUNPTR)hj_pthread_rwlock_destroy,
-                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
-                       IARG_THREAD_ID, IARG_END);
+                             IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                             IARG_THREAD_ID, IARG_END);
         DEBUG(cerr << "pthread_rwlock_destroy hijacked" << std::endl);
     }
 
@@ -522,9 +540,9 @@ VOID module_load_handler(IMG img, void *v)
     if(RTN_Valid(rtn)) {
         DEBUG(cerr << "Found pthread_rwlock_init on image" << std::endl);
         RTN_ReplaceSignature(rtn, (AFUNPTR)hj_pthread_rwlock_init,
-                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
-                       IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
-                       IARG_THREAD_ID, IARG_END);
+                             IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                             IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
+                             IARG_THREAD_ID, IARG_END);
         DEBUG(cerr << "pthread_rwlock_init hijacked" << std::endl);
     }
 
@@ -533,8 +551,8 @@ VOID module_load_handler(IMG img, void *v)
     if(RTN_Valid(rtn)) {
         DEBUG(cerr << "Found pthread_rwlock_rdlock on image" << std::endl);
         RTN_ReplaceSignature(rtn, (AFUNPTR)hj_pthread_rwlock_rdlock,
-                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
-                       IARG_THREAD_ID, IARG_END);
+                             IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                             IARG_THREAD_ID, IARG_END);
         DEBUG(cerr << "pthread_rwlock_rdlock hijacked" << std::endl);
     }
 
@@ -543,8 +561,8 @@ VOID module_load_handler(IMG img, void *v)
     if(RTN_Valid(rtn)) {
         DEBUG(cerr << "Found pthread_rwlock_tryrdlock on image" << std::endl);
         RTN_ReplaceSignature(rtn, (AFUNPTR)hj_pthread_rwlock_tryrdlock,
-                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
-                       IARG_THREAD_ID, IARG_END);
+                             IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                             IARG_THREAD_ID, IARG_END);
         DEBUG(cerr << "pthread_rwlock_tryrdlock hijacked" << std::endl);
     }
 
@@ -553,8 +571,8 @@ VOID module_load_handler(IMG img, void *v)
     if(RTN_Valid(rtn)) {
         DEBUG(cerr << "Found pthread_rwlock_wrlock on image" << std::endl);
         RTN_ReplaceSignature(rtn, (AFUNPTR)hj_pthread_rwlock_wrlock,
-                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
-                       IARG_THREAD_ID, IARG_END);
+                             IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                             IARG_THREAD_ID, IARG_END);
         DEBUG(cerr << "pthread_rwlock_wrlock hijacked" << std::endl);
     }
 
@@ -563,8 +581,8 @@ VOID module_load_handler(IMG img, void *v)
     if(RTN_Valid(rtn)) {
         DEBUG(cerr << "Found pthread_rwlock_trywrlock on image" << std::endl);
         RTN_ReplaceSignature(rtn, (AFUNPTR)hj_pthread_rwlock_trywrlock,
-                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
-                       IARG_THREAD_ID, IARG_END);
+                             IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                             IARG_THREAD_ID, IARG_END);
         DEBUG(cerr << "pthread_rwlock_trywrlock hijacked" << std::endl);
     }
 
@@ -573,8 +591,8 @@ VOID module_load_handler(IMG img, void *v)
     if(RTN_Valid(rtn)) {
         DEBUG(cerr << "Found pthread_rwlock_unlock on image" << std::endl);
         RTN_ReplaceSignature(rtn, (AFUNPTR)hj_pthread_rwlock_unlock,
-                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
-                       IARG_THREAD_ID, IARG_END);
+                             IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                             IARG_THREAD_ID, IARG_END);
         DEBUG(cerr << "pthread_rwlock_unlock hijacked" << std::endl);
     }
 
@@ -583,8 +601,8 @@ VOID module_load_handler(IMG img, void *v)
     if(RTN_Valid(rtn)) {
         DEBUG(cerr << "Found pthread_cond_broadcast on image" << std::endl);
         RTN_ReplaceSignature(rtn, (AFUNPTR)hj_pthread_cond_broadcast,
-                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
-                       IARG_THREAD_ID, IARG_END);
+                             IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                             IARG_THREAD_ID, IARG_END);
         DEBUG(cerr << "pthread_cond_broadcast hijacked" << std::endl);
     }
 
@@ -593,8 +611,8 @@ VOID module_load_handler(IMG img, void *v)
     if(RTN_Valid(rtn)) {
         DEBUG(cerr << "Found pthread_cond_destroy on image" << std::endl);
         RTN_ReplaceSignature(rtn, (AFUNPTR)hj_pthread_cond_destroy,
-                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
-                       IARG_THREAD_ID, IARG_END);
+                             IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                             IARG_THREAD_ID, IARG_END);
         DEBUG(cerr << "pthread_cond_destroy hijacked" << std::endl);
     }
 
@@ -603,9 +621,9 @@ VOID module_load_handler(IMG img, void *v)
     if(RTN_Valid(rtn)) {
         DEBUG(cerr << "Found pthread_cond_init on image" << std::endl);
         RTN_ReplaceSignature(rtn, (AFUNPTR)hj_pthread_cond_init,
-                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
-                       IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
-                       IARG_THREAD_ID, IARG_END);
+                             IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                             IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
+                             IARG_THREAD_ID, IARG_END);
         DEBUG(cerr << "pthread_cond_init hijacked" << std::endl);
     }
 
@@ -614,8 +632,8 @@ VOID module_load_handler(IMG img, void *v)
     if(RTN_Valid(rtn)) {
         DEBUG(cerr << "Found pthread_cond_signal on image" << std::endl);
         RTN_ReplaceSignature(rtn, (AFUNPTR)hj_pthread_cond_signal,
-                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
-                       IARG_THREAD_ID, IARG_END);
+                             IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                             IARG_THREAD_ID, IARG_END);
         DEBUG(cerr << "pthread_cond_signal hijacked" << std::endl);
     }
 
@@ -624,9 +642,9 @@ VOID module_load_handler(IMG img, void *v)
     if(RTN_Valid(rtn)) {
         DEBUG(cerr << "Found pthread_cond_wait on image" << std::endl);
         RTN_ReplaceSignature(rtn, (AFUNPTR)hj_pthread_cond_wait,
-                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
-                       IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
-                       IARG_THREAD_ID, IARG_END);
+                             IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                             IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
+                             IARG_THREAD_ID, IARG_END);
         DEBUG(cerr << "pthread_cond_wait hijacked" << std::endl);
     }
 
@@ -649,8 +667,8 @@ VOID module_load_handler(IMG img, void *v)
     if(RTN_Valid(rtn)) {
         DEBUG(cerr << "Found pthread_join on image" << std::endl);
         RTN_ReplaceSignature(rtn, (AFUNPTR)hj_pthread_join,
-                        IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
-                       IARG_THREAD_ID, IARG_END);
+                             IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                             IARG_THREAD_ID, IARG_END);
         DEBUG(cerr << "pthread_join hijacked" << std::endl);
     }
 }
@@ -714,12 +732,12 @@ VOID mem_ins_handler(THREADID tid)
 
 VOID instruction(INS ins, VOID *v)
 {
-    if (INS_IsMemoryRead(ins) || INS_IsMemoryWrite(ins)) {
+    if(INS_IsMemoryRead(ins) || INS_IsMemoryWrite(ins)) {
         INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)mem_ins_handler,
-                        IARG_THREAD_ID, IARG_END);
+                       IARG_THREAD_ID, IARG_END);
     } else {
         INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)ins_handler,
-                        IARG_THREAD_ID, IARG_END);
+                       IARG_THREAD_ID, IARG_END);
     }
 }
 
@@ -732,7 +750,7 @@ VOID mem_ins_handler_approximate(THREADID tid)
     // Memory Instruction callback, update instruction counter
     all_threads[(int)tid].ins_count++;
 
-    if (((all_threads[(int)tid].ins_count - all_threads[(int)tid].sync_holder)/sync_period)>0) {
+    if(((all_threads[(int)tid].ins_count - all_threads[(int)tid].sync_holder) / sync_period) > 0) {
         all_threads[(int)tid].sync_holder = all_threads[(int)tid].ins_count;
 
         // For approximate measure, some sync will be ignored.
@@ -746,12 +764,12 @@ VOID mem_ins_handler_approximate(THREADID tid)
 
 VOID instruction_approximate(INS ins, VOID *v)
 {
-    if (INS_IsMemoryRead(ins) || INS_IsMemoryWrite(ins)) {
+    if(INS_IsMemoryRead(ins) || INS_IsMemoryWrite(ins)) {
         INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)mem_ins_handler_approximate,
-                        IARG_THREAD_ID, IARG_END);
+                       IARG_THREAD_ID, IARG_END);
     } else {
         INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)ins_handler,
-                        IARG_THREAD_ID, IARG_END);
+                       IARG_THREAD_ID, IARG_END);
     }
 }
 
@@ -771,8 +789,8 @@ int main(int argc, char *argv[])
     sync_init(pram);
 
     // Hadler for instructions
-    if (pram > 0) {
-        if (sync_period == 1) {
+    if(pram > 0) {
+        if(sync_period == 1) {
             INS_AddInstrumentFunction(instruction, 0);
         } else {
             INS_AddInstrumentFunction(instruction_approximate, 0);

@@ -8,7 +8,8 @@
 pthread_rwlock_t rwlock;
 int y;
 
-int mat(int a, int b) {
+int mat(int a, int b)
+{
     int sign = (b % 2 == 0) ? 1 : -1;
     return a * sign;
 }
@@ -21,8 +22,8 @@ void *inc_x(void *x_void_ptr)
 
     // Threads with higher TID will finish slower.
     pthread_rwlock_rdlock(&rwlock);
-    for (int i = 0; i < (COUNT_MAX*(*x_pt)); i++) {
-        local += mat(i, i+1);
+    for(int i = 0; i < (COUNT_MAX * (*x_pt)); i++) {
+        local += mat(i, i + 1);
     }
     pthread_rwlock_unlock(&rwlock);
 
@@ -34,7 +35,7 @@ void *inc_x(void *x_void_ptr)
     return NULL;
 }
 
-int main(int argc , char **argv)
+int main(int argc, char **argv)
 {
     stopwatch_start();
     int *x, i;

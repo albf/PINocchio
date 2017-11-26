@@ -4,8 +4,8 @@
 #include "exec_tracker.h"
 
 struct ORDERED_LIST {
-    THREAD_INFO * start;
-    THREAD_INFO * end;
+    THREAD_INFO *start;
+    THREAD_INFO *end;
 
     int running;
     UINT64 ins_min;
@@ -32,7 +32,7 @@ void exec_tracker_init()
 void exec_tracker_insert(THREAD_INFO *t)
 {
     // Empty list.
-    if (waiting_list.start == NULL) {
+    if(waiting_list.start == NULL) {
         t->waiting_previous = NULL;
         t->waiting_next = NULL;
 
@@ -50,7 +50,7 @@ void exec_tracker_insert(THREAD_INFO *t)
             t->waiting_next = c->waiting_next;
 
             // Update, if any, the next guy. If not, guess who is the new end element.
-            if (c->waiting_next != NULL) {
+            if(c->waiting_next != NULL) {
                 c->waiting_next -> waiting_previous = t;
             } else {
                 waiting_list.end = t;
@@ -73,8 +73,8 @@ void exec_tracker_insert(THREAD_INFO *t)
 int exec_tracker_sleep(THREAD_INFO *t)
 {
     // Reasoning: If there is no one running but me and it will be the next first.
-    if (waiting_list.running == 1 &&
-        (waiting_list.start == NULL || t->ins_count <= waiting_list.start->ins_count)) {
+    if(waiting_list.running == 1 &&
+            (waiting_list.start == NULL || t->ins_count <= waiting_list.start->ins_count)) {
 
         waiting_list.ins_min = t->ins_count;
         return 0;
@@ -88,17 +88,17 @@ int exec_tracker_sleep(THREAD_INFO *t)
 THREAD_INFO *exec_tracker_awake()
 {
     // Check if there is at least one, of course.
-    if (waiting_list.start == NULL) {
+    if(waiting_list.start == NULL) {
         return NULL;
     }
 
     // No one is running, guess we could just wake someone.
-    if (waiting_list.running == 0) {
+    if(waiting_list.running == 0) {
         THREAD_INFO *t = waiting_list.start;
 
         waiting_list.ins_min = t->ins_count;
         waiting_list.start = t->waiting_next;
-        if (waiting_list.start != NULL) {
+        if(waiting_list.start != NULL) {
             waiting_list.start->waiting_previous = NULL;
         }
 
@@ -107,11 +107,11 @@ THREAD_INFO *exec_tracker_awake()
     }
 
     // Someone is running. Can't go unless they are in sync.
-    if (waiting_list.ins_min >= waiting_list.start->ins_count) {
+    if(waiting_list.ins_min >= waiting_list.start->ins_count) {
         THREAD_INFO *t = waiting_list.start;
 
         waiting_list.start = t->waiting_next;
-        if (waiting_list.start != NULL) {
+        if(waiting_list.start != NULL) {
             waiting_list.start->waiting_previous = NULL;
         }
 
@@ -139,24 +139,26 @@ int exec_track_is_empty()
     return ((waiting_list.running == 0) && (waiting_list.start == NULL)) ? 1 : 0;
 }
 
-int exec_tracker_changed() {
+int exec_tracker_changed()
+{
     UINT64 previous;
 
     previous = waiting_list.previous_min;
     waiting_list.previous_min = waiting_list.ins_min;
 
-    if (waiting_list.ins_min == previous) {
+    if(waiting_list.ins_min == previous) {
         return 0;
     }
     return 1;
 }
 
-void exec_tracker_print() {
+void exec_tracker_print()
+{
     cerr << "[Exec Tracker] Waiting-List:" << std::endl;
     cerr << "  -- running: " << waiting_list.running << std::endl;
     cerr << "  -- ins_min: " << waiting_list.ins_min << std::endl;
     cerr << "  --    list:";
-    for (THREAD_INFO *t = waiting_list.start; t != NULL; t = t->waiting_next) {
+    for(THREAD_INFO *t = waiting_list.start; t != NULL; t = t->waiting_next) {
         cerr << " [tid: " << t->pin_tid;
         cerr << ", ins_count: " << t->ins_count << "]";
     }
