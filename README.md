@@ -1,14 +1,14 @@
 # PINocchio
 
-PRAM simulator for pthreads programs, forcing the system to fairly execute the same number of instructions for each current unlocked thread.
+PRAM (parallel random-access machine) simulator for pthreads-based programs, forcing the system to fairly execute the same number of instructions for each current unlocked thread.
 
 ## Getting Started
 
-PINocchio is a pintool, so you need a C++ toolchain and Intel's Pin to compile the project. Although Pin is compatible with windows, PINocchio was tested and developed with Linux in mind, as it tracks pthreads calls - check examples.
+PINocchio is a pintool, so you need a C++ toolchain and Intel's Pin to compile the project. Although Pin is compatible with Windows, PINocchio was tested and developed with Linux in mind, as it tracks pthreads calls - check examples.
 
 ### Installing
 
-Most tests were performed on Debian, but it should work the same assuming you respect the rules and can provide the following:
+Most tests were performed on Debian, but it should work the same way on other distros assuming you respect the rules and can provide the following:
 
 - gcc and g++ (tested with 6.3.0)
 - make
