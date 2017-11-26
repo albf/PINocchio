@@ -89,11 +89,6 @@ class Shell(object):
         return missing
 
 
-def _threads_str(t):
-    if t > 1:
-        return " threads"
-    return " thread"
-
 
 class Example(object):
     ''' Represents a example, which should have a *_app.c file under dir
@@ -112,11 +107,13 @@ class Example(object):
         # List of results following the order of self.threads
         self.work = []
 
-        # Format: [[cycles, instructions, cpu-clock]]
-        self.perf_stats = []
-        self.perf_with_pin_stats = []
+        # Format: [[wall, cpu]]
+        self.result = []
+        self.result_with_pin = []
+        self.result_with_time = []
+        self.result_with_period = []
 
-    def result(self):
+    def finish_result(self):
         ''' generate string used as result table entry '''
         return [self.name, self.finishes, self.finishes_with_pin, self.finishes_with_time, self.finishes_with_period]
 
@@ -135,32 +132,99 @@ class Example(object):
                 result.append(None)
         return result
 
-    def overhead_result(self):
-        ''' generate string used as overhead result table entry '''
-        result = [self.name]
+    def append_stdout_results(self, stdout, result_list):
+        ''' find results in stdout and append to the provided list'''
+        wall, cpu = None, None
+        lines = stdout.splitlines()
+
+        for l in lines:
+            if l.startswith("@WALL:"):
+                wall = float(l[7:])
+            if l.startswith("@CPU:"):
+                cpu= float(l[6:])
+
+        if wall is None:
+            print "Warning: Couldn't find wall time on stdout"
+        if cpu is None:
+            print "Warning: Couldn't find cpu time on stdout"
+        result_list.append([wall, cpu])
+
+    def format_float(self, value):
+        return "{:10.2f}".format(value).strip()
+
+    def overhead_pin(self):
+        ''' generate result table entry for regular usage'''
+        overhead = ["regular"]
+
+        # If not even finishes, just stop.
+        if not self.finishes:
+            return overhead
+
         for i in range(NUM_TESTS):
-            if self.finishes_with_pin_and_perf:
-                result.append(self.perf_with_pin_stats[i][1]/float(self.perf_stats[i][1]))
+            if self.finishes_with_pin:
+                overhead.append(self.format_float(self.result_with_pin[i][0]/float(self.result[i][0])))
+                overhead.append(self.format_float(self.result_with_pin[i][1]/float(self.result[i][1])))
             else:
-                result.append(None)
+                overhead.append(None)
+                overhead.append(None)
+
+        return overhead
+
+    def overhead_time(self):
+        ''' generate result table entry for time usage'''
+        overhead = ["time"]
+
+        # If not even finishes, just stop.
+        if not self.finishes:
+            return overhead
+
         for i in range(NUM_TESTS):
-            if self.finishes_with_pin_and_perf:
-                result.append(self.perf_with_pin_stats[i][0]/float(self.perf_stats[i][0]))
+            if self.finishes_with_time:
+                overhead.append(self.format_float(self.result_with_time[i][0]/float(self.result[i][0])))
+                overhead.append(self.format_float(self.result_with_time[i][1]/float(self.result[i][1])))
             else:
-                result.append(None)
-        return result
+                overhead.append(None)
+                overhead.append(None)
+
+        return overhead
+
+    def overhead_period(self):
+        ''' generate result table entry for period usage'''
+        overhead = ["period"]
+
+        # If not even finishes, just stop.
+        if not self.finishes:
+            return overhead
+
+        for i in range(NUM_TESTS):
+            if self.finishes_with_period:
+                overhead.append(self.format_float(self.result_with_period[i][0]/float(self.result[i][0])))
+                overhead.append(self.format_float(self.result_with_period[i][1]/float(self.result[i][1])))
+            else:
+                overhead.append(None)
+                overhead.append(None)
+
+        return overhead
+
+    def _threads_str(self, t):
+        ''' Just output the right word, plural or singular'''
+        if t > 1:
+            return " threads"
+        return " thread"
 
     def must_finish(self, timeout):
         ''' attempt to run the example using different thread numbers '''
         for t in self.threads:
             command = self.path + " " + str(t)
-            r, _, _ = Shell.execute(command, timeout)
+            r, stdout, _ = Shell.execute(command, timeout)
 
             if r == None:
-                return self.name + ": Failed/timeout to finish with " + str(t) + _threads_str(t)
+                return self.name + ": Failed/timeout to finish with " + str(t) + self._threads_str(t)
 
             if r != 0:
-                return self.name + ": Returned non-zero (" + str(r) + ") with " + str(t) + _threads_str(t)
+                return self.name + ": Returned non-zero (" + str(r) + ") with " + str(t) + self._threads_str(t)
+
+            self.append_stdout_results(stdout, self.result)
 
         self.finishes = True
         return self.name + ": Ok"
@@ -169,15 +233,15 @@ class Example(object):
         ''' same as must_finish, but using pin and PINocchio, also calculates work '''
         for t in self.threads:
             command = "pin -t " + PINOCCHIO_BINARY + " -- " + self.path + " " + str(t)
-            r, _, _ = Shell.execute(command, timeout)
+            r, stdout, _ = Shell.execute(command, timeout)
 
             if r == None:
-                return self.name + ": Failed/timeout to finish with " + str(t) + _threads_str(t)
+                return self.name + ": Failed/timeout to finish with " + str(t) + self._threads_str(t)
 
             if r != 0:
-                return self.name + ": Returned non-zero (" + str(r) + ") with " + str(t) + _threads_str(t)
+                return self.name + ": Returned non-zero (" + str(r) + ") with " + str(t) + self._threads_str(t)
 
-            self.work.append(all_work_from_file(os.path.join(TOOLS_DIR, "trace.json")))
+            self.append_stdout_results(stdout, self.result_with_pin)
 
         self.finishes_with_pin = True
         return self.name + ": Ok"
@@ -187,13 +251,15 @@ class Example(object):
         for t in self.threads:
             command = " pin -t " + PINOCCHIO_BINARY + " -t -- "
             command += self.path + " " + str(t)
-            r, _, _ = Shell.execute(command, timeout)
+            r, stdout, _ = Shell.execute(command, timeout)
 
             if r == None:
-                return self.name + ": Failed/timeout to finish with " + str(t) + _threads_str(t)
+                return self.name + ": Failed/timeout to finish with " + str(t) + self._threads_str(t)
 
             if r != 0:
-                return self.name + ": Returned non-zero (" + str(r) + ") with " + str(t) + _threads_str(t)
+                return self.name + ": Returned non-zero (" + str(r) + ") with " + str(t) + self._threads_str(t)
+
+            self.append_stdout_results(stdout, self.result_with_time)
 
         self.finishes_with_time = True
         return self.name + ": Ok"
@@ -203,77 +269,17 @@ class Example(object):
         for t in self.threads:
             command = " pin -t " + PINOCCHIO_BINARY + " -p 1000 -- "
             command += self.path + " " + str(t)
-            r, _, _ = Shell.execute(command, timeout)
+            r, stdout, _ = Shell.execute(command, timeout)
 
             if r == None:
-                return self.name + ": Failed/timeout to finish with " + str(t) + _threads_str(t)
+                return self.name + ": Failed/timeout to finish with " + str(t) + self._threads_str(t)
 
             if r != 0:
-                return self.name + ": Returned non-zero (" + str(r) + ") with " + str(t) + _threads_str(t)
+                return self.name + ": Returned non-zero (" + str(r) + ") with " + str(t) + self._threads_str(t)
+
+            self.append_stdout_results(stdout, self.result_with_period)
 
         self.finishes_with_period = True
-        return self.name + ": Ok"
-
-    def parse_perf(self, isPin):
-        ''' parse perf output generated by perf or perf_with_pin methods where
-         t is the number of threads and isPin indicates if used pin or not '''
-        with open('perf.out') as myfile:
-            content = myfile.read()
-
-        all = []
-        for l in content.split("\n"):
-            if l.startswith("#") or len(l) == 0:
-                continue
-            split = l.split("--")
-            if len(split) < 2:
-                continue
-
-            all.append(float(split[0].replace(",", ".")))
-
-        if not isPin:
-            print "Perf output: " + str(all)
-            self.perf_stats.append(all)
-        else:
-            print "Perf output: " + str(all)
-            self.perf_with_pin_stats.append(all)
-
-    def perf(self, timeout):
-        ''' execute PINocchio for the test with perf, saving results '''
-        for t in self.threads:
-            command = "perf stat -o " + os.path.join(TOOLS_DIR, "perf.out")
-            command += " -x - -e cycles -e instructions -e cpu-clock "
-            command += self.path + " " + str(t)
-            r, _, _ = Shell.execute(command, timeout)
-
-            if r == None:
-                return self.name + ": Failed/timeout to finish with " + str(t) + _threads_str(t)
-
-            if r != 0:
-                return self.name + ": Returned non-zero (" + str(r) + ") with " + str(t) + _threads_str(t)
-
-            self.parse_perf(False)
-
-        self.finishes_with_perf = True
-        return self.name + ": Ok"
-
-    def pin_with_perf(self, timeout):
-        ''' execute PINocchio for the test with perf, saving results '''
-        for t in self.threads:
-            command = "perf stat -o " + os.path.join(TOOLS_DIR, "perf.out")
-            command += " -x - -e cycles -e instructions -e cpu-clock "
-            command += " pin -t " + PINOCCHIO_BINARY + " -- "
-            command += self.path + " " + str(t)
-            r, _, _ = Shell.execute(command, timeout)
-
-            if r == None:
-                return self.name + ": Failed/timeout to finish with " + str(t) + _threads_str(t)
-
-            if r != 0:
-                return self.name + ": Returned non-zero (" + str(r) + ") with " + str(t) + _threads_str(t)
-
-            self.parse_perf(True)
-
-        self.finishes_with_pin_and_perf = True
         return self.name + ": Ok"
 
     @staticmethod
@@ -324,10 +330,9 @@ class Example(object):
     @staticmethod
     def create_overhead_table_names():
         ''' current overhead values, what values it generates '''
-        insWork = []
-        cycWork = []
+        values = []
         for i in Example.quadratic_range(NUM_TESTS):
-            insWork.append("Ins (" + str(i) + ")")
-            cycWork.append("Cyc (" + str(i) + ")")
+            values.append("Wall-" + str(i))
+            values.append("Cpu-" + str(i))
 
-        return ["Name"] + insWork + cycWork
+        return ["Type/Time"] + values

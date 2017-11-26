@@ -22,13 +22,13 @@ def test_examples_must_finish(_examples):
         print ex.must_finish(5)
 
 def test_examples_must_finish_pin(_examples):
-    ''' all tests must finish under 100 seconds with different number
+    ''' all tests must finish under 300 seconds with different number
     of threads using PINocchio '''
 
     print header("Test: Examples must finish with pin")
     for ex in _examples:
         if ex.finishes:
-            print ex.must_finish_pin(100)
+            print ex.must_finish_pin(300)
 
 def test_examples_must_finish_pin_with_time(_examples):
     ''' all tests must finish under 100 seconds with different number
@@ -55,31 +55,24 @@ def print_result(_examples):
 
     table = []
     for ex in _examples:
-        table.append(ex.result())
+        table.append(ex.finish_result())
 
     Example.print_table(Example.create_table_names(), table, 3)
-
-def print_work_result(_examples):
-    ''' Print the work result table, using information from all threads '''
-
-    print header("Work Results")
-
-    table = []
-    for ex in _examples:
-        table.append(ex.work_result())
-
-    Example.print_table(Example.create_work_table_names(), table, 3)
 
 def print_overhead_result(_examples):
     ''' Print the overhead result table, using information from all threads '''
 
     print header("Overhead Results")
 
-    table = []
     for ex in _examples:
-        table.append(ex.overhead_result())
+        print "[Test Name: " + ex.name + "]"
+        table = []
+        table.append(ex.overhead_pin())
+        table.append(ex.overhead_time())
+        table.append(ex.overhead_period())
+        Example.print_table(Example.create_overhead_table_names(), table, 3)
+        print "\n"
 
-    Example.print_table(Example.create_overhead_table_names(), table, 3)
 
 if __name__ == "__main__":
     programs = Shell.search_programs()
@@ -112,6 +105,5 @@ if __name__ == "__main__":
     # Print results collected
     print_result(examples)
 
-    # FIXME: work and overhead is not working
-    #print_work_result(examples)
-    #print_overhead_result(examples)
+    # Print overhead results
+    print_overhead_result(examples)
