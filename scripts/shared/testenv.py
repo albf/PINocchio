@@ -1,6 +1,13 @@
-''' Simple helper classes for actual tests. Provides abstraction on
+''' testenv.py
+Copyright (C) 2017 Alexandre Luiz Brisighello Filho
+
+This software may be modified and distributed under the terms
+of the MIT license.  See the LICENSE file for details.
+
+Simple helper classes for actual tests. Provides abstraction on
 Shell and Example representation, allowing PINocchio to be called
-from withing a python script'''
+from withing a python script
+'''
 
 from distutils.spawn import find_executable
 from shared.trace import all_work_from_file

@@ -1,4 +1,11 @@
-''' Auxiliary functions regarding trace processing '''
+''' trace.py
+Copyright (C) 2017 Alexandre Luiz Brisighello Filho
+
+This software may be modified and distributed under the terms
+of the MIT license.  See the LICENSE file for details.
+
+Auxiliary functions regarding trace processing
+'''
 
 import json
 
@@ -33,7 +40,7 @@ def process_thread(thread):
             _duration.append(duration)
             _color.append(colors_map[int(current)])
 
-            offset += duration 
+            offset += duration
             size += 1
 
     return (_left, _duration, _color, size)

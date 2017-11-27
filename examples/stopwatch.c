@@ -1,3 +1,11 @@
+/* stopwatch.c
+ *
+ * Copyright (C) 2017 Alexandre Luiz Brisighello Filho
+ *
+ * This software may be modified and distributed under the terms
+ * of the MIT license.  See the LICENSE file for details.
+ */
+
 #include <time.h>
 #include <sys/time.h>
 #include <stdio.h>

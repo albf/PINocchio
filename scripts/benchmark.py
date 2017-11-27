@@ -1,6 +1,13 @@
-''' Provides a simple test framework for PINocchio.
+''' benchmark.py
+Copyright (C) 2017 Alexandre Luiz Brisighello Filho
+
+This software may be modified and distributed under the terms
+of the MIT license.  See the LICENSE file for details.
+
+Provides a simple test framework for PINocchio.
 Will identify programs and tests, running all tests using different
-configurations, printing a result table in the end. '''
+configurations, printing a result table in the end.
+'''
 
 from shared.testenv import Example, Shell, PINOCCHIO_BINARY
 
@@ -22,13 +29,13 @@ def test_examples_must_finish(_examples):
         print ex.must_finish(5)
 
 def test_examples_must_finish_pin(_examples):
-    ''' all tests must finish under 300 seconds with different number
+    ''' all tests must finish under 500 seconds with different number
     of threads using PINocchio '''
 
     print header("Test: Examples must finish with pin")
     for ex in _examples:
         if ex.finishes:
-            print ex.must_finish_pin(300)
+            print ex.must_finish_pin(500)
 
 def test_examples_must_finish_pin_with_time(_examples):
     ''' all tests must finish under 100 seconds with different number
