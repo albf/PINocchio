@@ -61,10 +61,10 @@ Something to keep in mind, all sync is done by the tool, so the pthreads functio
     - pthread_cond_signal
     - pthread_cond_wait
 
-Assuming you have installed correctly, you should have PINocchio.so inside obj-intel64/ subdirectory. For the pi_montecarlo_app, for example, the normal usage would be:
+Assuming you have installed correctly, you should have PINocchio.so inside obj-intel64/ subdirectory. To make it easier to use, a bash script is provided. For the pi_montecarlo_app, for example, the normal usage would be:
 
 ```
-$ pin -t obj-intel64/PINocchio.so -- obj-intel64/pi_montecarlo_app
+$ ./PINocchio.sh ./obj-intel64/pi_montecarlo_app
 ```
 
 Once the execution has finished, a JSON with the generated results (trace.json) is created once execution is finished. You can visualize the execution by using the provided script:
@@ -77,19 +77,19 @@ There are two extra execution modes you use, by adding an argument just in front
 
 - -p NUMBER
     - would sync only after a period of NUMBER cycles. Can be used to get a less precise result but faster.
-    - example: $ pin -t obj-intel64/PINocchio.so -p 1000 -- obj-intel64/pi_montecarlo_app
+    - example: $ ./PINocchio.sh -p 1000 ./obj-intel64/pi_montecarlo_app
 - -t
     - time based simulation without sync, not a PRAM. Can be used for comparison or only tracking threads.
-    - example: $ pin -t obj-intel64/PINocchio.so -t -- obj-intel64/pi_montecarlo_app
+    - example: $ ./PINocchio.sh -t ./obj-intel64/pi_montecarlo_app
 - -o NAME
     - just change the output name.
-    - example: $ pin -t obj-intel64/PINocchio.so -o other.json -- obj-intel64/pi_montecarlo_app
+    - example: $ ./PINocchio.sh -o other.json ./obj-intel64/pi_montecarlo_app
 
 
 For all the examples, the first argument is the number of threads to be created. Here follows the pi_montecarlo_app executed with 4 worker threads and the generated graph.
 
 ```
-$ pin -t obj-intel64/PINocchio.so -- obj-intel64/pi_montecarlo_app 4
+$ ./PINocchio.sh ./obj-intel64/pi_montecarlo_app 4
 $ python scripts/graph.py
 ```
 
