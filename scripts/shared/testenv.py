@@ -10,7 +10,7 @@ from withing a python script
 '''
 
 from distutils.spawn import find_executable
-from shared.trace import all_work_from_file
+from shared.trace import all_stats_from_file
 import os
 import subprocess
 import sys
@@ -19,6 +19,7 @@ import time
 TOOLS_DIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 PINOCCHIO_DIR = os.path.dirname(TOOLS_DIR)
 PINOCCHIO_BINARY = os.path.join(PINOCCHIO_DIR, "obj-intel64", "PINocchio.so")
+BINARY_DIR = os.path.join(PINOCCHIO_DIR, "obj-intel64")
 
 NUM_TESTS = 6
 VERBOSE = True
@@ -28,7 +29,7 @@ class Shell(object):
     @staticmethod
     def search_programs():
         ''' search tools of interest on path '''
-        search_list = ["pin", "perf", PINOCCHIO_BINARY]
+        search_list = ["pin", PINOCCHIO_BINARY]
         programs = {}
 
         for p in search_list:
@@ -64,19 +65,29 @@ class Shell(object):
     def create_examples():
         ''' identify current examples and create examples objects for them '''
         ls = os.listdir(os.path.join(PINOCCHIO_DIR, "examples"))
-        binary_dir = os.path.join(PINOCCHIO_DIR, "obj-intel64")
 
         examples = []
         for f in ls:
             if f.endswith("_app.c"):
-                test_name = f[:-2]
-                test_file = os.path.join(binary_dir, test_name)
-                if os.path.isfile(test_file):
-                    examples.append(Example(test_name, test_file))
-                else:
-                    print "Warning: Test missing: " + test_file
+                examples.append(Shell.create_example(f[:-2]))
 
         return examples
+
+    @staticmethod
+    def create_example(test_name, no_binary_fail = False, quadratic = True):
+        ''' identify only one example and create an example objects for it'''
+        test_file = os.path.join(BINARY_DIR, test_name)
+        if os.path.isfile(test_file):
+            return Example(test_name, test_file, quadratic = quadratic)
+
+        # Accept with obj-inte64/ already appended
+        test_file = os.path.join(BINARY_DIR, test_name[12:])
+        if os.path.isfile(test_file):
+            return Example(test_name, test_file, quadratic = quadratic)
+        else:
+            print "Warning: Can't find binary: " + test_file
+            if no_binary_fail:
+                exit(1)
 
     @staticmethod
     def check_dependencies(programs, dependencies):
@@ -100,19 +111,24 @@ class Shell(object):
 class Example(object):
     ''' Represents a example, which should have a *_app.c file under dir
     /examples/ and a compiled binary under obj-intel64/ '''
-    def __init__(self, name, path):
+    def __init__(self, name, path, quadratic=True):
         self.name = name
         self.path = path
-        self.threads = Example.quadratic_range(NUM_TESTS)
+
+        if quadratic:
+            self.threads = Example.quadratic_range(NUM_TESTS)
+        else:
+            self.threads = range(1, 2**NUM_TESTS)
 
         self.finishes = False
         self.finishes_with_pin = False
         self.finishes_with_time = False
         self.finishes_with_period = False
-        self.finishes_with_pin_and_perf = False
 
         # List of results following the order of self.threads
         self.work = []
+        self.max_duration = []
+        self.efficiency = []
 
         # Format: [[wall, cpu]]
         self.result = []
@@ -123,21 +139,6 @@ class Example(object):
     def finish_result(self):
         ''' generate string used as result table entry '''
         return [self.name, self.finishes, self.finishes_with_pin, self.finishes_with_time, self.finishes_with_period]
-
-    def work_result(self):
-        ''' generate string used as work result table entry '''
-        result = [self.name]
-        for i in range(NUM_TESTS):
-            if self.finishes_with_pin_and_perf:
-                result.append(self.perf_with_pin_stats[i][1]/float(self.work[i]))
-            else:
-                result.append(None)
-        for i in range(NUM_TESTS):
-            if self.finishes_with_pin_and_perf:
-                result.append(self.perf_with_pin_stats[i][0]/float(self.work[i]))
-            else:
-                result.append(None)
-        return result
 
     def append_stdout_results(self, stdout, result_list):
         ''' find results in stdout and append to the provided list'''
@@ -222,36 +223,67 @@ class Example(object):
     def must_finish(self, timeout):
         ''' attempt to run the example using different thread numbers '''
         for t in self.threads:
-            command = self.path + " " + str(t)
-            r, stdout, _ = Shell.execute(command, timeout)
-
-            if r == None:
-                return self.name + ": Failed/timeout to finish with " + str(t) + self._threads_str(t)
-
-            if r != 0:
-                return self.name + ": Returned non-zero (" + str(r) + ") with " + str(t) + self._threads_str(t)
-
-            self.append_stdout_results(stdout, self.result)
+            r = self.run_once(timeout, t)
+            if r is not None:
+                return r
 
         self.finishes = True
         return self.name + ": Ok"
 
+    def run_once(self, timeout, t):
+        ''' run the instrumented program only once with t threads '''
+
+        command = self.path + " " + str(t)
+        r, stdout, _ = Shell.execute(command, timeout)
+
+        if r == None:
+            return self.name + ": Failed/timeout to finish with " + str(t) + self._threads_str(t)
+
+        if r != 0:
+            return self.name + ": Returned non-zero (" + str(r) + ") with " + str(t) + self._threads_str(t)
+
+        self.append_stdout_results(stdout, self.result)
+        return None
+
+    def _append_stats_from_file(self):
+        work, max_duration, efficiency = all_stats_from_file(os.path.join(TOOLS_DIR, "trace.json"))
+        self.work.append(work)
+        self.max_duration.append(max_duration)
+        self.efficiency.append(efficiency)
+
+    def scale_test_pin(self, timeout):
+        ''' run the example using different thread numbers and store scalability information '''
+        for t in self.threads:
+            r = self.run_once_pin(timeout, t)
+            if r is not None:
+                return r
+
+            self._append_stats_from_file()
+
     def must_finish_pin(self, timeout):
         ''' same as must_finish, but using pin and PINocchio, also calculates work '''
         for t in self.threads:
-            command = "pin -t " + PINOCCHIO_BINARY + " -- " + self.path + " " + str(t)
-            r, stdout, _ = Shell.execute(command, timeout)
-
-            if r == None:
-                return self.name + ": Failed/timeout to finish with " + str(t) + self._threads_str(t)
-
-            if r != 0:
-                return self.name + ": Returned non-zero (" + str(r) + ") with " + str(t) + self._threads_str(t)
-
-            self.append_stdout_results(stdout, self.result_with_pin)
+            r = self.run_once_pin(timeout, t)
+            if r is not None:
+                return r
 
         self.finishes_with_pin = True
         return self.name + ": Ok"
+
+    def run_once_pin(self, timeout, t):
+        ''' run the instrumented program only once with t threads under pin'''
+
+        command = "pin -t " + PINOCCHIO_BINARY + " -- " + self.path + " " + str(t)
+        r, stdout, _ = Shell.execute(command, timeout)
+
+        if r == None:
+            return self.name + ": Failed/timeout to finish with " + str(t) + self._threads_str(t)
+
+        if r != 0:
+            return self.name + ": Returned non-zero (" + str(r) + ") with " + str(t) + self._threads_str(t)
+
+        self.append_stdout_results(stdout, self.result)
+        return None
 
     def must_finish_pin_with_time(self, timeout):
         ''' same as must_finish, but using pin and PINocchio with timed based (non-PRAM) option'''
@@ -271,20 +303,37 @@ class Example(object):
         self.finishes_with_time = True
         return self.name + ": Ok"
 
+    def scale_test_pin_with_period(self, timeout):
+        ''' run the example using different thread numbers and store scalability information '''
+        for t in self.threads:
+            r = self.run_once_pin_with_period(timeout, t)
+            if r is not None:
+                return r
+
+            self._append_stats_from_file()
+
+    def run_once_pin_with_period(self, timeout, t):
+        ''' run the instrumented program only once with t threads under pin'''
+
+        command = " pin -t " + PINOCCHIO_BINARY + " -p 1000 -- "
+        command += self.path + " " + str(t)
+        r, stdout, _ = Shell.execute(command, timeout)
+
+        if r == None:
+            return self.name + ": Failed/timeout to finish with " + str(t) + self._threads_str(t)
+
+        if r != 0:
+            return self.name + ": Returned non-zero (" + str(r) + ") with " + str(t) + self._threads_str(t)
+
+        self.append_stdout_results(stdout, self.result)
+        return None
+
     def must_finish_pin_with_period(self, timeout):
         ''' same as must_finish, but using pin and PINocchio with a 1000-period (approximate) option'''
         for t in self.threads:
-            command = " pin -t " + PINOCCHIO_BINARY + " -p 1000 -- "
-            command += self.path + " " + str(t)
-            r, stdout, _ = Shell.execute(command, timeout)
-
-            if r == None:
-                return self.name + ": Failed/timeout to finish with " + str(t) + self._threads_str(t)
-
-            if r != 0:
-                return self.name + ": Returned non-zero (" + str(r) + ") with " + str(t) + self._threads_str(t)
-
-            self.append_stdout_results(stdout, self.result_with_period)
+            r = self.run_once_pin_with_period(timeout, t)
+            if r is not None:
+                return r
 
         self.finishes_with_period = True
         return self.name + ": Ok"

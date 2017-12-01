@@ -53,20 +53,24 @@ def thread_work(_duration, _color, color_selected):
             _work += _duration[i]
     return _work
 
-def all_work(_threads):
+def all_stats(_threads):
     ''' Return all work in instructions for all threads '''
     _work = 0
     for _t in _threads:
         _, d, c, _ = process_thread(_t)
         _work += thread_work(d, c, "b")
-    return _work
 
-def all_work_from_file(filename):
+    _max_duration = duration(_threads)
+    _efficiency = _work/float(_max_duration*len(_threads))
+
+    return _work, _max_duration, _efficiency
+
+def all_stats_from_file(filename):
     ''' All work but from a trace file '''
     with open(filename) as data_file:
         data = json.load(data_file)
 
-    return all_work(data["threads"])
+    return all_stats(data["threads"])
 
 def duration(_threads):
     ''' Duration of computation, from the start of first thread and

@@ -91,7 +91,7 @@ if __name__ == "__main__":
     # Test 2
     missing = Shell.check_dependencies(programs, ["pin", PINOCCHIO_BINARY])
     if len(missing) > 0:
-        print "Cant run test 2, missing dependencies: " + " ".join(missing)
+        exit(1)
     else:
         test_examples_must_finish_pin(examples)
 

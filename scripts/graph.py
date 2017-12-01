@@ -39,9 +39,6 @@ if __name__ == "__main__":
     ypos = []
     actors = []
 
-    # Final execution statistics
-    work = 0
-
     for t in range(len(threads)):
         t_left, t_duration, t_color, t_size = trace.process_thread(threads[t])
 
@@ -54,11 +51,9 @@ if __name__ == "__main__":
         ypos += (t_size*[t])
         actors.append("thread " + str(t))
 
-        # update Final execution statistics
-        work += trace.thread_work(t_duration, t_color, "b")
 
-    max_duration = trace.duration(threads)
-    efficiency = work/float(max_duration*len(threads))
+    # update Final execution statistics
+    work, max_duration, efficiency = trace.all_stats(data["threads"])
 
     print "------"
     print "Total Work: " + str(work) + " " + unit
