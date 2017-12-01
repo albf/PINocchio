@@ -6,7 +6,7 @@ PRAM (parallel random-access machine) simulator for pthreads-based programs, for
 
 PINocchio is a pintool, so you need a C++ toolchain and Intel's Pin to compile the project. Although Pin is compatible with Windows, PINocchio was tested and developed with Linux in mind, as it tracks pthreads calls - check examples.
 
-### Installing
+## Installing
 
 Most tests were performed on Debian, but it should work the same way on other distros assuming you respect the rules and can provide the following:
 
@@ -15,7 +15,7 @@ Most tests were performed on Debian, but it should work the same way on other di
 - pin (tested with 3-4, get it [here](https://software.intel.com/en-us/articles/pin-a-binary-instrumentation-tool-downloads))
 - [Optional] python 2.7 with matplotlib
 
-Python is only required for using the scripts provided. Script [graph.py](scripts/graph.py) is actually the easiest way to visualize the results from an execution, [benchmark.py](scripts/benchmark.py) is for testing purposes.
+Python is only required for using the scripts provided. Scripts [graph.py](scripts/graph.py) and [scale.py](scripts/scale.py) are actually the easiest way to visualize the results from an execution, [benchmark.py](scripts/benchmark.py) is for testing purposes.
 
 Once you have the requirements, installing follows as other pintools:
 
@@ -25,7 +25,7 @@ Once you have the requirements, installing follows as other pintools:
 
 Lastly, before running anything, remind you need to have Pin binary in your PATH variable.
 
-### Usage
+## Usage
 
 Something to keep in mind, all sync is done by the tool, so the pthreads functions used should be supported. Here is the current supported list:
 
@@ -67,7 +67,7 @@ Assuming you have installed correctly, you should have PINocchio.so inside obj-i
 $ ./PINocchio.sh ./obj-intel64/pi_montecarlo_app
 ```
 
-Once the execution has finished, a JSON with the generated results (trace.json) is created once execution is finished. You can visualize the execution by using the provided script:
+Once the execution has finished, a JSON with the generated results (trace.json) is created once execution is finished. You can visualize the execution by using the provided scripts. To explore only one trace:
 
 ```
 $ python scripts/graph.py
@@ -94,6 +94,16 @@ $ python scripts/graph.py
 ```
 
 ![Pi generated output](/examples/pi.png)
+
+### Scale
+
+There is also a scale script. It will run an example several times, changing the number of threads on each execution (it assumes the software receives the number of threads as the first argument). After all the executions, it will calculate and plot: total work, duration and efficiency. Using "-p" will use a 1000-period.
+
+```
+$ python scripts/scale.py -p ./obj-intel64/pi_montecarlo_app
+```
+
+![Pi scale generated output](/examples/pi-scale.png)
 
 
 ## License
