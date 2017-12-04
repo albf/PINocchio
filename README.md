@@ -93,7 +93,7 @@ $ ./PINocchio.sh ./obj-intel64/pi_montecarlo_app 4
 $ python scripts/graph.py
 ```
 
-![Pi generated output](/examples/pi.png)
+![Pi generated output](/imgs/graph-4/pi_montecarlo_app-4.png)
 
 ### Scale
 
@@ -103,7 +103,9 @@ There is also a scale script. It will run an example several times, changing the
 $ python scripts/scale.py -p ./obj-intel64/pi_montecarlo_app
 ```
 
-![Pi scale generated output](/examples/pi-scale.png)
+![Pi scale generated output](/imgs/scale/pi_montecarlo.png)
+
+Others graphs can be found at the [imgs](/imgs) directory.
 
 
 ## License
