@@ -282,7 +282,7 @@ class Example(object):
         if r != 0:
             return self.name + ": Returned non-zero (" + str(r) + ") with " + str(t) + self._threads_str(t)
 
-        self.append_stdout_results(stdout, self.result)
+        self.append_stdout_results(stdout, self.result_with_pin)
         return None
 
     def must_finish_pin_with_time(self, timeout):
@@ -325,7 +325,7 @@ class Example(object):
         if r != 0:
             return self.name + ": Returned non-zero (" + str(r) + ") with " + str(t) + self._threads_str(t)
 
-        self.append_stdout_results(stdout, self.result)
+        self.append_stdout_results(stdout, self.result_with_period)
         return None
 
     def must_finish_pin_with_period(self, timeout):
