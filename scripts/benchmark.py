@@ -29,31 +29,31 @@ def test_examples_must_finish(_examples):
         print ex.must_finish(5)
 
 def test_examples_must_finish_pin(_examples):
-    ''' all tests must finish under 500 seconds with different number
+    ''' all tests must finish under 1000 seconds with different number
     of threads using PINocchio '''
 
     print header("Test: Examples must finish with pin")
     for ex in _examples:
         if ex.finishes:
-            print ex.must_finish_pin(500)
+            print ex.must_finish_pin(1000)
 
 def test_examples_must_finish_pin_with_time(_examples):
-    ''' all tests must finish under 100 seconds with different number
+    ''' all tests must finish under 1090 seconds with different number
     of threads using PINocchio with time option '''
 
     print header("Test: Examples must finish with pin using time option")
     for ex in _examples:
         if ex.finishes:
-            print ex.must_finish_pin_with_time(100)
+            print ex.must_finish_pin_with_time(1000)
 
 def test_examples_must_finish_pin_with_period(_examples):
-    ''' all tests must finish under 100 seconds with different number
+    ''' all tests must finish under 1000 seconds with different number
     of threads using PINocchio with period option '''
 
     print header("Test: Examples must finish with pin using period")
     for ex in _examples:
         if ex.finishes:
-            print ex.must_finish_pin_with_period(100)
+            print ex.must_finish_pin_with_period(1000)
 
 def print_result(_examples):
     ''' Print the result table, using information from all threads '''

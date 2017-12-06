@@ -12,13 +12,21 @@
 #include <stdlib.h>
 #include "stopwatch.h"
 
-#define LOOP_COUNT 4000000
+#define LOOP_COUNT 200000
 #define SEM_VALUE 2
 
 sem_t sem;
 sem_t mutex;
 
 int y;
+
+struct _dummy_work {
+    int outer_loop;
+    int inner_loop_start;
+    int inner_loop_end;
+};
+
+typedef struct _dummy_work DUMMY_WORK;
 
 int mat(int a, int b)
 {
@@ -29,14 +37,11 @@ int mat(int a, int b)
 void *dummy_func(void *pn)
 {
     int r = 0;
-    int n = *((int *) pn);
-
-    int OUTER_LOOP = n / 1000;
-    int INNER_LOOP = 1000;
+    DUMMY_WORK * dw = (DUMMY_WORK *) pn;
 
     sem_wait(&sem);
-    for(int i = 0; i < OUTER_LOOP; i++) {
-        for(int j = 0; j < INNER_LOOP; j++) {
+    for(int i = 0; i < dw->outer_loop; i++) {
+        for(int j = dw->inner_loop_start; j < dw->inner_loop_end; j++) {
             r = r + mat(i, j);
         }
     }
@@ -53,8 +58,9 @@ void *dummy_func(void *pn)
 int main(int argc, char **argv)
 {
     stopwatch_start();
-    int i, *n;
+    int i;
     int num_threads = 2;
+    DUMMY_WORK * n;
 
     if(sem_init(&sem, 0, SEM_VALUE)) {
         fprintf(stderr, "error initializing semaphore");
@@ -72,13 +78,22 @@ int main(int argc, char **argv)
         num_threads = atoi(argv[1]);
     }
 
-    n = (int *) malloc(num_threads * sizeof(int));
+    n = (DUMMY_WORK *) malloc(num_threads * sizeof(DUMMY_WORK));
 
     pthread_t *dummy_thread;
     dummy_thread = (pthread_t *) malloc(num_threads * sizeof(pthread_t));
 
+    int reminder = LOOP_COUNT % num_threads;
+    int block_size = (int) (LOOP_COUNT/num_threads);
+
     for(i = 0; i < num_threads; i++) {
-        n[i] = LOOP_COUNT / (num_threads);
+        //n[i] = LOOP_COUNT / (num_threads);
+        n[i].outer_loop = 1000;
+        n[i].inner_loop_start = (block_size*i);
+        n[i].inner_loop_end = n[i].inner_loop_start + block_size + reminder;
+
+        reminder = 0;
+
         if(pthread_create(&dummy_thread[i], NULL, dummy_func, &n[i])) {
             fprintf(stderr, "Error creating thread\n");
             return 1;
